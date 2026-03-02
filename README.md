@@ -2,10 +2,12 @@
 ## TALEA Nature-Based Solutions Toolkit (Abacus of Hardware Solutions)
 
 ## Description
-The NBS Toolkit is a structured and filterable repository of nature-based and nature-based-like solutions adopted worldwide to support climate adaptation, urban resilience, and green transition strategies.
-It represents the digital evolution of the TALEA Abacus of Hardware Solutions. transforming a static catalogue into an interactive knowledge base that enables:
+The NBS Toolkit is a structured and filterable repository of nature-based and nature-based-like solutions adopted worldwide to support climate adaptation, urban resilience, and green transition strategies.\
+It represents the digital evolution of the TALEA Abacus of Hardware Solutions 
+
+Transforming a static catalogue into an interactive knowledge base that enables:
 - exploration of real-world implementations
-- filtering by environmental, climatic, spatial and social criteria
+- filtering by different attributes
 - comparison of typologies and performance indicators
 - contextual adaptation to TALEA Green Cells
 
