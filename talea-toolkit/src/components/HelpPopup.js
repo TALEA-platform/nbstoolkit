@@ -5,7 +5,7 @@ const HELP_PAGES = [
     title: 'Getting Started',
     icon: '🏠',
     content: [
-      { heading: 'What is TALEA Abacus?', text: 'TALEA Abacus is an interactive toolkit for exploring Nature-Based Solution (NBS) case studies from cities worldwide. Browse, search, filter, compare, and export data about real-world NBS projects. New submissions are added dynamically to the toolkit.' },
+      { heading: 'What is TALEA Abacus?', text: 'TALEA Abacus is an interactive toolkit for exploring Nature-Based Solution (NBS) case studies from cities worldwide. Browse, search, filter, compare, and export data about real-world NBS projects. New submissions are added to the toolkit.' },
       { heading: 'Quick start', text: 'Type in the search bar to find solutions — the search supports fuzzy matching, so misspelled words still work. Press Enter to submit your query and add filter chips automatically.' },
       { heading: 'Views', text: 'Switch between Grid, List, and Map view using the toggle buttons. Grid shows cards, List shows a compact table, and Map plots locations on an interactive map.' },
     ],
@@ -14,17 +14,16 @@ const HELP_PAGES = [
     title: 'Search & Chat',
     icon: '🔍',
     content: [
-      { heading: 'Multi-word search', text: 'Type multiple words and all must match (AND logic). Use a minus sign before a word (e.g. "-tropical") to exclude results containing that word.' },
+      { heading: 'Multi-word search', text: 'Type multiple words. Use a minus sign before a word (e.g. "-tropical") to exclude results containing that word.' },
       { heading: 'Smart chat', text: 'When you press Enter, the assistant analyzes your query and tells you about matching results, suggested filters, and specific case studies. It also suggests common filters among your results.' },
       { heading: 'Slash commands', text: 'Type / in the search bar to see available commands like /map, /stats, /compare, /clear, /export, /favorites, and more.' },
-      { heading: 'AI mode', text: 'Toggle between Quick (rule-based) and AI (WebLLM) chat modes. AI mode loads a small language model directly in your browser for more natural responses.' },
     ],
   },
   {
     title: 'Filter Canvas',
     icon: '🎨',
     content: [
-      { heading: 'How it works', text: 'The Filter Canvas is a visual query builder. Open the palette to see all 29 filter categories organized in 5 groups. Click or drag filters onto the canvas.' },
+      { heading: 'How it works', text: 'The Filter Canvas is a visual query builder. Open the palette to see all filter categories organized in groups. Click or drag filters onto the canvas.' },
       { heading: 'Include / Exclude', text: 'Filters are green by default (include). You can exclude filters in two ways: (1) Click the NOT button in the canvas toolbar to activate NOT mode — while active, any palette item you click is added as an exclusion filter (red "NOT" chip). (2) After adding a filter, click the toggle button (-/+) on its chip to switch between include and exclude. Excluded filters remove matching results.' },
       { heading: 'Filter groups', text: 'Filters are organized into: Core (type, continent, climate, size), Physical Context (A-group), Constraints (B-group), Design Features (C-group), and NBS Categories (D-group — plants, paving, water, roof/facade, furnishings, urban spaces).' },
       { heading: 'Result bar', text: 'The progress bar at the bottom shows how many solutions match your current filter combination.' },
