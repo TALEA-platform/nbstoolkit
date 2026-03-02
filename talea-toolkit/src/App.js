@@ -1,8 +1,9 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import caseStudies from './data/caseStudies.json';
+import staticCaseStudies from './data/caseStudies.json';
 import { FILTER_CATEGORIES } from './data/filterConfig';
 import { createCaseStudyFuse, multiWordCaseStudySearch, fuzzySearchFilters, generateChatResponse, parseMultiWordQuery, findCommonFilters } from './utils/fuzzySearch';
 import { exportFilteredResultsPDF } from './utils/pdfExport';
+import { hasTaleaType } from './utils/getTaleaTypes';
 import { executeCommand } from './utils/commandHandler';
 import SearchBar from './components/SearchBar';
 import FilterCanvas from './components/FilterCanvas';
@@ -13,9 +14,43 @@ import Header from './components/Header';
 import MapView from './components/MapView';
 import CompareMode from './components/CompareMode';
 import StatsPanel from './components/StatsPanel';
+import HelpPopup from './components/HelpPopup';
 import './App.css';
 
-const csFuse = createCaseStudyFuse(caseStudies);
+// Required fields that every study must have to be valid
+const REQUIRED_STUDY_FIELDS = ['title', 'city', 'country', 'year', 'description', 'size', 'climate_zone'];
+
+function isValidStudy(study) {
+  return REQUIRED_STUDY_FIELDS.every(key => {
+    const val = study[key];
+    if (Array.isArray(val)) return val.length > 0;
+    return typeof val === 'string' && val.trim().length > 0;
+  });
+}
+
+// Load user-submitted studies from localStorage and merge with static data
+// Automatically removes invalid/blank submissions
+function loadAllStudies() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('talea_submissions') || '[]');
+    // Filter out invalid submissions
+    const valid = raw.filter(isValidStudy);
+    // Clean up localStorage if some were removed
+    if (valid.length !== raw.length) {
+      localStorage.setItem('talea_submissions', JSON.stringify(valid));
+    }
+    if (valid.length === 0) return staticCaseStudies;
+    const maxStaticId = Math.max(...staticCaseStudies.map(s => s.id));
+    const userStudies = valid.map((sub, i) => ({
+      ...sub,
+      id: sub.id || maxStaticId + 1 + i,
+      _userSubmitted: true,
+    }));
+    return [...staticCaseStudies, ...userStudies];
+  } catch {
+    return staticCaseStudies;
+  }
+}
 
 // URL hash helpers
 function encodeStateToHash(activeFilters, searchQuery) {
@@ -43,6 +78,23 @@ function decodeHashToState(hash) {
 }
 
 function App() {
+  // Dynamic case studies: static JSON + localStorage submissions
+  const [caseStudies, setCaseStudies] = useState(loadAllStudies);
+  const csFuse = useMemo(() => createCaseStudyFuse(caseStudies), [caseStudies]);
+
+  // Called when a new study is submitted — re-merge and update
+  const refreshStudies = useCallback(() => {
+    setCaseStudies(loadAllStudies());
+  }, []);
+
+  // Cookie consent
+  const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem('talea_cookie_consent') === 'true');
+
+  const acceptCookies = useCallback(() => {
+    localStorage.setItem('talea_cookie_consent', 'true');
+    setCookieConsent(true);
+  }, []);
+
   // Theme
   const [theme, setTheme] = useState(() => localStorage.getItem('talea_theme') || 'light');
 
@@ -75,12 +127,15 @@ function App() {
   const [activeFilters, setActiveFilters] = useState({});
   const [excludedFilters, setExcludedFilters] = useState({});
   const [canvasFilters, setCanvasFilters] = useState([]);
+  const [filterModes, setFilterModes] = useState({}); // { [categoryKey]: 'or' | 'and' }, default 'or'
   const [selectedStudy, setSelectedStudy] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState('grid');
   const [sortBy, setSortBy] = useState('default');
   const [showStats, setShowStats] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [helpPage, setHelpPage] = useState(0);
   const [chatMessages, setChatMessages] = useState([
     { role: 'bot', text: "Welcome to the NBS Toolkit! I'm your TALEA Abacus assistant. Search for hardware solutions by typing anything \u2014 city names, NBS types, or even misspelled words. I'll find the best matches!", type: 'greeting' },
   ]);
@@ -246,10 +301,18 @@ function App() {
     }));
   }, []);
 
+  const toggleFilterMode = useCallback((categoryKey) => {
+    setFilterModes(prev => ({
+      ...prev,
+      [categoryKey]: prev[categoryKey] === 'and' ? 'or' : 'and',
+    }));
+  }, []);
+
   const clearAllFilters = useCallback(() => {
     setActiveFilters({});
     setExcludedFilters({});
     setCanvasFilters([]);
+    setFilterModes({});
     setSearchQuery('');
   }, []);
 
@@ -291,14 +354,20 @@ function App() {
           if (selectedValues.length === 0) continue;
           const config = FILTER_CATEGORIES[categoryKey];
           if (!config) continue;
+          const isAnd = filterModes[categoryKey] === 'and';
+          const matcher = isAnd ? 'every' : 'some';
           if (config.type === 'object') {
-            const obj = study[config.dataKey];
-            if (!selectedValues.some(v => obj[v.toLowerCase()])) return false;
+            if (!selectedValues[matcher](v => hasTaleaType(study, v))) return false;
           } else if (config.type === 'value') {
-            if (!selectedValues.includes(study[config.dataKey])) return false;
+            // value type: a study has one value, so AND with multiple selected means it must match all (impossible for >1)
+            if (isAnd) {
+              if (!selectedValues.every(v => study[config.dataKey] === v)) return false;
+            } else {
+              if (!selectedValues.includes(study[config.dataKey])) return false;
+            }
           } else if (config.type === 'array') {
             const arr = study[config.dataKey] || [];
-            if (!selectedValues.some(v => arr.includes(v))) return false;
+            if (!selectedValues[matcher](v => arr.includes(v))) return false;
           }
         }
         for (const [categoryKey, excludedValues] of Object.entries(excludedFilters)) {
@@ -306,8 +375,7 @@ function App() {
           const config = FILTER_CATEGORIES[categoryKey];
           if (!config) continue;
           if (config.type === 'object') {
-            const obj = study[config.dataKey];
-            if (excludedValues.some(v => obj[v.toLowerCase()])) return false;
+            if (excludedValues.some(v => hasTaleaType(study, v))) return false;
           } else if (config.type === 'value') {
             if (excludedValues.includes(study[config.dataKey])) return false;
           } else if (config.type === 'array') {
@@ -325,7 +393,34 @@ function App() {
     }
 
     return results;
-  }, [searchQuery, activeFilters, excludedFilters, fuzzyResults, showFavorites, favorites]);
+  }, [searchQuery, activeFilters, excludedFilters, filterModes, fuzzyResults, showFavorites, favorites]);
+
+  // Extract a numeric year from a string like "2017–2019", "21st century", "completed 2022", etc.
+  // Returns the most recent year found, or 0 if none.
+  const extractYear = useCallback((yearStr) => {
+    if (!yearStr) return 0;
+    const s = String(yearStr);
+
+    // Find all 4-digit years
+    const fourDigit = s.match(/\b(\d{4})\b/g);
+    if (fourDigit && fourDigit.length > 0) {
+      return Math.max(...fourDigit.map(Number));
+    }
+
+    // Handle century references: "12th century" → 1100, "21st century" → 2000
+    const centuryMatch = s.match(/(\d{1,2})(?:st|nd|rd|th)\s*(?:century|cent\.?)/i);
+    if (centuryMatch) {
+      return (parseInt(centuryMatch[1], 10) - 1) * 100;
+    }
+
+    // Handle "1990s" style
+    const decadeMatch = s.match(/(\d{4})s/);
+    if (decadeMatch) {
+      return parseInt(decadeMatch[1], 10) + 5; // midpoint of decade
+    }
+
+    return 0;
+  }, []);
 
   const sortedStudies = useMemo(() => {
     if (sortBy === 'default') return filteredStudies;
@@ -333,8 +428,8 @@ function App() {
     switch (sortBy) {
       case 'title-az': sorted.sort((a, b) => a.title.localeCompare(b.title)); break;
       case 'title-za': sorted.sort((a, b) => b.title.localeCompare(a.title)); break;
-      case 'year-new': sorted.sort((a, b) => (b.year || '').localeCompare(a.year || '')); break;
-      case 'year-old': sorted.sort((a, b) => (a.year || '').localeCompare(b.year || '')); break;
+      case 'year-new': sorted.sort((a, b) => extractYear(b.year) - extractYear(a.year)); break;
+      case 'year-old': sorted.sort((a, b) => extractYear(a.year) - extractYear(b.year)); break;
       case 'country': sorted.sort((a, b) => a.country.localeCompare(b.country)); break;
       case 'nbs-most': sorted.sort((a, b) => {
         const countNbs = s => (s.d1_plants?.length || 0) + (s.d2_paving?.length || 0) + (s.d3_water?.length || 0)
@@ -446,6 +541,11 @@ function App() {
     setCommittedQuery('');
   }, []);
 
+  const openHelp = useCallback((page = 0) => {
+    setHelpPage(page);
+    setShowHelp(true);
+  }, []);
+
   const activeFilterCount = Object.values(activeFilters).reduce((sum, arr) => sum + arr.length, 0)
     + Object.values(excludedFilters).reduce((sum, arr) => sum + arr.length, 0);
 
@@ -464,6 +564,7 @@ function App() {
         onToggleFavorites={() => setShowFavorites(prev => !prev)}
         favoritesCount={favorites.length}
         onShareURL={shareURL}
+        onShowHelp={() => openHelp(0)}
       />
 
       <main className="main-content">
@@ -485,11 +586,16 @@ function App() {
             canvasFilters={canvasFilters}
             onRemoveFilter={removeCanvasFilter}
             onAddFilter={addCanvasFilter}
+            onAddExcludedFilter={addExcludedFilter}
             onClearAll={clearAllFilters}
             filteredCount={filteredStudies.length}
             totalCount={caseStudies.length}
             onToggleExclude={toggleExcludeFilter}
             excludedFilters={excludedFilters}
+            onShowHelp={openHelp}
+            activeFilters={activeFilters}
+            filterModes={filterModes}
+            onToggleFilterMode={toggleFilterMode}
           />
 
           <div className="results-area">
@@ -567,11 +673,13 @@ function App() {
           onClose={() => setSelectedStudy(null)}
           isFavorite={favorites.includes(selectedStudy.id)}
           onToggleFavorite={toggleFavorite}
+          allStudies={caseStudies}
+          onSelectStudy={setSelectedStudy}
         />
       )}
 
       {showForm && (
-        <SubmitForm onClose={() => setShowForm(false)} />
+        <SubmitForm onClose={() => setShowForm(false)} onSubmitted={refreshStudies} existingStudies={caseStudies} />
       )}
 
       {showCompare && compareIds.length >= 2 && (
@@ -586,6 +694,27 @@ function App() {
         isOpen={showStats}
         onClose={() => setShowStats(false)}
       />
+
+      <HelpPopup
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+        initialPage={helpPage}
+      />
+
+      {!cookieConsent && (
+        <div className="cookie-banner">
+          <div className="cookie-banner-content">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/>
+            </svg>
+            <p>
+              This app uses <strong>local storage</strong> to save your preferences, favorites, and submitted case studies.
+              No tracking cookies or third-party analytics are used. Map tiles are served by <strong>OpenFreeMap</strong> without tracking.
+            </p>
+            <button className="cookie-accept-btn" onClick={acceptCookies}>Got it</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

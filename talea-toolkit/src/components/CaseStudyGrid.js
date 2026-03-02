@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { NBS_CATEGORIES } from '../data/filterConfig';
 import imageMap from '../data/imageMap';
+import getTaleaTypes from '../utils/getTaleaTypes';
 
 function getNBSTags(study) {
   const tags = [];
@@ -13,10 +14,7 @@ function getNBSTags(study) {
 }
 
 function getTaleaType(study) {
-  const types = [];
-  if (study.talea_application.nodal) types.push('Nodal');
-  if (study.talea_application.linear) types.push('Linear');
-  if (study.talea_application.fragmented) types.push('Fragmented');
+  const types = getTaleaTypes(study);
   return types.join(' + ') || 'N/A';
 }
 
@@ -105,7 +103,7 @@ function CaseStudyCard({ study, onSelect, isFavorite, onToggleFavorite, onCompar
           </svg>
           {study.city}, {study.country}
         </div>
-        <p className="card-description">{study.description.slice(0, 120)}{study.description.length > 120 ? '...' : ''}</p>
+        <p className="card-description">{(study.description || '').slice(0, 120)}{(study.description || '').length > 120 ? '...' : ''}</p>
         <div className="card-meta">
           <span className="meta-badge size">{study.size}</span>
           <span className="meta-badge climate">{study.climate_zone}</span>

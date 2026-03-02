@@ -60,7 +60,7 @@ export function executeCommand(cmd, arg, ctx) {
         actions.selectStudy = study;
         response = `"${study.title}"\n${study.city}, ${study.country} | ${study.size} | ${study.climate_zone}\n${(study.description || '').slice(0, 200)}...`;
       } else {
-        response = `No study found for "${arg}". Try an ID (1-50) or part of the title.`;
+        response = `No study found for "${arg}". Try an ID (1-${allStudies.length}) or part of the title.`;
       }
       break;
     }

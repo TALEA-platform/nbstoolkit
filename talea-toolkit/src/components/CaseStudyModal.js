@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { NBS_CATEGORIES } from '../data/filterConfig';
 import nbsDefinitions from '../data/nbsDefinitions.json';
 import imageMap from '../data/imageMap';
 import { exportSingleStudyPDF } from '../utils/pdfExport';
+import getTaleaTypes from '../utils/getTaleaTypes';
+import findSimilarStudies from '../utils/findSimilarStudies';
 
 function Section({ title, children, icon }) {
   return (
@@ -29,7 +31,7 @@ function TagList({ items, color }) {
   );
 }
 
-function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite }) {
+function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, allStudies, onSelectStudy }) {
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
@@ -42,12 +44,13 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite }) {
     };
   }, [onClose]);
 
-  const taleaTypes = [];
-  if (study.talea_application.nodal) taleaTypes.push('Nodal');
-  if (study.talea_application.linear) taleaTypes.push('Linear');
-  if (study.talea_application.fragmented) taleaTypes.push('Fragmented');
-
+  const taleaTypes = getTaleaTypes(study);
   const imgSrc = imageMap[study.id];
+
+  const similarStudies = useMemo(() => {
+    if (!allStudies || allStudies.length < 2) return [];
+    return findSimilarStudies(study, allStudies, 4);
+  }, [study, allStudies]);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -246,6 +249,37 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite }) {
                     {src.trim()}
                   </a>
                 ))}
+              </div>
+            </Section>
+          )}
+
+          {similarStudies.length > 0 && (
+            <Section title="Similar Studies" icon="🔗">
+              <div className="similar-studies-grid">
+                {similarStudies.map(({ study: sim, score }) => {
+                  const simImg = imageMap[sim.id];
+                  return (
+                    <button
+                      key={sim.id}
+                      className="similar-study-card"
+                      onClick={() => onSelectStudy && onSelectStudy(sim)}
+                    >
+                      <div className="similar-card-img">
+                        {simImg ? (
+                          <img src={simImg} alt="" loading="lazy" />
+                        ) : (
+                          <div className="similar-card-placeholder">#{sim.id}</div>
+                        )}
+                      </div>
+                      <div className="similar-card-info">
+                        <span className="similar-card-title">{sim.title}</span>
+                        <span className="similar-card-location">{sim.city}, {sim.country}</span>
+                        <span className="similar-card-meta">{sim.size} · {sim.climate_zone}</span>
+                      </div>
+                      <span className="similar-card-score" title="Similarity score">{score} pts</span>
+                    </button>
+                  );
+                })}
               </div>
             </Section>
           )}

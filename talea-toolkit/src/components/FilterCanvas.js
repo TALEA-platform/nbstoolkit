@@ -1,10 +1,11 @@
 import { useRef, useState, useCallback } from 'react';
 import { FILTER_CATEGORIES, FILTER_GROUPS } from '../data/filterConfig';
 
-function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onClearAll, filteredCount, totalCount, onToggleExclude, excludedFilters }) {
+function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExcludedFilter, onClearAll, filteredCount, totalCount, onToggleExclude, excludedFilters, onShowHelp, activeFilters, filterModes, onToggleFilterMode }) {
   const canvasRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
+  const [notMode, setNotMode] = useState(false);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -21,16 +22,28 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onClearAll, 
     try {
       const data = JSON.parse(e.dataTransfer.getData('text/plain'));
       if (data.categoryKey && data.value) {
-        onAddFilter(data.categoryKey, data.value);
+        if (data.excluded && onAddExcludedFilter) {
+          onAddExcludedFilter(data.categoryKey, data.value);
+        } else {
+          onAddFilter(data.categoryKey, data.value);
+        }
       }
     } catch (err) {
       // ignore
     }
-  }, [onAddFilter]);
+  }, [onAddFilter, onAddExcludedFilter]);
 
   const handlePaletteItemDragStart = useCallback((e, categoryKey, value) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify({ categoryKey, value }));
-  }, []);
+    e.dataTransfer.setData('text/plain', JSON.stringify({ categoryKey, value, excluded: notMode }));
+  }, [notMode]);
+
+  const handlePaletteItemClick = useCallback((catKey, opt) => {
+    if (notMode && onAddExcludedFilter) {
+      onAddExcludedFilter(catKey, opt);
+    } else {
+      onAddFilter(catKey, opt);
+    }
+  }, [notMode, onAddFilter, onAddExcludedFilter]);
 
   if (canvasFilters.length === 0 && !showPalette) {
     return (
@@ -51,7 +64,7 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onClearAll, 
   }
 
   return (
-    <div className="filter-canvas-section">
+    <div className={`filter-canvas-section ${notMode ? 'not-mode-active' : ''}`}>
       <div className="canvas-toolbar">
         <h3 className="canvas-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -61,6 +74,22 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onClearAll, 
           Filter Canvas
         </h3>
         <div className="canvas-actions">
+          {onShowHelp && (
+            <button className="canvas-help-btn" onClick={() => onShowHelp(2)} title="How filters work">
+              ?
+            </button>
+          )}
+          <button
+            className={`not-mode-toggle ${notMode ? 'active' : ''}`}
+            onClick={() => setNotMode(prev => !prev)}
+            title={notMode ? 'NOT mode ON — click items to exclude them' : 'Enable NOT mode to add exclusion filters'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+            NOT
+          </button>
           <button
             className={`palette-toggle ${showPalette ? 'active' : ''}`}
             onClick={() => setShowPalette(!showPalette)}
@@ -80,6 +109,16 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onClearAll, 
         </div>
       </div>
 
+      {notMode && (
+        <div className="not-mode-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+          <span>NOT mode — clicking palette items will <strong>exclude</strong> them from results</span>
+        </div>
+      )}
+
       {showPalette && (
         <div className="filter-palette">
           <div className="palette-categories">
@@ -97,18 +136,20 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onClearAll, 
                       <div className="palette-items">
                         {cat.options.map(opt => {
                           const isOnCanvas = canvasFilters.some(f => f.categoryKey === catKey && f.value === opt);
+                          const isExcluded = canvasFilters.some(f => f.categoryKey === catKey && f.value === opt && f.excluded);
                           return (
                             <div
                               key={opt}
-                              className={`palette-item ${isOnCanvas ? 'on-canvas' : ''}`}
+                              className={`palette-item ${isOnCanvas ? 'on-canvas' : ''} ${isExcluded ? 'on-canvas-excluded' : ''} ${notMode && !isOnCanvas ? 'not-mode-item' : ''}`}
                               draggable={!isOnCanvas}
                               onDragStart={(e) => handlePaletteItemDragStart(e, catKey, opt)}
-                              onClick={() => !isOnCanvas && onAddFilter(catKey, opt)}
-                              style={{ borderColor: cat.color + '60', color: isOnCanvas ? '#999' : undefined }}
+                              onClick={() => !isOnCanvas && handlePaletteItemClick(catKey, opt)}
+                              style={{ borderColor: isExcluded ? '#c53030' + '60' : (notMode && !isOnCanvas) ? '#c53030' + '40' : cat.color + '60', color: isOnCanvas ? '#999' : undefined }}
                             >
-                              <span className="palette-item-dot" style={{ backgroundColor: cat.color }} />
+                              <span className="palette-item-dot" style={{ backgroundColor: isExcluded ? '#c53030' : (notMode && !isOnCanvas) ? '#c53030' : cat.color }} />
                               {opt}
-                              {isOnCanvas && <span className="palette-item-check">&#10003;</span>}
+                              {isOnCanvas && !isExcluded && <span className="palette-item-check">&#10003;</span>}
+                              {isExcluded && <span className="palette-item-not-badge">NOT</span>}
                             </div>
                           );
                         })}
@@ -138,40 +179,71 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onClearAll, 
           </div>
         ) : (
           <div className="canvas-chips">
-            {canvasFilters.map(f => {
-              const cat = FILTER_CATEGORIES[f.categoryKey];
-              const isExcluded = f.excluded || (excludedFilters?.[f.categoryKey] || []).includes(f.value);
-              return (
-                <div
-                  key={f.id}
-                  className={`canvas-chip ${isExcluded ? 'excluded' : ''}`}
-                  style={{
-                    borderColor: isExcluded ? '#c53030' : cat?.color,
-                    backgroundColor: isExcluded ? 'rgba(197,48,48,0.08)' : cat?.color + '12',
-                  }}
-                >
-                  {isExcluded && <span className="chip-not-badge">NOT</span>}
-                  <span className="chip-icon">{cat?.icon}</span>
-                  <span className={`chip-label ${isExcluded ? 'chip-label-excluded' : ''}`}>{f.value}</span>
-                  {onToggleExclude && (
-                    <button
-                      className="chip-toggle-exclude"
-                      onClick={() => onToggleExclude(f.categoryKey, f.value)}
-                      title={isExcluded ? 'Switch to include' : 'Switch to exclude'}
-                    >
-                      {isExcluded ? '+' : '-'}
-                    </button>
-                  )}
-                  <button
-                    className="chip-remove"
-                    onClick={() => onRemoveFilter(f.id, f.categoryKey, f.value)}
-                    style={{ color: isExcluded ? '#c53030' : cat?.color }}
-                  >
-                    &times;
-                  </button>
-                </div>
-              );
-            })}
+            {(() => {
+              // Group chips by category to show AND/OR toggles
+              const grouped = {};
+              for (const f of canvasFilters) {
+                if (!grouped[f.categoryKey]) grouped[f.categoryKey] = [];
+                grouped[f.categoryKey].push(f);
+              }
+              const categoryKeys = Object.keys(grouped);
+              return categoryKeys.map((catKey, groupIdx) => {
+                const filters = grouped[catKey];
+                const cat = FILTER_CATEGORIES[catKey];
+                const activeCount = (activeFilters?.[catKey] || []).length;
+                const mode = filterModes?.[catKey] || 'or';
+                return (
+                  <div key={catKey} className="canvas-chip-group">
+                    {filters.map((f, chipIdx) => {
+                      const isExcluded = f.excluded || (excludedFilters?.[catKey] || []).includes(f.value);
+                      return (
+                        <div key={f.id} className="canvas-chip-with-logic">
+                          {chipIdx > 0 && !isExcluded && activeCount >= 2 && (
+                            <button
+                              className={`logic-toggle ${mode}`}
+                              onClick={() => onToggleFilterMode && onToggleFilterMode(catKey)}
+                              title={`Switch to ${mode === 'or' ? 'AND' : 'OR'} matching`}
+                            >
+                              {mode.toUpperCase()}
+                            </button>
+                          )}
+                          <div
+                            className={`canvas-chip ${isExcluded ? 'excluded' : ''}`}
+                            style={{
+                              borderColor: isExcluded ? '#c53030' : cat?.color,
+                              backgroundColor: isExcluded ? 'rgba(197,48,48,0.08)' : cat?.color + '12',
+                            }}
+                          >
+                            {isExcluded && <span className="chip-not-badge">NOT</span>}
+                            <span className="chip-icon">{cat?.icon}</span>
+                            <span className={`chip-label ${isExcluded ? 'chip-label-excluded' : ''}`}>{f.value}</span>
+                            {onToggleExclude && (
+                              <button
+                                className="chip-toggle-exclude"
+                                onClick={() => onToggleExclude(f.categoryKey, f.value)}
+                                title={isExcluded ? 'Switch to include' : 'Switch to exclude'}
+                              >
+                                {isExcluded ? '+' : '-'}
+                              </button>
+                            )}
+                            <button
+                              className="chip-remove"
+                              onClick={() => onRemoveFilter(f.id, f.categoryKey, f.value)}
+                              style={{ color: isExcluded ? '#c53030' : cat?.color }}
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {groupIdx < categoryKeys.length - 1 && (
+                      <span className="chip-group-separator">+</span>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
       </div>

@@ -97,7 +97,7 @@ export async function generateLLMResponse(userQuery, relevantStudies, activeFilt
 
   const totalShown = relevantStudies.length;
 
-  const systemPrompt = `You are a strict, data-only assistant for the Nature-Based Solutions Toolkit (TALEA Abacus of Hardware Solutions). The toolkit contains exactly 50 Nature-Based Solutions (NBS) case studies from cities worldwide.
+  const systemPrompt = `You are a strict, data-only assistant for the Nature-Based Solutions Toolkit (TALEA Abacus of Hardware Solutions). The toolkit contains ${relevantStudies.length > 0 ? totalShown : 'multiple'} Nature-Based Solutions (NBS) case studies from cities worldwide.
 
 STRICT RULES — you MUST follow these:
 1. ONLY use information from the case studies provided below. NEVER invent, guess, or hallucinate any data, names, cities, or details.

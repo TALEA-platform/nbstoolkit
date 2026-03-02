@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { NBS_CATEGORIES } from '../data/filterConfig';
 import imageMap from '../data/imageMap';
+import getTaleaTypes from './getTaleaTypes';
 
 // ─── Color palette ───────────────────────────────────────────────
 const C = {
@@ -247,10 +248,7 @@ export async function exportSingleStudyPDF(study) {
   y = HERO_H + 5;
 
   // ── Badges row ──
-  const taleaTypes = [];
-  if (study.talea_application.nodal) taleaTypes.push('Nodal');
-  if (study.talea_application.linear) taleaTypes.push('Linear');
-  if (study.talea_application.fragmented) taleaTypes.push('Fragmented');
+  const taleaTypes = getTaleaTypes(study);
 
   const badges = [
     { label: taleaTypes.join(' + ') || 'N/A', color: C.primary },
@@ -366,7 +364,7 @@ export async function exportSingleStudyPDF(study) {
   // ── Footers ──
   drawFooters(doc);
 
-  doc.save(`TALEA_CS${study.id}_${study.title.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30)}.pdf`);
+  doc.save(`TALEA_CS${study.id}_${(study.title || 'untitled').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30)}.pdf`);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -439,11 +437,7 @@ export async function exportFilteredResultsPDF(studies, activeFilters) {
 
   // ── Results table ──
   const tableData = studies.map(s => {
-    const type = [
-      s.talea_application.nodal ? 'N' : '',
-      s.talea_application.linear ? 'L' : '',
-      s.talea_application.fragmented ? 'F' : '',
-    ].filter(Boolean).join('+');
+    const type = getTaleaTypes(s).map(t => t[0]).join('+');
 
     const nbs = [
       ...(s.d1_plants || []), ...(s.d2_paving || []),

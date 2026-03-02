@@ -39,6 +39,7 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, ac
   const [showChat, setShowChat] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -68,6 +69,11 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, ac
       setShowChat(true);
     }
   }, [chatMessages.length]);
+
+  // Reset highlight when query changes
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [query]);
 
   const suggestions = filterSuggestions || [];
 
@@ -124,9 +130,46 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, ac
               if (chatMessages.length > 0) setShowChat(true);
             }}
             onKeyDown={e => {
+              // Determine which list is active
+              const isCmd = isSlashQuery && filteredCommands.length > 0;
+              const isSug = !isSlashQuery && showSuggestions && suggestions.length > 0;
+              const listLen = isCmd ? filteredCommands.length : isSug ? suggestions.length : 0;
+
+              if (listLen > 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+                e.preventDefault();
+                setHighlightedIndex(prev => {
+                  if (e.key === 'ArrowDown') return prev < listLen - 1 ? prev + 1 : 0;
+                  return prev > 0 ? prev - 1 : listLen - 1;
+                });
+                return;
+              }
+
               if (e.key === 'Enter') {
+                if (highlightedIndex >= 0 && listLen > 0) {
+                  e.preventDefault();
+                  if (isCmd) {
+                    const c = filteredCommands[highlightedIndex];
+                    const needsArg = ['/info', '/similar', '/breakdown', '/country'].includes(c.cmd);
+                    onQueryChange(needsArg ? c.cmd + ' ' : c.cmd);
+                    if (!needsArg) {
+                      setTimeout(() => onSearchSubmit && onSearchSubmit(), 50);
+                    }
+                  } else if (isSug) {
+                    const s = suggestions[highlightedIndex];
+                    onAddCanvasFilter(s.categoryKey, s.value);
+                    onQueryChange('');
+                  }
+                  setHighlightedIndex(-1);
+                  setShowSuggestions(false);
+                } else {
+                  setShowSuggestions(false);
+                  if (onSearchSubmit) onSearchSubmit();
+                }
+              }
+
+              if (e.key === 'Escape') {
                 setShowSuggestions(false);
-                if (onSearchSubmit) onSearchSubmit();
+                setHighlightedIndex(-1);
               }
             }}
           />
@@ -179,7 +222,7 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, ac
                       <div className="command-group-label">{groupLabels[c.group] || c.group}</div>
                     )}
                     <button
-                      className="suggestion-item command-item"
+                      className={`suggestion-item command-item ${highlightedIndex === i ? 'highlighted' : ''}`}
                       onClick={() => {
                         const needsArg = ['/info', '/similar', '/breakdown', '/country'].includes(c.cmd);
                         onQueryChange(needsArg ? c.cmd + ' ' : c.cmd);
@@ -214,7 +257,7 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, ac
               return (
                 <button
                   key={i}
-                  className={`suggestion-item ${isActive ? 'active' : ''}`}
+                  className={`suggestion-item ${isActive ? 'active' : ''} ${highlightedIndex === i ? 'highlighted' : ''}`}
                   onClick={() => {
                     onAddCanvasFilter(s.categoryKey, s.value);
                     setShowSuggestions(false);

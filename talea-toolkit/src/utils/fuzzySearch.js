@@ -464,7 +464,7 @@ const CHATBOT_RESPONSES = {
   greetings: [
     "Hello! I'm your NBS Toolkit assistant. I can help you find Nature-Based Hardware Solutions for urban challenges. What are you looking for?",
     "Welcome to the NBS Toolkit! Tell me what kind of urban hardware solution you need, and I'll find the best case studies for you.",
-    "Hi there! I can help you discover Nature-Based Solutions from 50 real case studies across the world. What's your project about?",
+    "Hi there! I can help you discover Nature-Based Solutions from real case studies across the world. What's your project about?",
   ],
   noResults: [
     "I couldn't find exact matches, but let me suggest some related solutions. Try broader terms like 'green roof', 'water management', or a city name.",

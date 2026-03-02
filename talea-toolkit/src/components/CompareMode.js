@@ -1,6 +1,7 @@
 // React 19 JSX transform - no explicit import needed
 import { NBS_CATEGORIES } from '../data/filterConfig';
 import imageMap from '../data/imageMap';
+import getTaleaTypes from '../utils/getTaleaTypes';
 
 const COMPARE_FIELDS = [
   { label: 'City', key: 'city' },
@@ -61,10 +62,7 @@ function CompareMode({ studies, onClose }) {
               <tr>
                 <td className="compare-label">TALEA Type</td>
                 {studies.map(s => {
-                  const types = [];
-                  if (s.talea_application.nodal) types.push('Nodal');
-                  if (s.talea_application.linear) types.push('Linear');
-                  if (s.talea_application.fragmented) types.push('Fragmented');
+                  const types = getTaleaTypes(s);
                   return <td key={s.id}>{types.join(', ') || 'N/A'}</td>;
                 })}
               </tr>

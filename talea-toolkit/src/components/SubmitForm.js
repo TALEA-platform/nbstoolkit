@@ -20,9 +20,9 @@ const FORM_SECTIONS = [
     title: 'TALEA Application',
     icon: '🏙️',
     fields: [
-      { key: 'talea_application', label: 'Application Type', type: 'multi', options: ['Nodal', 'Linear', 'Fragmented'] },
-      { key: 'size', label: 'Size', type: 'select', options: ['Small', 'Medium', 'Large'] },
-      { key: 'climate_zone', label: 'Climate Zone', type: 'select', options: ['Tropical', 'Arid', 'Mediterranean', 'Temperate', 'Cold/Boreal', 'Polar'] },
+      { key: 'talea_application', label: 'Application Type', type: 'multi', options: ['Nodal', 'Linear', 'Fragmented'], required: true },
+      { key: 'size', label: 'Size', type: 'select', options: ['Small', 'Medium', 'Large'], required: true },
+      { key: 'climate_zone', label: 'Climate Zone', type: 'select', options: ['Tropical', 'Arid', 'Mediterranean', 'Temperate', 'Cold/Boreal', 'Polar'], required: true },
     ]
   },
   {
@@ -87,10 +87,27 @@ const FORM_SECTIONS = [
   },
 ];
 
-function SubmitForm({ onClose }) {
+// Collect all required fields across all sections
+const REQUIRED_FIELDS = FORM_SECTIONS.flatMap(s =>
+  s.fields.filter(f => f.required).map(f => ({ key: f.key, label: f.label, type: f.type }))
+);
+
+function isFieldFilled(value, type) {
+  if (type === 'multi') return Array.isArray(value) && value.length > 0;
+  if (type === 'file') return true; // file is never required
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+// Find the section index that contains a given field key
+function findSectionForField(key) {
+  return FORM_SECTIONS.findIndex(s => s.fields.some(f => f.key === key));
+}
+
+function SubmitForm({ onClose, onSubmitted, existingStudies }) {
   const [formData, setFormData] = useState({});
   const [currentSection, setCurrentSection] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -104,6 +121,8 @@ function SubmitForm({ onClose }) {
 
   const updateField = (key, value) => {
     setFormData(prev => ({ ...prev, [key]: value }));
+    // Clear error for this field when user types
+    setValidationErrors(prev => prev.filter(e => e.key !== key));
   };
 
   const toggleMulti = (key, value) => {
@@ -114,14 +133,41 @@ function SubmitForm({ onClose }) {
         : [...current, value];
       return { ...prev, [key]: updated };
     });
+    setValidationErrors(prev => prev.filter(e => e.key !== key));
+  };
+
+  const validate = () => {
+    const errors = [];
+    for (const field of REQUIRED_FIELDS) {
+      if (!isFieldFilled(formData[field.key], field.type)) {
+        errors.push({ key: field.key, label: field.label });
+      }
+    }
+    return errors;
   };
 
   const handleSubmit = () => {
+    const errors = validate();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      // Jump to the first section with an error
+      const firstErrorSection = findSectionForField(errors[0].key);
+      if (firstErrorSection >= 0) setCurrentSection(firstErrorSection);
+      return;
+    }
+
+    // Compute next available ID
+    const maxId = existingStudies ? Math.max(...existingStudies.map(s => s.id)) : 50;
+    const newStudy = { ...formData, id: maxId + 1, submittedAt: new Date().toISOString() };
+
     // Save to localStorage as simple "database"
     const existing = JSON.parse(localStorage.getItem('talea_submissions') || '[]');
-    existing.push({ ...formData, submittedAt: new Date().toISOString() });
+    existing.push(newStudy);
     localStorage.setItem('talea_submissions', JSON.stringify(existing));
     setSubmitted(true);
+
+    // Notify parent to refresh the studies list
+    if (onSubmitted) onSubmitted();
   };
 
   const exportJson = () => {
@@ -136,6 +182,7 @@ function SubmitForm({ onClose }) {
   };
 
   const section = FORM_SECTIONS[currentSection];
+  const errorKeys = new Set(validationErrors.map(e => e.key));
 
   if (submitted) {
     return (
@@ -149,7 +196,7 @@ function SubmitForm({ onClose }) {
               </svg>
             </div>
             <h2>Submission Saved!</h2>
-            <p>Your case study has been saved locally. You can export it as JSON.</p>
+            <p>Your case study has been added to the toolkit and is now visible in the grid, map, and statistics. You can also export it as JSON.</p>
             <div className="submitted-actions">
               <button className="btn-export" onClick={exportJson}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -177,26 +224,41 @@ function SubmitForm({ onClose }) {
         <div className="form-header">
           <h2>Submit New Case Study</h2>
           <div className="form-progress">
-            {FORM_SECTIONS.map((s, i) => (
-              <button
-                key={i}
-                className={`progress-step ${i === currentSection ? 'active' : i < currentSection ? 'done' : ''}`}
-                onClick={() => setCurrentSection(i)}
-              >
-                <span className="step-icon">{s.icon}</span>
-                <span className="step-label">{s.title}</span>
-              </button>
-            ))}
+            {FORM_SECTIONS.map((s, i) => {
+              // Show a warning dot on sections that have validation errors
+              const sectionHasError = s.fields.some(f => errorKeys.has(f.key));
+              return (
+                <button
+                  key={i}
+                  className={`progress-step ${i === currentSection ? 'active' : i < currentSection ? 'done' : ''} ${sectionHasError ? 'has-error' : ''}`}
+                  onClick={() => setCurrentSection(i)}
+                >
+                  <span className="step-icon">{s.icon}</span>
+                  <span className="step-label">{s.title}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
+
+        {validationErrors.length > 0 && (
+          <div className="form-validation-banner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>Please fill in all required fields: {validationErrors.map(e => e.label).join(', ')}</span>
+          </div>
+        )}
 
         <div className="form-body">
           <h3 className="form-section-title">{section.icon} {section.title}</h3>
 
           {section.fields.map(field => {
+            const hasError = errorKeys.has(field.key);
+
             if (field.type === 'text') {
               return (
-                <div key={field.key} className="form-field">
+                <div key={field.key} className={`form-field ${hasError ? 'field-error' : ''}`}>
                   <label>{field.label} {field.required && <span className="required">*</span>}</label>
                   <input
                     type="text"
@@ -204,12 +266,13 @@ function SubmitForm({ onClose }) {
                     onChange={e => updateField(field.key, e.target.value)}
                     placeholder={`Enter ${field.label.toLowerCase()}...`}
                   />
+                  {hasError && <span className="field-error-msg">This field is required</span>}
                 </div>
               );
             }
             if (field.type === 'textarea') {
               return (
-                <div key={field.key} className="form-field">
+                <div key={field.key} className={`form-field ${hasError ? 'field-error' : ''}`}>
                   <label>{field.label} {field.required && <span className="required">*</span>}</label>
                   <textarea
                     value={formData[field.key] || ''}
@@ -217,13 +280,14 @@ function SubmitForm({ onClose }) {
                     placeholder={`Enter ${field.label.toLowerCase()}...`}
                     rows={4}
                   />
+                  {hasError && <span className="field-error-msg">This field is required</span>}
                 </div>
               );
             }
             if (field.type === 'select') {
               return (
-                <div key={field.key} className="form-field">
-                  <label>{field.label}</label>
+                <div key={field.key} className={`form-field ${hasError ? 'field-error' : ''}`}>
+                  <label>{field.label} {field.required && <span className="required">*</span>}</label>
                   <select
                     value={formData[field.key] || ''}
                     onChange={e => updateField(field.key, e.target.value)}
@@ -231,6 +295,7 @@ function SubmitForm({ onClose }) {
                     <option value="">Select...</option>
                     {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
+                  {hasError && <span className="field-error-msg">Please select an option</span>}
                 </div>
               );
             }
@@ -238,8 +303,8 @@ function SubmitForm({ onClose }) {
               const options = field.options || (field.filterKey && FILTER_CATEGORIES[field.filterKey]?.options) || [];
               const selected = formData[field.key] || [];
               return (
-                <div key={field.key} className="form-field">
-                  <label>{field.label}</label>
+                <div key={field.key} className={`form-field ${hasError ? 'field-error' : ''}`}>
+                  <label>{field.label} {field.required && <span className="required">*</span>}</label>
                   <div className="multi-select-grid">
                     {options.map(opt => (
                       <button
@@ -255,6 +320,7 @@ function SubmitForm({ onClose }) {
                       </button>
                     ))}
                   </div>
+                  {hasError && <span className="field-error-msg">Please select at least one option</span>}
                 </div>
               );
             }
