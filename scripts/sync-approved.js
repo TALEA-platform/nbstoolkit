@@ -43,51 +43,66 @@ function fetchURL(url) {
   });
 }
 
+/**
+ * Parse CSV handling multi-line quoted fields (RFC 4180).
+ * Cannot split by \n first — a quoted value may contain newlines.
+ */
 function parseCSV(csv) {
-  const lines = csv.split('\n');
-  if (lines.length < 2) return [];
-  const headers = parseCSVLine(lines[0]);
   const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const values = parseCSVLine(line);
-    const obj = {};
-    headers.forEach((h, idx) => {
-      obj[h.trim()] = (values[idx] || '').trim();
-    });
-    rows.push(obj);
-  }
-  return rows;
-}
-
-function parseCSVLine(line) {
-  const result = [];
-  let current = '';
+  let row = [];
+  let field = '';
   let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+
+  for (let i = 0; i < csv.length; i++) {
+    const ch = csv[i];
+
     if (inQuotes) {
-      if (ch === '"' && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else if (ch === '"') {
-        inQuotes = false;
+      if (ch === '"') {
+        if (csv[i + 1] === '"') {
+          field += '"';
+          i++; // skip escaped quote
+        } else {
+          inQuotes = false; // end of quoted field
+        }
       } else {
-        current += ch;
+        field += ch; // include everything inside quotes (including \n)
       }
     } else {
       if (ch === '"') {
         inQuotes = true;
       } else if (ch === ',') {
-        result.push(current);
-        current = '';
+        row.push(field);
+        field = '';
+      } else if (ch === '\n' || ch === '\r') {
+        // Skip \r in \r\n
+        if (ch === '\r' && csv[i + 1] === '\n') i++;
+        row.push(field);
+        field = '';
+        if (row.length > 1 || row[0] !== '') rows.push(row);
+        row = [];
       } else {
-        current += ch;
+        field += ch;
       }
     }
   }
-  result.push(current);
+  // Last field / last row
+  if (field || row.length > 0) {
+    row.push(field);
+    if (row.length > 1 || row[0] !== '') rows.push(row);
+  }
+
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map(h => h.trim());
+  const result = [];
+  for (let i = 1; i < rows.length; i++) {
+    const values = rows[i];
+    const obj = {};
+    headers.forEach((h, idx) => {
+      obj[h] = (values[idx] || '').trim();
+    });
+    result.push(obj);
+  }
   return result;
 }
 

@@ -100,9 +100,15 @@ async function uploadToImgbb(filePath, name) {
   });
 }
 
+// Strip trailing whitespace/newlines from values to keep CSV clean
+function cleanValue(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/[\r\n]+$/g, '').trim();
+}
+
 function escapeCSV(value) {
   if (value === null || value === undefined) return '';
-  const str = String(value);
+  const str = cleanValue(value);
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
     return '"' + str.replace(/"/g, '""') + '"';
   }

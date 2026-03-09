@@ -16,6 +16,7 @@ const FORM_SECTIONS = [
       { key: 'description', label: 'Project Description', type: 'textarea', required: true },
       { key: 'latitude', label: 'Latitude', type: 'text', placeholder: 'e.g. 45.4861' },
       { key: 'longitude', label: 'Longitude', type: 'text', placeholder: 'e.g. 9.1905' },
+      { key: 'sources', label: 'Sources', type: 'textarea', placeholder: 'One URL per line' },
       { key: 'image', label: 'Project Image', type: 'file' },
     ]
   },

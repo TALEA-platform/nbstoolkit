@@ -21,7 +21,7 @@ const SUBMISSION_FIELDS = [
   'description', 'latitude', 'longitude',
   'size', 'climate_zone',
   'physical_innovation', 'social_innovation', 'digital_innovation',
-  'c5_impacts',
+  'c5_impacts', 'sources',
 ];
 
 /**
