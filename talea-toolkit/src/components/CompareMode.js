@@ -1,4 +1,4 @@
-// React 19 JSX transform - no explicit import needed
+import { useEffect } from 'react';
 import { NBS_CATEGORIES } from '../data/filterConfig';
 import imageMap from '../data/imageMap';
 import getTaleaTypes from '../utils/getTaleaTypes';
@@ -26,6 +26,16 @@ const NBS_FIELDS = Object.entries(NBS_CATEGORIES).map(([key, meta]) => ({
 }));
 
 function CompareMode({ studies, onClose }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [onClose]);
+
   if (!studies || studies.length < 2) return null;
 
   return (

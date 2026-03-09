@@ -2,9 +2,8 @@
   "name": "talea-abacus",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://TALEA-platform.github.io/nbstoolkit",
+  "homepage": ".",
   "dependencies": {
-    "@mlc-ai/web-llm": "^0.2.81",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -17,15 +16,14 @@
     "react-dom": "^19.2.4",
     "react-scripts": "5.0.1",
     "recharts": "^3.7.0",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -44,8 +42,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "gh-pages": "^6.3.0"
   }
 }

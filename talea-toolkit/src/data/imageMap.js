@@ -4,8 +4,24 @@ const pngIds = [1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,
 
 const imageMap = {};
 for (const study of caseStudies) {
-  const ext = pngIds.includes(study.id) ? 'png' : 'jpg';
-  imageMap[study.id] = `${process.env.PUBLIC_URL}/images/cs_${study.id}.${ext}`;
+  // Synced studies with a hosted image_url — use it directly
+  if (study.image_url) {
+    imageMap[study.id] = study.image_url;
+  } else {
+    const ext = pngIds.includes(study.id) ? 'png' : 'jpg';
+    imageMap[study.id] = `${process.env.PUBLIC_URL}/images/cs_${study.id}.${ext}`;
+  }
 }
+
+// Merge user-submitted study images (from localStorage)
+// These may be hosted URLs or DataURLs
+try {
+  const submissions = JSON.parse(localStorage.getItem('talea_submissions') || '[]');
+  for (const sub of submissions) {
+    if (sub.id && sub.image) {
+      imageMap[sub.id] = sub.image;
+    }
+  }
+} catch { /* ignore */ }
 
 export default imageMap;

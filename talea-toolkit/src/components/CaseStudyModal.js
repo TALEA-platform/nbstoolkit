@@ -5,6 +5,7 @@ import imageMap from '../data/imageMap';
 import { exportSingleStudyPDF } from '../utils/pdfExport';
 import getTaleaTypes from '../utils/getTaleaTypes';
 import findSimilarStudies from '../utils/findSimilarStudies';
+import cityCoordinates from '../data/cityCoordinates';
 
 function Section({ title, children, icon }) {
   return (
@@ -31,7 +32,7 @@ function TagList({ items, color }) {
   );
 }
 
-function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, allStudies, onSelectStudy }) {
+function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompared, onToggleCompare, compareCount, onShowCompare, allStudies, onSelectStudy }) {
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
@@ -47,6 +48,16 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, allStudi
   const taleaTypes = getTaleaTypes(study);
   const imgSrc = imageMap[study.id];
 
+  // Get coordinates: prefer study-level, fall back to cityCoordinates
+  const studyCoords = useMemo(() => {
+    if (study.latitude && study.longitude) {
+      return { lat: Number(study.latitude), lng: Number(study.longitude) };
+    }
+    const c = cityCoordinates[study.id];
+    if (c) return { lat: c[0], lng: c[1] };
+    return null;
+  }, [study]);
+
   const similarStudies = useMemo(() => {
     if (!allStudies || allStudies.length < 2) return [];
     return findSimilarStudies(study, allStudies, 4);
@@ -55,11 +66,42 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, allStudi
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container" onClick={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
+        <div className="modal-top-actions">
+          {onToggleCompare && (
+            <button className={`modal-action-btn ${isCompared ? 'active' : ''}`} onClick={() => onToggleCompare(study.id)} title={isCompared ? 'Remove from comparison' : 'Add to comparison'}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/>
+              </svg>
+            </button>
+          )}
+          {isCompared && compareCount >= 2 && onShowCompare && (
+            <button className="modal-action-btn compare-go" onClick={onShowCompare} title="View comparison">
+              Compare {compareCount}
+            </button>
+          )}
+          {onToggleFavorite && (
+            <button className={`modal-action-btn ${isFavorite ? 'fav-active' : ''}`} onClick={() => onToggleFavorite(study.id)} title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorite ? '#FFE604' : 'none'} stroke={isFavorite ? '#FFE604' : 'currentColor'} strokeWidth="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </button>
+          )}
+          <button
+            className="modal-action-btn modal-pdf-btn"
+            onClick={() => exportSingleStudyPDF(study)}
+            title="Download as PDF"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/>
+            </svg>
+            <span className="pdf-btn-label">PDF</span>
+          </button>
+          <button className="modal-action-btn modal-close-btn" onClick={onClose} title="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
 
         {/* Hero image */}
         {!imgError && imgSrc && (
@@ -112,20 +154,23 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, allStudi
             {study.has_social_innovation && <span className="modal-badge social">Social Innovation</span>}
             {study.has_digital_innovation && <span className="modal-badge digital">Digital Innovation</span>}
           </div>
-          {onToggleFavorite && (
-            <button className={`modal-fav-btn ${isFavorite ? 'active' : ''}`} onClick={() => onToggleFavorite(study.id)} title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorite ? '#FFE604' : 'none'} stroke={isFavorite ? '#FFE604' : 'currentColor'} strokeWidth="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-            </button>
-          )}
-          <button className="modal-pdf-btn" onClick={() => exportSingleStudyPDF(study)} title="Download as PDF">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            PDF
-          </button>
         </div>
+
+        {studyCoords && (
+          <div className="modal-coords-bar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2 12h4"/><path d="M18 12h4"/>
+            </svg>
+            <span className="modal-coords-text">
+              {studyCoords.lat.toFixed(5)}, {studyCoords.lng.toFixed(5)}
+            </span>
+            <div className="modal-coords-links">
+              <a href={`https://www.google.com/maps?layer=c&cbll=${studyCoords.lat},${studyCoords.lng}&cbp=,,,,`} target="_blank" rel="noopener noreferrer" title="Google Street View">Street View</a>
+              <a href={`https://www.openstreetmap.org/?mlat=${studyCoords.lat}&mlon=${studyCoords.lng}#map=17/${studyCoords.lat}/${studyCoords.lng}`} target="_blank" rel="noopener noreferrer" title="OpenStreetMap">OSM</a>
+              <a href={`geo:${studyCoords.lat},${studyCoords.lng}`} title="Open in maps app">Geo URI</a>
+            </div>
+          </div>
+        )}
 
         <div className="modal-body">
           <Section title="Description" icon="📋">

@@ -3,6 +3,7 @@ import staticCaseStudies from './data/caseStudies.json';
 import { FILTER_CATEGORIES } from './data/filterConfig';
 import { createCaseStudyFuse, multiWordCaseStudySearch, fuzzySearchFilters, generateChatResponse, parseMultiWordQuery, findCommonFilters } from './utils/fuzzySearch';
 import { exportFilteredResultsPDF } from './utils/pdfExport';
+import { downloadCSV, downloadExcel } from './utils/dataExport';
 import { hasTaleaType } from './utils/getTaleaTypes';
 import { executeCommand } from './utils/commandHandler';
 import SearchBar from './components/SearchBar';
@@ -445,6 +446,14 @@ function App() {
     exportFilteredResultsPDF(filteredStudies, activeFilters);
   }, [filteredStudies, activeFilters]);
 
+  const handleDownloadCSV = useCallback(() => {
+    downloadCSV(filteredStudies);
+  }, [filteredStudies]);
+
+  const handleDownloadExcel = useCallback(() => {
+    downloadExcel(filteredStudies);
+  }, [filteredStudies]);
+
   // Refs for chat
   const filteredStudiesRef = useRef(filteredStudies);
   filteredStudiesRef.current = filteredStudies;
@@ -558,6 +567,8 @@ function App() {
         resultCount={filteredStudies.length}
         totalCount={caseStudies.length}
         onExportPDF={handleExportPDF}
+        onExportCSV={handleDownloadCSV}
+        onExportExcel={handleDownloadExcel}
         theme={theme}
         onToggleTheme={toggleTheme}
         showFavorites={showFavorites}
@@ -615,12 +626,6 @@ function App() {
                   <option value="country">Country A → Z</option>
                   <option value="nbs-most">Most NBS solutions</option>
                 </select>
-                <button className="export-pdf-btn" onClick={handleExportPDF} title="Export results as PDF">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-                  </svg>
-                  PDF
-                </button>
                 <button className="stats-btn" onClick={() => setShowStats(true)} title="Statistics">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
@@ -654,11 +659,19 @@ function App() {
               />
             )}
 
-            {compareIds.length >= 2 && (
+            {compareIds.length >= 1 && (
               <div className="compare-floating-bar">
-                <span>{compareIds.length} selected for comparison</span>
-                <button className="compare-btn" onClick={() => setShowCompare(true)}>
-                  Compare
+                <span>
+                  {compareIds.length === 1
+                    ? '1 selected — add more to compare'
+                    : `${compareIds.length} selected for comparison`}
+                </span>
+                <button
+                  className="compare-btn"
+                  onClick={() => setShowCompare(true)}
+                  disabled={compareIds.length < 2}
+                >
+                  Compare{compareIds.length >= 2 ? ` (${compareIds.length})` : ''}
                 </button>
                 <button className="compare-clear" onClick={() => setCompareIds([])}>Clear</button>
               </div>
@@ -673,6 +686,10 @@ function App() {
           onClose={() => setSelectedStudy(null)}
           isFavorite={favorites.includes(selectedStudy.id)}
           onToggleFavorite={toggleFavorite}
+          isCompared={compareIds.includes(selectedStudy.id)}
+          onToggleCompare={toggleCompare}
+          compareCount={compareIds.length}
+          onShowCompare={() => { setSelectedStudy(null); setShowCompare(true); }}
           allStudies={caseStudies}
           onSelectStudy={setSelectedStudy}
         />

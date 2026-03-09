@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FILTER_CATEGORIES } from '../data/filterConfig';
+import { submitStudy } from '../utils/submitService';
 
 const FORM_SECTIONS = [
   {
@@ -13,6 +14,8 @@ const FORM_SECTIONS = [
       { key: 'designer', label: 'Designer', type: 'text' },
       { key: 'promoter', label: 'Promoter', type: 'text' },
       { key: 'description', label: 'Project Description', type: 'textarea', required: true },
+      { key: 'latitude', label: 'Latitude', type: 'text', placeholder: 'e.g. 45.4861' },
+      { key: 'longitude', label: 'Longitude', type: 'text', placeholder: 'e.g. 9.1905' },
       { key: 'image', label: 'Project Image', type: 'file' },
     ]
   },
@@ -62,18 +65,6 @@ const FORM_SECTIONS = [
     ]
   },
   {
-    title: 'D. Nature-Based Solutions',
-    icon: '🌿',
-    fields: [
-      { key: 'd1_plants', label: 'D1 Plants', type: 'multi', filterKey: 'd1_plants' },
-      { key: 'd2_paving', label: 'D2 Paving', type: 'multi', filterKey: 'd2_paving' },
-      { key: 'd3_water', label: 'D3 Water', type: 'multi', filterKey: 'd3_water' },
-      { key: 'd4_roof_facade', label: 'D4 Roof & Facade', type: 'multi', filterKey: 'd4_roof_facade' },
-      { key: 'd5_furnishings', label: 'D5 Furnishings', type: 'multi', filterKey: 'd5_furnishings' },
-      { key: 'd6_urban_spaces', label: 'D6 Urban Spaces', type: 'multi', filterKey: 'd6_urban_spaces' },
-    ]
-  },
-  {
     title: 'C. Design Process & Goals',
     icon: '🎨',
     fields: [
@@ -83,6 +74,18 @@ const FORM_SECTIONS = [
       { key: 'c2_actors', label: 'C2 Actors', type: 'multi', filterKey: 'c2_actors' },
       { key: 'c3_goals', label: 'C3 Goals', type: 'multi', filterKey: 'c3_goals' },
       { key: 'c4_services', label: 'C4 Services', type: 'multi', filterKey: 'c4_services' },
+    ]
+  },
+  {
+    title: 'D. Nature-Based Solutions',
+    icon: '🌿',
+    fields: [
+      { key: 'd1_plants', label: 'D1 Plants', type: 'multi', filterKey: 'd1_plants' },
+      { key: 'd2_paving', label: 'D2 Paving', type: 'multi', filterKey: 'd2_paving' },
+      { key: 'd3_water', label: 'D3 Water', type: 'multi', filterKey: 'd3_water' },
+      { key: 'd4_roof_facade', label: 'D4 Roof & Facade', type: 'multi', filterKey: 'd4_roof_facade' },
+      { key: 'd5_furnishings', label: 'D5 Furnishings', type: 'multi', filterKey: 'd5_furnishings' },
+      { key: 'd6_urban_spaces', label: 'D6 Urban Spaces', type: 'multi', filterKey: 'd6_urban_spaces' },
     ]
   },
 ];
@@ -146,28 +149,37 @@ function SubmitForm({ onClose, onSubmitted, existingStudies }) {
     return errors;
   };
 
-  const handleSubmit = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState(null);
+
+  const handleSubmit = async () => {
     const errors = validate();
     if (errors.length > 0) {
       setValidationErrors(errors);
-      // Jump to the first section with an error
       const firstErrorSection = findSectionForField(errors[0].key);
       if (firstErrorSection >= 0) setCurrentSection(firstErrorSection);
       return;
     }
 
-    // Compute next available ID
-    const maxId = existingStudies ? Math.max(...existingStudies.map(s => s.id)) : 50;
-    const newStudy = { ...formData, id: maxId + 1, submittedAt: new Date().toISOString() };
-
-    // Save to localStorage as simple "database"
-    const existing = JSON.parse(localStorage.getItem('talea_submissions') || '[]');
-    existing.push(newStudy);
-    localStorage.setItem('talea_submissions', JSON.stringify(existing));
-    setSubmitted(true);
-
-    // Notify parent to refresh the studies list
-    if (onSubmitted) onSubmitted();
+    setIsSubmitting(true);
+    try {
+      const result = await submitStudy(formData, existingStudies || []);
+      setSubmitResult(result);
+      setSubmitted(true);
+      if (onSubmitted) onSubmitted();
+    } catch (err) {
+      console.error('Submission error:', err);
+      // Still save locally as fallback
+      const maxId = existingStudies ? Math.max(...existingStudies.map(s => s.id)) : 50;
+      const newStudy = { ...formData, id: maxId + 1, submittedAt: new Date().toISOString() };
+      const existing = JSON.parse(localStorage.getItem('talea_submissions') || '[]');
+      existing.push(newStudy);
+      localStorage.setItem('talea_submissions', JSON.stringify(existing));
+      setSubmitted(true);
+      if (onSubmitted) onSubmitted();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const exportJson = () => {
@@ -196,7 +208,15 @@ function SubmitForm({ onClose, onSubmitted, existingStudies }) {
               </svg>
             </div>
             <h2>Submission Saved!</h2>
-            <p>Your case study has been added to the toolkit and is now visible in the grid, map, and statistics. You can also export it as JSON.</p>
+            <p>Your case study has been saved locally and is visible in the grid, map, and statistics.</p>
+            {submitResult && (
+              <div className="submit-status-details">
+                {submitResult.sheetSent && <span className="submit-status-ok">Submitted for review — supervisor has been notified</span>}
+                {!submitResult.sheetSent && (
+                  <span className="submit-status-note">Saved locally only — Google Sheet not configured</span>
+                )}
+              </div>
+            )}
             <div className="submitted-actions">
               <button className="btn-export" onClick={exportJson}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -264,7 +284,7 @@ function SubmitForm({ onClose, onSubmitted, existingStudies }) {
                     type="text"
                     value={formData[field.key] || ''}
                     onChange={e => updateField(field.key, e.target.value)}
-                    placeholder={`Enter ${field.label.toLowerCase()}...`}
+                    placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
                   />
                   {hasError && <span className="field-error-msg">This field is required</span>}
                 </div>
@@ -277,7 +297,7 @@ function SubmitForm({ onClose, onSubmitted, existingStudies }) {
                   <textarea
                     value={formData[field.key] || ''}
                     onChange={e => updateField(field.key, e.target.value)}
-                    placeholder={`Enter ${field.label.toLowerCase()}...`}
+                    placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
                     rows={4}
                   />
                   {hasError && <span className="field-error-msg">This field is required</span>}
@@ -387,8 +407,8 @@ function SubmitForm({ onClose, onSubmitted, existingStudies }) {
               Next
             </button>
           ) : (
-            <button className="btn-submit" onClick={handleSubmit}>
-              Submit
+            <button className="btn-submit" onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
           )}
         </div>

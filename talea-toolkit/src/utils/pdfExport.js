@@ -332,10 +332,51 @@ export async function exportSingleStudyPDF(study) {
   y = drawTagPills(doc, y, 'C3 Goals & Results', study.c3_goals, hexToRgb('#004d19'));
   y = drawTagPills(doc, y, 'C4 Services', study.c4_services, hexToRgb('#21A84A'));
 
-  // ── C5 Impacts ──
+  // ── C5 Impacts (structured) ──
   if (study.c5_impacts) {
     y = drawSectionTitle(doc, y, 'C5. Impacts');
-    y = drawParagraph(doc, y, study.c5_impacts, 8);
+    const impactLines = study.c5_impacts.split('\n').filter(Boolean);
+    for (const line of impactLines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const isHeading = /^[A-Z\s&/,()-]+:?$/.test(trimmed) || trimmed.endsWith(':');
+      const isBullet = trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*');
+      if (isHeading) {
+        y = needsNewPage(doc, y, 10);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...C.dark);
+        doc.text(trimmed.replace(/:$/, ''), MARGIN + 2, y);
+        doc.setFont('helvetica', 'normal');
+        y += 5;
+      } else if (isBullet) {
+        const bulletText = trimmed.replace(/^[-•*]\s*/, '');
+        const bulletLines = doc.splitTextToSize(bulletText, CONTENT_W - 8);
+        for (let i = 0; i < bulletLines.length; i++) {
+          y = needsNewPage(doc, y, 5);
+          doc.setFontSize(8);
+          doc.setTextColor(...C.text);
+          if (i === 0) {
+            doc.setFillColor(...C.primary);
+            doc.circle(MARGIN + 4, y - 1, 0.8, 'F');
+          }
+          doc.text(bulletLines[i], MARGIN + 8, y);
+          y += 4;
+        }
+        y += 1;
+      } else {
+        doc.setFontSize(8);
+        doc.setTextColor(...C.text);
+        const paraLines = doc.splitTextToSize(trimmed, CONTENT_W - 2);
+        for (const pl of paraLines) {
+          y = needsNewPage(doc, y, 5);
+          doc.text(pl, MARGIN + 2, y);
+          y += 4;
+        }
+        y += 1;
+      }
+    }
+    y += 2;
   }
 
   // ── D. Nature-Based Solutions ──
@@ -343,7 +384,9 @@ export async function exportSingleStudyPDF(study) {
   for (const [key, meta] of Object.entries(NBS_CATEGORIES)) {
     const items = study[key] || [];
     if (items.length > 0) {
-      y = drawTagPills(doc, y, `${meta.icon} ${meta.label}`, items, hexToRgb(meta.color));
+      // Strip emoji from label for PDF (jsPDF can't render emoji)
+      const cleanLabel = meta.label.replace(/[\u{1F000}-\u{1FFFF}]/gu, '').trim();
+      y = drawTagPills(doc, y, cleanLabel, items, hexToRgb(meta.color));
     }
   }
 

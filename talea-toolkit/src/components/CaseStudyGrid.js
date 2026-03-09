@@ -84,14 +84,14 @@ function CaseStudyCard({ study, onSelect, isFavorite, onToggleFavorite, onCompar
               title={isComparing ? 'Remove from compare' : 'Add to compare'}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                <path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/>
               </svg>
             </button>
           )}
         </div>
         <div className="card-innovations">
-          {study.has_social_innovation && <span className="innovation-dot social" title="Social Innovation">S</span>}
-          {study.has_digital_innovation && <span className="innovation-dot digital" title="Digital Innovation">D</span>}
+          {study.has_social_innovation && <span className="innovation-dot social" title="Social Innovation"><span className="innovation-label">S</span><span className="innovation-full">Social</span></span>}
+          {study.has_digital_innovation && <span className="innovation-dot digital" title="Digital Innovation"><span className="innovation-label">D</span><span className="innovation-full">Digital</span></span>}
         </div>
       </div>
 

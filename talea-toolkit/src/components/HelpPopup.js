@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const HELP_PAGES = [
   {
@@ -6,7 +6,7 @@ const HELP_PAGES = [
     icon: '🏠',
     content: [
       { heading: 'What is TALEA Abacus?', text: 'TALEA Abacus is an interactive toolkit for exploring Nature-Based Solution (NBS) case studies from cities worldwide. Browse, search, filter, compare, and export data about real-world NBS projects. New submissions are added to the toolkit.' },
-      { heading: 'Quick start', text: 'Type in the search bar to find solutions — the search supports fuzzy matching, so misspelled words still work. Press Enter to submit your query and add filter chips automatically.' },
+      { heading: 'Quick start', text: 'Type in the search bar to find solutions — the search supports fuzzy matching. Press Enter to submit your query and add filter chips automatically.' },
       { heading: 'Views', text: 'Switch between Grid, List, and Map view using the toggle buttons. Grid shows cards, List shows a compact table, and Map plots locations on an interactive map.' },
     ],
   },
@@ -25,8 +25,8 @@ const HELP_PAGES = [
     content: [
       { heading: 'How it works', text: 'The Filter Canvas is a visual query builder. Open the palette to see all filter categories organized in groups. Click or drag filters onto the canvas.' },
       { heading: 'Include / Exclude', text: 'Filters are green by default (include). You can exclude filters in two ways: (1) Click the NOT button in the canvas toolbar to activate NOT mode — while active, any palette item you click is added as an exclusion filter (red "NOT" chip). (2) After adding a filter, click the toggle button (-/+) on its chip to switch between include and exclude. Excluded filters remove matching results.' },
-      { heading: 'Filter groups', text: 'Filters are organized into: Core (type, continent, climate, size), Physical Context (A-group), Constraints (B-group), Design Features (C-group), and NBS Categories (D-group — plants, paving, water, roof/facade, furnishings, urban spaces).' },
-      { heading: 'Result bar', text: 'The progress bar at the bottom shows how many solutions match your current filter combination.' },
+      { heading: 'AND / OR logic', text: 'Within a single category: when two or more filters are active, a toggle appears to switch between OR (match any — default) and AND (match all). Across different categories: filters always combine with AND, meaning a study must satisfy every category\'s condition. For example, selecting "Small" in Size AND "Tropical" in Climate shows only studies that are both small and tropical.' },
+      { heading: 'Exclusion with minus (-)', text: 'Prefix a search word with minus (e.g. "-tropical") to exclude results containing that term. On the filter canvas, click the +/- toggle on a chip to switch it to an exclusion filter (red NOT chip). Excluded filters remove any matching results.' },
     ],
   },
   {
@@ -35,18 +35,20 @@ const HELP_PAGES = [
     content: [
       { heading: 'Interactive map', text: 'The map shows all case study locations using clustered markers. Zoom in to expand clusters into individual points.' },
       { heading: 'Map styles', text: 'Switch between Liberty, Bright, and Positron map styles using the buttons above the map.' },
-      { heading: 'Point details', text: 'Click any marker to see a popup with the case study title, location, size, and climate zone.' },
-      { heading: 'External links', text: 'Each popup includes links to Google Street View, a geo: URI (opens your default maps app), and OpenStreetMap for the location.' },
+      { heading: 'Point details', text: 'Click any marker to see a popup with the case study title, location, size, and climate zone. When multiple studies share the same location, a list of all studies appears.' },
+      { heading: 'External links', text: 'Each popup includes links to Google Street View (finds the nearest available panorama), a geo: URI (opens your default maps app), and OpenStreetMap for the location.' },
     ],
   },
   {
     title: 'More Features',
     icon: '⚡',
     content: [
+      { heading: 'Export data', text: 'Click the Export button in the header to download the current filtered results in three formats: PDF (formatted report), CSV (for spreadsheets and data analysis), or Excel (.xlsx with auto-sized columns). All exports include the currently filtered results.' },
+      { heading: 'Submit new studies', text: 'Click "Submit New" to propose a new case study. The form is organized in sections covering basic info, physical characteristics, constraints, NBS elements, and design process. Once submitted, the study is saved locally and sent to a Google Sheet for supervisor review. The supervisor receives an email notification and can approve or deny the submission. Approved studies are automatically merged into the toolkit by a nightly sync.' },
       { heading: 'Favorites', text: 'Click the star icon on any case study card to bookmark it. Use the star button in the header to filter only favorites. Favorites are saved in your browser.' },
       { heading: 'Compare mode', text: 'Select 2-3 studies using the compare checkbox on cards, then click Compare to see them side by side.' },
       { heading: 'Statistics', text: 'Click the bar chart icon to open the Statistics Dashboard with charts showing NBS distribution, top countries, climate zones, and size distribution.' },
-      { heading: 'Export PDF', text: 'Export the current filtered results as a formatted PDF document using the Export PDF button.' },
+      { heading: 'Similar studies', text: 'Open any case study detail view to see a "Similar Studies" section at the bottom, showing related projects based on size, climate, country, NBS elements, and goals.' },
       { heading: 'Share', text: 'Click the share button to copy a URL with your current filters and search query encoded in it.' },
       { heading: 'Theme', text: 'Toggle between light and dark themes using the sun/moon button.' },
     ],
@@ -55,6 +57,17 @@ const HELP_PAGES = [
 
 function HelpPopup({ isOpen, onClose, initialPage }) {
   const [currentPage, setCurrentPage] = useState(initialPage || 0);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
+    const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

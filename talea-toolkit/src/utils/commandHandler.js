@@ -370,9 +370,18 @@ export function executeCommand(cmd, arg, ctx) {
       }
       break;
     }
-    case '/nbs':
-      response = 'NBS Design Categories:\nD1 Plants — Trees, hedges, shrubs, flowers, corridors\nD2 Paving — Permeable paving, depaving\nD3 Water — Rain gardens, bioretention, fountains, wetlands\nD4 Roof & Facade — Green roofs, green walls, climbing structures\nD5 Furnishings — Green shelters, vegetated awnings\nD6 Urban Spaces — Parks, gardens, micro parks, squares';
+    case '/nbs': {
+      const nbsKeys = Object.entries(FILTER_CATEGORIES)
+        .filter(([k]) => k.startsWith('d'));
+      if (nbsKeys.length === 0) {
+        response = 'No NBS categories found in filter configuration.';
+      } else {
+        response = 'NBS Design Categories:\n' + nbsKeys.map(([, cat]) =>
+          `${cat.icon} ${cat.label} — ${cat.options.slice(0, 6).join(', ')}${cat.options.length > 6 ? '...' : ''}`
+        ).join('\n');
+      }
       break;
+    }
     default:
       response = `Unknown command: ${cmd}\nType /help to see available commands.`;
   }
