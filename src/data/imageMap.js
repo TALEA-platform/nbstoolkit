@@ -13,15 +13,4 @@ for (const study of caseStudies) {
   }
 }
 
-// Merge user-submitted study images (from localStorage)
-// These may be hosted URLs or DataURLs
-try {
-  const submissions = JSON.parse(localStorage.getItem('talea_submissions') || '[]');
-  for (const sub of submissions) {
-    if (sub.id && sub.image) {
-      imageMap[sub.id] = sub.image;
-    }
-  }
-} catch { /* ignore */ }
-
 export default imageMap;

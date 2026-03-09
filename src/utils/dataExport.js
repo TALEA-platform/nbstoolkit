@@ -16,8 +16,6 @@ const EXPORT_COLUMNS = [
   { key: 'physical_innovation', label: 'Physical Innovation' },
   { key: 'social_innovation', label: 'Social Innovation' },
   { key: 'digital_innovation', label: 'Digital Innovation' },
-  { key: 'has_social_innovation', label: 'Has Social Innovation' },
-  { key: 'has_digital_innovation', label: 'Has Digital Innovation' },
   { key: 'a1_urban_scale', label: 'A1 Urban Scale', array: true },
   { key: 'a2_urban_area', label: 'A2 Urban Area', array: true },
   { key: 'a3_1_buildings', label: 'A3.1 Buildings', array: true },

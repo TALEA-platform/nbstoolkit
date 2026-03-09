@@ -18,40 +18,8 @@ import StatsPanel from './components/StatsPanel';
 import HelpPopup from './components/HelpPopup';
 import './App.css';
 
-// Required fields that every study must have to be valid
-const REQUIRED_STUDY_FIELDS = ['title', 'city', 'country', 'year', 'description', 'size', 'climate_zone'];
-
-function isValidStudy(study) {
-  return REQUIRED_STUDY_FIELDS.every(key => {
-    const val = study[key];
-    if (Array.isArray(val)) return val.length > 0;
-    return typeof val === 'string' && val.trim().length > 0;
-  });
-}
-
-// Load user-submitted studies from localStorage and merge with static data
-// Automatically removes invalid/blank submissions
-function loadAllStudies() {
-  try {
-    const raw = JSON.parse(localStorage.getItem('talea_submissions') || '[]');
-    // Filter out invalid submissions
-    const valid = raw.filter(isValidStudy);
-    // Clean up localStorage if some were removed
-    if (valid.length !== raw.length) {
-      localStorage.setItem('talea_submissions', JSON.stringify(valid));
-    }
-    if (valid.length === 0) return staticCaseStudies;
-    const maxStaticId = Math.max(...staticCaseStudies.map(s => s.id));
-    const userStudies = valid.map((sub, i) => ({
-      ...sub,
-      id: sub.id || maxStaticId + 1 + i,
-      _userSubmitted: true,
-    }));
-    return [...staticCaseStudies, ...userStudies];
-  } catch {
-    return staticCaseStudies;
-  }
-}
+// Studies come only from the static JSON (synced via nightly build).
+// User submissions go through Google Sheet → approval → sync pipeline.
 
 // URL hash helpers
 function encodeStateToHash(activeFilters, searchQuery) {
@@ -79,14 +47,8 @@ function decodeHashToState(hash) {
 }
 
 function App() {
-  // Dynamic case studies: static JSON + localStorage submissions
-  const [caseStudies, setCaseStudies] = useState(loadAllStudies);
+  const caseStudies = staticCaseStudies;
   const csFuse = useMemo(() => createCaseStudyFuse(caseStudies), [caseStudies]);
-
-  // Called when a new study is submitted — re-merge and update
-  const refreshStudies = useCallback(() => {
-    setCaseStudies(loadAllStudies());
-  }, []);
 
   // Cookie consent
   const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem('talea_cookie_consent') === 'true');
@@ -696,7 +658,7 @@ function App() {
       )}
 
       {showForm && (
-        <SubmitForm onClose={() => setShowForm(false)} onSubmitted={refreshStudies} existingStudies={caseStudies} />
+        <SubmitForm onClose={() => setShowForm(false)} />
       )}
 
       {showCompare && compareIds.length >= 2 && (
@@ -725,7 +687,7 @@ function App() {
               <circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/>
             </svg>
             <p>
-              This app uses <strong>local storage</strong> to save your preferences, favorites, and submitted case studies.
+              This app uses <strong>local storage</strong> to save your preferences and favorites.
               No tracking cookies or third-party analytics are used. Map tiles are served by <strong>OpenFreeMap</strong> without tracking.
             </p>
             <button className="cookie-accept-btn" onClick={acceptCookies}>Got it</button>

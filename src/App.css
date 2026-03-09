@@ -1241,6 +1241,10 @@ body {
   display: inline;
 }
 
+.innovation-dot.physical {
+  background: #e07c3a;
+}
+
 .innovation-dot.social {
   background: var(--talea-yellow);
   color: var(--talea-dark-green);
@@ -1581,6 +1585,11 @@ body {
 .modal-badge.climate {
   background: rgba(33, 168, 74, 0.10);
   color: var(--talea-green);
+}
+
+.modal-badge.physical {
+  background: rgba(224, 124, 58, 0.12);
+  color: #c06830;
 }
 
 .modal-badge.social {

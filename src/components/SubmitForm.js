@@ -74,6 +74,7 @@ const FORM_SECTIONS = [
       { key: 'c2_actors', label: 'C2 Actors', type: 'multi', filterKey: 'c2_actors' },
       { key: 'c3_goals', label: 'C3 Goals', type: 'multi', filterKey: 'c3_goals' },
       { key: 'c4_services', label: 'C4 Services', type: 'multi', filterKey: 'c4_services' },
+      { key: 'c5_impacts', label: 'C5 Impacts', type: 'textarea', placeholder: 'Describe the project impacts (environmental, social, economic...)' },
     ]
   },
   {
@@ -106,7 +107,7 @@ function findSectionForField(key) {
   return FORM_SECTIONS.findIndex(s => s.fields.some(f => f.key === key));
 }
 
-function SubmitForm({ onClose, onSubmitted, existingStudies }) {
+function SubmitForm({ onClose }) {
   const [formData, setFormData] = useState({});
   const [currentSection, setCurrentSection] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -163,20 +164,13 @@ function SubmitForm({ onClose, onSubmitted, existingStudies }) {
 
     setIsSubmitting(true);
     try {
-      const result = await submitStudy(formData, existingStudies || []);
+      const result = await submitStudy(formData);
       setSubmitResult(result);
       setSubmitted(true);
-      if (onSubmitted) onSubmitted();
     } catch (err) {
       console.error('Submission error:', err);
-      // Still save locally as fallback
-      const maxId = existingStudies ? Math.max(...existingStudies.map(s => s.id)) : 50;
-      const newStudy = { ...formData, id: maxId + 1, submittedAt: new Date().toISOString() };
-      const existing = JSON.parse(localStorage.getItem('talea_submissions') || '[]');
-      existing.push(newStudy);
-      localStorage.setItem('talea_submissions', JSON.stringify(existing));
+      setSubmitResult({ sheetSent: false, error: true });
       setSubmitted(true);
-      if (onSubmitted) onSubmitted();
     } finally {
       setIsSubmitting(false);
     }
@@ -207,13 +201,20 @@ function SubmitForm({ onClose, onSubmitted, existingStudies }) {
                 <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
             </div>
-            <h2>Submission Saved!</h2>
-            <p>Your case study has been saved locally and is visible in the grid, map, and statistics.</p>
+            <h2>{submitResult?.sheetSent ? 'Submission Sent!' : 'Submission Failed'}</h2>
             {submitResult && (
               <div className="submit-status-details">
-                {submitResult.sheetSent && <span className="submit-status-ok">Submitted for review — supervisor has been notified</span>}
+                {submitResult.sheetSent && (
+                  <>
+                    <p>Your case study has been submitted for review.</p>
+                    <span className="submit-status-ok">A supervisor will review your submission. Once approved, it will appear on the platform after the next sync.</span>
+                  </>
+                )}
                 {!submitResult.sheetSent && (
-                  <span className="submit-status-note">Saved locally only — Google Sheet not configured</span>
+                  <>
+                    <p>Could not submit your case study.</p>
+                    <span className="submit-status-note">The submission service is not configured or unavailable. Please try again later or export your data as JSON.</span>
+                  </>
                 )}
               </div>
             )}

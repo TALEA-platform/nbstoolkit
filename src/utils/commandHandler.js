@@ -1,6 +1,12 @@
 import { FILTER_CATEGORIES } from '../data/filterConfig';
 import { findCommonFilters } from './fuzzySearch';
 
+function hasInnovation(text) {
+  if (!text || typeof text !== 'string') return false;
+  const t = text.trim().toLowerCase();
+  return t.length > 0 && !t.startsWith('no evidence');
+}
+
 /**
  * Execute a slash command and return { response, actions }.
  * `actions` is an object of side-effects for App.js to apply.
@@ -101,8 +107,9 @@ export function executeCommand(cmd, arg, ctx) {
       const sizeStr = Object.entries(sizes).map(([k, v]) => `${k}: ${v}`).join(', ');
       const climateStr = Object.entries(climates).map(([k, v]) => `${k}: ${v}`).join(', ');
       const countryStr = topCountries.map(([k, v]) => `${k} (${v})`).join(', ');
-      const socialInno = studies.filter(s => s.has_social_innovation).length;
-      const digitalInno = studies.filter(s => s.has_digital_innovation).length;
+      const physicalInno = studies.filter(s => hasInnovation(s.physical_innovation)).length;
+      const socialInno = studies.filter(s => hasInnovation(s.social_innovation)).length;
+      const digitalInno = studies.filter(s => hasInnovation(s.digital_innovation)).length;
       const nbsCount = studies.reduce((sum, s) => {
         return sum + (s.d1_plants?.length || 0) + (s.d2_paving?.length || 0) + (s.d3_water?.length || 0)
           + (s.d4_roof_facade?.length || 0) + (s.d5_furnishings?.length || 0) + (s.d6_urban_spaces?.length || 0);
@@ -112,6 +119,7 @@ export function executeCommand(cmd, arg, ctx) {
         + `Climate: ${climateStr}\n`
         + `Countries: ${countryStr}${Object.keys(countries).length > 5 ? ` (+${Object.keys(countries).length - 5} more)` : ''}\n`
         + `NBS elements total: ${nbsCount} (avg ${(nbsCount / n).toFixed(1)}/study)\n`
+        + `Physical innovation: ${physicalInno}/${n} (${Math.round(physicalInno / n * 100)}%)\n`
         + `Social innovation: ${socialInno}/${n} (${Math.round(socialInno / n * 100)}%)\n`
         + `Digital innovation: ${digitalInno}/${n} (${Math.round(digitalInno / n * 100)}%)\n\n`
         + `Use /describe, /common, /goals, or /design for deeper analysis.`;
@@ -276,21 +284,22 @@ export function executeCommand(cmd, arg, ctx) {
     }
     case '/innovations': {
       if (studies.length === 0) { response = 'No results.'; break; }
-      const social = studies.filter(s => s.has_social_innovation);
-      const digital = studies.filter(s => s.has_digital_innovation);
+      const physical = studies.filter(s => hasInnovation(s.physical_innovation));
+      const social = studies.filter(s => hasInnovation(s.social_innovation));
+      const digital = studies.filter(s => hasInnovation(s.digital_innovation));
       let iText = `Innovations in ${studies.length} results:\n\n`;
-      iText += `Social Innovation: ${social.length}/${studies.length} (${Math.round(social.length / studies.length * 100)}%)\n`;
-      if (social.length > 0 && social.length <= 8) {
-        iText += social.map(s => `  - "${s.title}" — ${(s.social_innovation || '').slice(0, 100)}...`).join('\n') + '\n';
-      } else if (social.length > 8) {
-        iText += `  Top examples:\n` + social.slice(0, 5).map(s => `  - "${s.title}" — ${(s.social_innovation || '').slice(0, 80)}...`).join('\n') + '\n';
-      }
-      iText += `\nDigital Innovation: ${digital.length}/${studies.length} (${Math.round(digital.length / studies.length * 100)}%)\n`;
-      if (digital.length > 0 && digital.length <= 8) {
-        iText += digital.map(s => `  - "${s.title}" — ${(s.digital_innovation || '').slice(0, 100)}...`).join('\n');
-      } else if (digital.length > 8) {
-        iText += `  Top examples:\n` + digital.slice(0, 5).map(s => `  - "${s.title}" — ${(s.digital_innovation || '').slice(0, 80)}...`).join('\n');
-      }
+      const formatSection = (label, list, field) => {
+        let t = `${label}: ${list.length}/${studies.length} (${Math.round(list.length / studies.length * 100)}%)\n`;
+        if (list.length > 0 && list.length <= 8) {
+          t += list.map(s => `  - "${s.title}" — ${(s[field] || '').slice(0, 100)}...`).join('\n') + '\n';
+        } else if (list.length > 8) {
+          t += `  Top examples:\n` + list.slice(0, 5).map(s => `  - "${s.title}" — ${(s[field] || '').slice(0, 80)}...`).join('\n') + '\n';
+        }
+        return t;
+      };
+      iText += formatSection('Physical Innovation', physical, 'physical_innovation');
+      iText += '\n' + formatSection('Social Innovation', social, 'social_innovation');
+      iText += '\n' + formatSection('Digital Innovation', digital, 'digital_innovation');
       response = iText;
       break;
     }

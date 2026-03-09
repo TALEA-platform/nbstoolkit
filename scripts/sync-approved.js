@@ -1,13 +1,16 @@
 /**
  * Nightly sync script — run by GitHub Actions.
  *
- * Fetches the Google Sheet as CSV, finds rows marked "approved",
- * and merges new entries into src/data/caseStudies.json.
- * Images are stored as URLs (not downloaded) — imageMap.js reads them at runtime.
+ * Fetches the Google Sheet as CSV, rebuilds caseStudies.json from approved rows.
+ * After the one-time init (init-sheet.js), the sheet is the source of truth.
+ *
+ * Logic:
+ *   - Approved rows → included in JSON
+ *   - Denied rows → excluded from JSON (stay in sheet for records)
+ *   - Deleted rows → excluded from JSON (they're simply gone)
  *
  * Required environment variable:
  *   GOOGLE_SHEET_CSV_URL — the "Publish to web" CSV URL of the Submissions sheet
- *     (File > Share > Publish to web > Submissions sheet > CSV > Publish)
  */
 
 const fs = require('fs');
@@ -27,7 +30,6 @@ function fetchURL(url) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
     client.get(url, { headers: { 'User-Agent': 'TALEA-Sync/1.0' } }, (res) => {
-      // Follow redirects (Google Sheets may redirect)
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return fetchURL(res.headers.location).then(resolve).catch(reject);
       }
@@ -44,10 +46,7 @@ function fetchURL(url) {
 function parseCSV(csv) {
   const lines = csv.split('\n');
   if (lines.length < 2) return [];
-
-  // Parse header row
   const headers = parseCSVLine(lines[0]);
-
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -62,7 +61,6 @@ function parseCSV(csv) {
   return rows;
 }
 
-// Simple CSV line parser that handles quoted fields
 function parseCSVLine(line) {
   const result = [];
   let current = '';
@@ -93,14 +91,19 @@ function parseCSVLine(line) {
   return result;
 }
 
-// Convert comma-separated string to array, filtering empty
 function toArray(str) {
   if (!str) return [];
   return str.split(',').map(s => s.trim()).filter(Boolean);
 }
 
-// Convert a sheet row into a caseStudies.json entry
-function rowToStudy(row, id) {
+/**
+ * Convert a sheet row into a caseStudies.json entry.
+ * Innovation flags (has_social/digital/physical) are derived dynamically
+ * by the frontend from the text fields — no need to store booleans.
+ */
+function rowToStudy(row, fallbackId) {
+  const id = row.id ? parseInt(row.id, 10) : fallbackId;
+
   const study = {
     id,
     title: row.title || '',
@@ -115,21 +118,25 @@ function rowToStudy(row, id) {
     physical_innovation: row.physical_innovation || '',
     social_innovation: row.social_innovation || '',
     digital_innovation: row.digital_innovation || '',
-    has_social_innovation: !!(row.social_innovation || '').trim(),
-    has_digital_innovation: !!(row.digital_innovation || '').trim(),
   };
+
+  // C5 impacts
+  if (row.c5_impacts) study.c5_impacts = row.c5_impacts;
+
+  // Sources
+  if (row.sources) study.sources = row.sources;
 
   // Coordinates
   if (row.latitude) study.latitude = row.latitude;
   if (row.longitude) study.longitude = row.longitude;
 
-  // Image URL (hosted externally, displayed via imageMap.js)
+  // Image URL
   const imageUrl = (row.image_url || '').trim();
   if (imageUrl && imageUrl.startsWith('http')) {
     study.image_url = imageUrl;
   }
 
-  // TALEA application
+  // TALEA application → object with boolean keys
   const taleaTypes = toArray(row.talea_application);
   if (taleaTypes.length > 0) {
     study.talea_application = {};
@@ -160,43 +167,73 @@ async function main() {
   const rows = parseCSV(csv);
   console.log(`Parsed ${rows.length} total rows from sheet.`);
 
-  // Filter for approved entries
+  if (rows.length === 0) {
+    console.log('Sheet is empty — keeping existing caseStudies.json unchanged.');
+    return;
+  }
+
+  // Separate by status
   const approved = rows.filter(r => (r.status || '').toLowerCase() === 'approved');
-  console.log(`Found ${approved.length} approved submissions.`);
+  const denied = rows.filter(r => (r.status || '').toLowerCase() === 'denied');
+  const pending = rows.filter(r => (r.status || '').toLowerCase() === 'pending');
+  console.log(`Status: ${approved.length} approved, ${denied.length} denied, ${pending.length} pending`);
 
   if (approved.length === 0) {
-    console.log('No approved submissions to sync.');
+    console.log('No approved rows found. If the sheet has not been initialized yet, run init-sheet.js first.');
     return;
   }
 
-  // Load existing case studies
-  const existing = JSON.parse(fs.readFileSync(CASE_STUDIES_PATH, 'utf-8'));
-  const existingTitles = new Set(existing.map(s => s.title.toLowerCase()));
-  let maxId = Math.max(...existing.map(s => s.id));
+  // Track used IDs to avoid collisions
+  const usedIds = new Set();
+  const studies = [];
 
-  // Find new entries (by title match to avoid duplicates)
-  let added = 0;
+  // First pass: studies with explicit IDs from the sheet
   for (const row of approved) {
-    const title = (row.title || '').trim();
-    if (!title || existingTitles.has(title.toLowerCase())) {
-      continue;
+    if (row.id && !isNaN(parseInt(row.id, 10))) {
+      const study = rowToStudy(row, 0);
+      usedIds.add(study.id);
+      studies.push(study);
     }
-    maxId++;
-    const study = rowToStudy(row, maxId);
-    existing.push(study);
-    existingTitles.add(title.toLowerCase());
-    added++;
-    console.log(`  + Added #${maxId}: "${title}"${study.image_url ? ' (with image)' : ''}`);
   }
 
-  if (added === 0) {
-    console.log('All approved submissions already exist in caseStudies.json.');
-    return;
+  // Second pass: assign new IDs to rows without one
+  let nextId = usedIds.size > 0 ? Math.max(...usedIds) + 1 : 1;
+  for (const row of approved) {
+    if (!row.id || isNaN(parseInt(row.id, 10))) {
+      while (usedIds.has(nextId)) nextId++;
+      const study = rowToStudy(row, nextId);
+      usedIds.add(nextId);
+      studies.push(study);
+      nextId++;
+    }
   }
 
-  // Write back
-  fs.writeFileSync(CASE_STUDIES_PATH, JSON.stringify(existing, null, 2) + '\n', 'utf-8');
-  console.log(`Wrote ${existing.length} total studies (${added} new) to caseStudies.json.`);
+  // Sort by ID for consistency
+  studies.sort((a, b) => a.id - b.id);
+
+  // Load existing to report diff
+  const existing = JSON.parse(fs.readFileSync(CASE_STUDIES_PATH, 'utf-8'));
+  const existingIds = new Set(existing.map(s => s.id));
+  const newIds = new Set(studies.map(s => s.id));
+  const added = studies.filter(s => !existingIds.has(s.id));
+  const removed = existing.filter(s => !newIds.has(s.id));
+
+  if (added.length > 0) {
+    console.log(`Adding ${added.length} new studies:`);
+    for (const s of added) console.log(`  + #${s.id}: "${s.title}"`);
+  }
+  if (removed.length > 0) {
+    console.log(`Removing ${removed.length} studies (denied or deleted from sheet):`);
+    for (const s of removed) console.log(`  - #${s.id}: "${s.title}"`);
+  }
+  if (added.length === 0 && removed.length === 0) {
+    // Check for content updates
+    console.log('No additions or removals. Updating content from sheet.');
+  }
+
+  // Write the rebuilt JSON
+  fs.writeFileSync(CASE_STUDIES_PATH, JSON.stringify(studies, null, 2) + '\n', 'utf-8');
+  console.log(`Wrote ${studies.length} total studies to caseStudies.json.`);
 }
 
 main().catch(err => {

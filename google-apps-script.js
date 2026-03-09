@@ -33,17 +33,17 @@ function doPost(e) {
 
     // Define column order
     var headers = [
-      "status", "submitted_at", "title", "city", "country", "year",
+      "id", "status", "submitted_at", "title", "city", "country", "year",
       "latitude", "longitude", "size", "climate_zone", "talea_application",
       "designer", "promoter", "description",
-      "physical_innovation", "social_innovation", "digital_innovation",
+      "physical_innovation", "social_innovation", "digital_innovation", "c5_impacts",
       "a1_urban_scale", "a2_urban_area", "a3_1_buildings", "a3_2_open_spaces",
       "a3_3_infrastructures", "a4_ownership", "a5_management", "a6_uses", "a7_other",
       "b1_physical", "b2_regulations", "b3_uses_management", "b4_public_opinion",
       "b5_synergy", "b6_social_opportunities",
       "d1_plants", "d2_paving", "d3_water", "d4_roof_facade", "d5_furnishings", "d6_urban_spaces",
       "c1_1_design", "c1_2_funding", "c1_3_management", "c2_actors", "c3_goals", "c4_services",
-      "image_url"
+      "image_url", "sources"
     ];
 
     // Add headers if sheet is empty

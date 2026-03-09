@@ -21,6 +21,7 @@ const SUBMISSION_FIELDS = [
   'description', 'latitude', 'longitude',
   'size', 'climate_zone',
   'physical_innovation', 'social_innovation', 'digital_innovation',
+  'c5_impacts',
 ];
 
 /**
@@ -87,34 +88,17 @@ export async function submitToGoogleSheet(formData) {
 }
 
 /**
- * Submit to all channels: localStorage + Google Apps Script (sheet + email)
+ * Submit to Google Apps Script (handles sheet insert + email notification).
+ * No local storage — submissions appear after admin approval and nightly sync.
  */
-export async function submitStudy(formData, existingStudies) {
-  // 0. Upload image to hosting service if configured (replaces DataURL with URL)
+export async function submitStudy(formData) {
+  // Upload image to hosting service if configured (replaces DataURL with URL)
   const processedData = await processFormImage(formData);
 
-  // 1. Save locally (existing behavior)
-  const maxId = Math.max(0, ...existingStudies.map(s => s.id));
-  const newStudy = { ...processedData, id: maxId + 1 };
-
-  // Convert array fields properly for local storage
-  if (typeof newStudy.talea_application === 'string') {
-    newStudy.talea_application = newStudy.talea_application.split(',').map(s => s.trim()).filter(Boolean);
-  }
-
-  try {
-    const existing = JSON.parse(localStorage.getItem('talea_submissions') || '[]');
-    existing.push(newStudy);
-    localStorage.setItem('talea_submissions', JSON.stringify(existing));
-  } catch (e) {
-    console.error('localStorage save failed:', e);
-  }
-
-  // 2. Submit to Google Apps Script (handles both sheet insert + email notification)
+  // Submit to Google Apps Script
   const sheetResult = await submitToGoogleSheet(processedData);
 
   return {
-    localSaved: true,
     sheetSent: sheetResult.success,
   };
 }

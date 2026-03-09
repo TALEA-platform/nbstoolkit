@@ -144,7 +144,7 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
                               draggable={!isOnCanvas}
                               onDragStart={(e) => handlePaletteItemDragStart(e, catKey, opt)}
                               onClick={() => !isOnCanvas && handlePaletteItemClick(catKey, opt)}
-                              tyle={{ borderColor: isExcluded ? '#c5303060' : (notMode && !isOnCanvas) ? '#c5303040' : cat.color + '60', color: isOnCanvas ? '#999' : undefined }}
+                              style={{ borderColor: isExcluded ? '#c5303060' : (notMode && !isOnCanvas) ? '#c5303040' : cat.color + '60', color: isOnCanvas ? '#999' : undefined }}
                             >
                               <span className="palette-item-dot" style={{ backgroundColor: isExcluded ? '#c53030' : (notMode && !isOnCanvas) ? '#c53030' : cat.color }} />
                               {opt}

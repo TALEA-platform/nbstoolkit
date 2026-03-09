@@ -7,6 +7,12 @@ import getTaleaTypes from '../utils/getTaleaTypes';
 import findSimilarStudies from '../utils/findSimilarStudies';
 import cityCoordinates from '../data/cityCoordinates';
 
+function hasInnovation(text) {
+  if (!text || typeof text !== 'string') return false;
+  const t = text.trim().toLowerCase();
+  return t.length > 0 && !t.startsWith('no evidence');
+}
+
 function Section({ title, children, icon }) {
   return (
     <div className="modal-section">
@@ -151,8 +157,9 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
             <span className="modal-badge talea">{taleaTypes.join(' + ')}</span>
             <span className="modal-badge size">{study.size}</span>
             <span className="modal-badge climate">{study.climate_zone}</span>
-            {study.has_social_innovation && <span className="modal-badge social">Social Innovation</span>}
-            {study.has_digital_innovation && <span className="modal-badge digital">Digital Innovation</span>}
+            {hasInnovation(study.physical_innovation) && <span className="modal-badge physical">Physical Innovation</span>}
+            {hasInnovation(study.social_innovation) && <span className="modal-badge social">Social Innovation</span>}
+            {hasInnovation(study.digital_innovation) && <span className="modal-badge digital">Digital Innovation</span>}
           </div>
         </div>
 

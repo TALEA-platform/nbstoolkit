@@ -160,12 +160,14 @@ function StatsPanel({ studies, isOpen, onClose }) {
     // Quick summary numbers
     const uniqueCountries = Object.keys(countryCounts).length;
     const uniqueClimates = Object.keys(climateCounts).length;
-    const socialCount = studies.filter(s => s.has_social_innovation).length;
-    const digitalCount = studies.filter(s => s.has_digital_innovation).length;
+    const hasInno = (t) => t && typeof t === 'string' && t.trim().length > 0 && !t.trim().toLowerCase().startsWith('no evidence');
+    const physicalCount = studies.filter(s => hasInno(s.physical_innovation)).length;
+    const socialCount = studies.filter(s => hasInno(s.social_innovation)).length;
+    const digitalCount = studies.filter(s => hasInno(s.digital_innovation)).length;
 
     return {
       nbsData, nbsTotal, countryData, climateData, sizeData,
-      uniqueCountries, uniqueClimates, socialCount, digitalCount,
+      uniqueCountries, uniqueClimates, physicalCount, socialCount, digitalCount,
     };
   }, [studies]);
 
@@ -208,6 +210,10 @@ function StatsPanel({ studies, isOpen, onClose }) {
           <div className="stats-summary-item">
             <span className="stats-summary-number">{stats.nbsTotal}</span>
             <span className="stats-summary-label">NBS Elements</span>
+          </div>
+          <div className="stats-summary-item">
+            <span className="stats-summary-number">{stats.physicalCount}</span>
+            <span className="stats-summary-label">Physical Innov.</span>
           </div>
           <div className="stats-summary-item">
             <span className="stats-summary-number">{stats.socialCount}</span>
