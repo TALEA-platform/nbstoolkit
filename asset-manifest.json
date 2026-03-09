@@ -1,21 +1,21 @@
 {
   "files": {
-    "main.css": "/nbstoolkit/static/css/main.380f8674.css",
-    "main.js": "/nbstoolkit/static/js/main.9a3c06e1.js",
-    "static/js/239.a4f46357.chunk.js": "/nbstoolkit/static/js/239.a4f46357.chunk.js",
-    "static/js/977.9fe7925c.chunk.js": "/nbstoolkit/static/js/977.9fe7925c.chunk.js",
-    "static/js/455.fd7a175b.chunk.js": "/nbstoolkit/static/js/455.fd7a175b.chunk.js",
-    "static/js/453.a3cdc674.chunk.js": "/nbstoolkit/static/js/453.a3cdc674.chunk.js",
-    "index.html": "/nbstoolkit/index.html",
-    "main.380f8674.css.map": "/nbstoolkit/static/css/main.380f8674.css.map",
-    "main.9a3c06e1.js.map": "/nbstoolkit/static/js/main.9a3c06e1.js.map",
-    "239.a4f46357.chunk.js.map": "/nbstoolkit/static/js/239.a4f46357.chunk.js.map",
-    "977.9fe7925c.chunk.js.map": "/nbstoolkit/static/js/977.9fe7925c.chunk.js.map",
-    "455.fd7a175b.chunk.js.map": "/nbstoolkit/static/js/455.fd7a175b.chunk.js.map",
-    "453.a3cdc674.chunk.js.map": "/nbstoolkit/static/js/453.a3cdc674.chunk.js.map"
+    "main.css": "./static/css/main.48885f47.css",
+    "main.js": "./static/js/main.ac364a1c.js",
+    "static/js/239.ed7b95cd.chunk.js": "./static/js/239.ed7b95cd.chunk.js",
+    "static/js/977.98070d36.chunk.js": "./static/js/977.98070d36.chunk.js",
+    "static/js/732.c15fcf5b.chunk.js": "./static/js/732.c15fcf5b.chunk.js",
+    "static/js/453.811c74bb.chunk.js": "./static/js/453.811c74bb.chunk.js",
+    "index.html": "./index.html",
+    "main.48885f47.css.map": "./static/css/main.48885f47.css.map",
+    "main.ac364a1c.js.map": "./static/js/main.ac364a1c.js.map",
+    "239.ed7b95cd.chunk.js.map": "./static/js/239.ed7b95cd.chunk.js.map",
+    "977.98070d36.chunk.js.map": "./static/js/977.98070d36.chunk.js.map",
+    "732.c15fcf5b.chunk.js.map": "./static/js/732.c15fcf5b.chunk.js.map",
+    "453.811c74bb.chunk.js.map": "./static/js/453.811c74bb.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.380f8674.css",
-    "static/js/main.9a3c06e1.js"
+    "static/css/main.48885f47.css",
+    "static/js/main.ac364a1c.js"
   ]
 }
