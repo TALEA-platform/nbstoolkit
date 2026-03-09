@@ -47,7 +47,6 @@ function renderValueLabel(props) {
 }
 
 function StatCard({ title, icon, data, total, barHeight, labelWidth, full }) {
-  const maxVal = data.length > 0 ? data[0].value : 1;
   return (
     <div className={`stats-card ${full ? 'stats-card-full' : ''}`}>
       <div className="stats-card-header">

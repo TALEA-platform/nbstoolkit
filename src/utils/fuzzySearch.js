@@ -115,7 +115,7 @@ const SKIP_AS_FILTER = new Set([
 // These words should NEVER be skipped, even if they seem generic.
 const FILTER_OPTION_WORDS = new Set();
 for (const opt of allFilterOptions) {
-  for (const word of opt.value.toLowerCase().split(/[\s\/(),\-]+/)) {
+  for (const word of opt.value.toLowerCase().split(/[\s/(),-]+/)) {
     if (word.length >= 2) FILTER_OPTION_WORDS.add(word);
   }
 }

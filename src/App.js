@@ -321,7 +321,7 @@ function App() {
   const fuzzyResults = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return null;
     return multiWordCaseStudySearch(searchQuery, csFuse, caseStudies);
-  }, [searchQuery]);
+  }, [searchQuery, csFuse, caseStudies]);
 
   // Filter suggestions from fuzzy search
   const filterSuggestions = useMemo(() => {
@@ -394,7 +394,7 @@ function App() {
     }
 
     return results;
-  }, [searchQuery, activeFilters, excludedFilters, filterModes, fuzzyResults, showFavorites, favorites]);
+  }, [searchQuery, activeFilters, excludedFilters, filterModes, fuzzyResults, showFavorites, favorites, caseStudies]);
 
   // Extract a numeric year from a string like "2017–2019", "21st century", "completed 2022", etc.
   // Returns the most recent year found, or 0 if none.
@@ -440,7 +440,7 @@ function App() {
       default: break;
     }
     return sorted;
-  }, [filteredStudies, sortBy]);
+  }, [filteredStudies, sortBy, extractYear]);
 
   const handleExportPDF = useCallback(() => {
     exportFilteredResultsPDF(filteredStudies, activeFilters);
@@ -519,7 +519,7 @@ function App() {
       // Clear search text — filters are now visible as chips on the canvas
       setSearchQuery('');
     }
-  }, [searchQuery, addCanvasFilter, addExcludedFilter, clearAllFilters, handleExportPDF]);
+  }, [searchQuery, addCanvasFilter, addExcludedFilter, clearAllFilters, handleExportPDF, caseStudies]);
 
   useEffect(() => {
     if (!committedQuery || committedQuery.length < 2) return;
