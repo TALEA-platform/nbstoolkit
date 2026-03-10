@@ -111,6 +111,93 @@ function toArray(str) {
   return str.split(',').map(s => s.trim()).filter(Boolean);
 }
 
+function getAxisLimit(axis) {
+  return axis === 'latitude' ? 90 : 180;
+}
+
+function isValidCoordinateNumber(value, axis) {
+  return Number.isFinite(value) && Math.abs(value) <= getAxisLimit(axis);
+}
+
+function parseDecimalCoordinate(raw) {
+  let value = String(raw).replace(/[−–—]/g, '-').replace(/\s+/g, '');
+
+  if (value.includes(',') && value.includes('.')) {
+    if (value.lastIndexOf(',') > value.lastIndexOf('.')) {
+      value = value.replace(/\./g, '').replace(',', '.');
+    } else {
+      value = value.replace(/,/g, '');
+    }
+  } else if (value.includes(',')) {
+    value = value.replace(',', '.');
+  }
+
+  if (!/^[+-]?\d+(?:\.\d+)?$/.test(value)) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseDmsCoordinate(raw, sign) {
+  const match = String(raw).match(/^([+-])?\s*(\d{1,3})\D+(\d{1,2})(?:\D+(\d{1,2}(?:[.,]\d+)?))?\s*$/);
+  if (!match) {
+    return null;
+  }
+
+  const degrees = Number(match[2]);
+  const minutes = Number(match[3]);
+  const seconds = Number((match[4] || '0').replace(',', '.'));
+
+  if (!Number.isFinite(degrees) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+    return null;
+  }
+  if (minutes < 0 || minutes >= 60 || seconds < 0 || seconds >= 60) {
+    return null;
+  }
+
+  const decimal = degrees + (minutes / 60) + (seconds / 3600);
+  return decimal * sign;
+}
+
+function parseCoordinateValue(value, axis) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return isValidCoordinateNumber(value, axis) ? value : null;
+  }
+
+  const normalized = String(value).trim().replace(/[−–—]/g, '-');
+  if (!normalized) {
+    return null;
+  }
+
+  const sign = normalized.startsWith('-') || /[SW]/i.test(normalized) ? -1 : 1;
+  const withoutCompass = normalized.replace(/[NSEW]/gi, '').trim();
+
+  const decimal = parseDecimalCoordinate(withoutCompass);
+  if (decimal !== null) {
+    const signedDecimal = withoutCompass.startsWith('-') ? decimal : Math.abs(decimal) * sign;
+    if (isValidCoordinateNumber(signedDecimal, axis)) {
+      return signedDecimal;
+    }
+  }
+
+  const dms = parseDmsCoordinate(withoutCompass, sign);
+  if (dms !== null && isValidCoordinateNumber(dms, axis)) {
+    return dms;
+  }
+
+  return null;
+}
+
+function formatCoordinateValue(value) {
+  return value.toFixed(6).replace(/\.?0+$/, '');
+}
+
 /**
  * Convert a sheet row into a caseStudies.json entry.
  */
@@ -143,8 +230,12 @@ function rowToStudy(row, fallbackId) {
   if (row.sources) study.sources = row.sources;
 
   // Coordinates
-  if (row.latitude) study.latitude = row.latitude;
-  if (row.longitude) study.longitude = row.longitude;
+  const latitude = parseCoordinateValue(row.latitude, 'latitude');
+  const longitude = parseCoordinateValue(row.longitude, 'longitude');
+  if (latitude !== null && longitude !== null) {
+    study.latitude = formatCoordinateValue(latitude);
+    study.longitude = formatCoordinateValue(longitude);
+  }
 
   // Image URL
   const imageUrl = (row.image_url || '').trim();

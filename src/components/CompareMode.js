@@ -3,6 +3,7 @@ import { NBS_CATEGORIES } from '../data/filterConfig';
 import imageMap from '../data/imageMap';
 import getTaleaTypes from '../utils/getTaleaTypes';
 import cityCoordinates from '../data/cityCoordinates';
+import { getStudyCoordinates } from '../utils/coordinates';
 
 const NBS_FIELDS = Object.entries(NBS_CATEGORIES).map(([key, meta]) => ({
   label: meta.label,
@@ -81,11 +82,10 @@ const COMPARE_SECTIONS = [
 ];
 
 function getCoords(study) {
-  if (study.latitude && study.longitude) {
-    return `${Number(study.latitude).toFixed(4)}, ${Number(study.longitude).toFixed(4)}`;
+  const coords = getStudyCoordinates(study, cityCoordinates);
+  if (coords) {
+    return `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
   }
-  const c = cityCoordinates[study.id];
-  if (c) return `${c[0].toFixed(4)}, ${c[1].toFixed(4)}`;
   return 'N/A';
 }
 

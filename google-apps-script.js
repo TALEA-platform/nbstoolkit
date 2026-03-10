@@ -123,6 +123,9 @@ function normalizeSubmissionData(data, sheet, headers) {
     normalized.id = String(getNextSubmissionId(sheet, headers));
   }
 
+  normalized.latitude = normalizeCoordinateInput(normalized.latitude, "latitude");
+  normalized.longitude = normalizeCoordinateInput(normalized.longitude, "longitude");
+
   return normalized;
 }
 
@@ -130,6 +133,105 @@ function getCellValue(data, key) {
   return Object.prototype.hasOwnProperty.call(data, key) && data[key] !== null && data[key] !== undefined
     ? data[key]
     : "";
+}
+
+function getAxisLimit(axis) {
+  return axis === "latitude" ? 90 : 180;
+}
+
+function isValidCoordinateNumber(value, axis) {
+  return isFinite(value) && Math.abs(value) <= getAxisLimit(axis);
+}
+
+function parseDecimalCoordinate(raw) {
+  var value = String(raw).replace(/[−–—]/g, "-").replace(/\s+/g, "");
+
+  if (value.indexOf(",") !== -1 && value.indexOf(".") !== -1) {
+    if (value.lastIndexOf(",") > value.lastIndexOf(".")) {
+      value = value.replace(/\./g, "").replace(",", ".");
+    } else {
+      value = value.replace(/,/g, "");
+    }
+  } else if (value.indexOf(",") !== -1) {
+    value = value.replace(",", ".");
+  }
+
+  if (!/^[+-]?\d+(?:\.\d+)?$/.test(value)) {
+    return null;
+  }
+
+  var parsed = Number(value);
+  return isFinite(parsed) ? parsed : null;
+}
+
+function parseDmsCoordinate(raw, sign) {
+  var match = String(raw).match(/^([+-])?\s*(\d{1,3})\D+(\d{1,2})(?:\D+(\d{1,2}(?:[.,]\d+)?))?\s*$/);
+  if (!match) {
+    return null;
+  }
+
+  var degrees = Number(match[2]);
+  var minutes = Number(match[3]);
+  var seconds = Number(String(match[4] || "0").replace(",", "."));
+
+  if (!isFinite(degrees) || !isFinite(minutes) || !isFinite(seconds)) {
+    return null;
+  }
+  if (minutes < 0 || minutes >= 60 || seconds < 0 || seconds >= 60) {
+    return null;
+  }
+
+  return (degrees + (minutes / 60) + (seconds / 3600)) * sign;
+}
+
+function parseCoordinateValue(value, axis) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    return isValidCoordinateNumber(value, axis) ? value : null;
+  }
+
+  var normalized = String(value).trim().replace(/[−–—]/g, "-");
+  if (!normalized) {
+    return null;
+  }
+
+  var sign = normalized.charAt(0) === "-" || /[SW]/i.test(normalized) ? -1 : 1;
+  var withoutCompass = normalized.replace(/[NSEW]/gi, "").trim();
+
+  var decimal = parseDecimalCoordinate(withoutCompass);
+  if (decimal !== null) {
+    var signedDecimal = withoutCompass.charAt(0) === "-" ? decimal : Math.abs(decimal) * sign;
+    if (isValidCoordinateNumber(signedDecimal, axis)) {
+      return signedDecimal;
+    }
+  }
+
+  var dms = parseDmsCoordinate(withoutCompass, sign);
+  if (dms !== null && isValidCoordinateNumber(dms, axis)) {
+    return dms;
+  }
+
+  return null;
+}
+
+function formatCoordinateValue(value) {
+  return value.toFixed(6).replace(/\.?0+$/, "");
+}
+
+function normalizeCoordinateInput(value, axis) {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  var parsed = parseCoordinateValue(value, axis);
+  if (parsed === null) {
+    return String(value).trim();
+  }
+
+  return formatCoordinateValue(parsed);
 }
 
 function ensureHeaders(sheet, desiredHeaders) {
@@ -193,6 +295,7 @@ function ensureHeaders(sheet, desiredHeaders) {
   sheet.getRange(1, 1, lastRow, clearWidth).clearContent();
   sheet.getRange(1, 1, rewrittenRows.length, orderedHeaders.length).setValues(rewrittenRows);
   applyHeaderFormatting(sheet, orderedHeaders.length);
+  applyCoordinateColumnFormatting(sheet, orderedHeaders);
 
   return orderedHeaders;
 }
@@ -208,11 +311,23 @@ function writeHeaderRow(sheet, headers) {
   ensureColumnCapacity(sheet, headers.length);
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   applyHeaderFormatting(sheet, headers.length);
+  applyCoordinateColumnFormatting(sheet, headers);
 }
 
 function applyHeaderFormatting(sheet, width) {
   sheet.getRange(1, 1, 1, width).setFontWeight("bold");
   sheet.setFrozenRows(1);
+}
+
+function applyCoordinateColumnFormatting(sheet, headers) {
+  var totalRows = Math.max(sheet.getMaxRows(), 2);
+
+  ["latitude", "longitude"].forEach(function(header) {
+    var index = headers.indexOf(header);
+    if (index !== -1) {
+      sheet.getRange(2, index + 1, totalRows - 1, 1).setNumberFormat("@");
+    }
+  });
 }
 
 function repairSubmissionSheet() {
@@ -247,6 +362,7 @@ function repairSubmissionSheet() {
 
   sheet.getRange(2, 1, lastRow - 1, headers.length).clearContent();
   sheet.getRange(2, 1, rewrittenRows.length, headers.length).setValues(rewrittenRows);
+  applyCoordinateColumnFormatting(sheet, headers);
 }
 
 function fillMissingSystemFields(rowObjects) {

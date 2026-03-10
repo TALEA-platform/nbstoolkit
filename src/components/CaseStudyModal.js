@@ -6,6 +6,7 @@ import { exportSingleStudyPDF } from '../utils/pdfExport';
 import getTaleaTypes from '../utils/getTaleaTypes';
 import findSimilarStudies from '../utils/findSimilarStudies';
 import cityCoordinates from '../data/cityCoordinates';
+import { getStudyCoordinates } from '../utils/coordinates';
 
 const IMPACT_BULLET_REGEX = /^([-*\u2022]|\d+[.)])\s+(.*)$/;
 const SOURCE_URL_REGEX = /https?:\/\/[^\s|]+/g;
@@ -124,12 +125,7 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
 
   // Get coordinates: prefer study-level, fall back to cityCoordinates
   const studyCoords = useMemo(() => {
-    if (study.latitude && study.longitude) {
-      return { lat: Number(study.latitude), lng: Number(study.longitude) };
-    }
-    const c = cityCoordinates[study.id];
-    if (c) return { lat: c[0], lng: c[1] };
-    return null;
+    return getStudyCoordinates(study, cityCoordinates);
   }, [study]);
 
   const similarStudies = useMemo(() => {

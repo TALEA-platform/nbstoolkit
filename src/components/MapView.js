@@ -2,6 +2,7 @@ import { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import cityCoordinates from '../data/cityCoordinates';
+import { getStudyCoordinates } from '../utils/coordinates';
 
 const MAP_STYLES = {
   liberty: { label: 'Liberty', url: 'https://tiles.openfreemap.org/styles/liberty' },
@@ -11,12 +12,8 @@ const MAP_STYLES = {
 
 // Get coordinates for a study: prefer study-level coords, fall back to cityCoordinates lookup
 function getCoords(study) {
-  if (study.latitude && study.longitude) {
-    return [Number(study.longitude), Number(study.latitude)]; // [lng, lat]
-  }
-  const c = cityCoordinates[study.id];
-  if (c) return [c[1], c[0]]; // cityCoordinates is [lat, lng], map needs [lng, lat]
-  return null;
+  const coords = getStudyCoordinates(study, cityCoordinates);
+  return coords ? [coords.lng, coords.lat] : null; // [lng, lat]
 }
 
 function MapView({ studies, onSelect }) {
