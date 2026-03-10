@@ -6762,5 +6762,132 @@
       "Micro parks",
       "Multifunctional green spaces"
     ]
+  },
+  {
+    "id": 51,
+    "title": "TEST",
+    "city": "TEST",
+    "country": "TSET",
+    "year": "1777",
+    "size": "Medium",
+    "climate_zone": "Arid",
+    "designer": "TEST",
+    "promoter": "TEST",
+    "description": "TEST",
+    "physical_innovation": "GAERHREHWRTH",
+    "social_innovation": "RETHWRTHWRTHRETH",
+    "digital_innovation": "",
+    "has_physical_innovation": false,
+    "has_social_innovation": true,
+    "has_digital_innovation": false,
+    "c5_impacts": "SJDABVPIQRBEGPIQEBRGBODFBAG\nFASKNDèGOINERIG\n---ADPGOJAERG, FBAPSOEG,,, FPAJSBPGA,GSGOPBASPGO.\n* asjdgbpuiabrge\n\n\n\n* fèaoiègionag\n*dsagknearpnga\n\napnigpianerpgi",
+    "sources": "FBK: https://www.fbk.eu/it/",
+    "latitude": "126.01.00",
+    "longitude": "40.45.00",
+    "image_url": "https://i.ibb.co/zh67PsCS/talea-cs-50.jpg",
+    "talea_application": {
+      "nodal": true
+    },
+    "a1_urban_scale": [
+      "Metropolitan"
+    ],
+    "a2_urban_area": [
+      "Consolidated city",
+      "Peripheral area"
+    ],
+    "a3_1_buildings": [
+      "Building façade"
+    ],
+    "a3_2_open_spaces": [
+      "Residual space or widening",
+      "Entrance area"
+    ],
+    "a3_3_infrastructures": [
+      "Drainage channel / urban ditch",
+      "Sidewalk on commercial axis"
+    ],
+    "a4_ownership": [
+      "Mixed (public/private)"
+    ],
+    "a5_management": [
+      "Public",
+      "Association"
+    ],
+    "a6_uses": [
+      "Refreshment point",
+      "Social",
+      "Vegetable garden",
+      "Sports"
+    ],
+    "a7_other": [
+      "In-between space"
+    ],
+    "b1_physical": [
+      "Narrow spaces / complex morphologies",
+      "High levels of soil pollution",
+      "Aerial cables / power lines"
+    ],
+    "b2_regulations": [
+      "Architectural barrier regulations",
+      "Building codes and technical standards",
+      "Heritage/archaeological constraint",
+      "Public property rules / easements"
+    ],
+    "b3_uses_management": [
+      "Consolidated use / uses",
+      "Green/blue infrastructure"
+    ],
+    "b4_public_opinion": [
+      "Fear of decay / improper use",
+      "Perception of the space as \"private\""
+    ],
+    "b5_synergy": [
+      "Municipal or metropolitan plans",
+      "Existing regeneration projects"
+    ],
+    "b6_social_opportunities": [
+      "Health promotion / active lifestyles",
+      "Well-being",
+      "Safety and perception of security"
+    ],
+    "c1_1_design": [],
+    "c1_2_funding": [],
+    "c1_3_management": [],
+    "c2_actors": [
+      "Associations",
+      "Facilitators",
+      "Foundations",
+      "Non-profit organizations"
+    ],
+    "c3_goals": [
+      "Biodiversity",
+      "Environmental sustainability",
+      "New perception"
+    ],
+    "c4_services": [
+      "Areas for meeting residents",
+      "Care and maintenance services"
+    ],
+    "d1_plants": [
+      "Rows / tree lines"
+    ],
+    "d2_paving": [
+      "Permeable paving"
+    ],
+    "d3_water": [
+      "Rain plaza",
+      "Fountains",
+      "Ground-level fountain"
+    ],
+    "d4_roof_facade": [
+      "Climbing structures on walls or nets",
+      "Vegetal sunshades"
+    ],
+    "d5_furnishings": [
+      "Vegetated awnings"
+    ],
+    "d6_urban_spaces": [
+      "Green spaces in infrastructures (underpasses / viaducts)"
+    ]
   }
 ]
