@@ -1,11 +1,33 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { FILTER_CATEGORIES, FILTER_GROUPS } from '../data/filterConfig';
+
+const CATEGORY_ORDER = Object.values(FILTER_GROUPS).flatMap(group => group.categories);
+const CATEGORY_ORDER_INDEX = new Map(CATEGORY_ORDER.map((catKey, index) => [catKey, index]));
+const MIN_PALETTE_HEIGHT = 140;
+const MIN_DROPZONE_HEIGHT = 180;
+const MIN_CONTENT_DROPZONE_HEIGHT = 150;
+const DEFAULT_PALETTE_HEIGHT = 240;
+const DEFAULT_PALETTE_HEIGHT_EXPANDED = 320;
+const PANEL_GAP_ALLOWANCE = 18;
+const CANVAS_STICKY_TOP = 90;
+const CANVAS_BOTTOM_MARGIN = 16;
+const MIN_SECTION_HEIGHT = 320;
 
 function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExcludedFilter, onClearAll, filteredCount, totalCount, onToggleExclude, excludedFilters, onShowHelp, activeFilters, filterModes, onToggleFilterMode }) {
   const canvasRef = useRef(null);
+  const sectionRef = useRef(null);
+  const toolbarRef = useRef(null);
+  const bannerRef = useRef(null);
+  const resizerRef = useRef(null);
+  const resultBarRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [notMode, setNotMode] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [paletteHeight, setPaletteHeight] = useState(DEFAULT_PALETTE_HEIGHT);
+  const [dropzoneHeight, setDropzoneHeight] = useState(MIN_CONTENT_DROPZONE_HEIGHT);
+  const [isResizingPanels, setIsResizingPanels] = useState(false);
+  const [availableSectionHeight, setAvailableSectionHeight] = useState(null);
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
@@ -45,6 +67,260 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
     }
   }, [notMode, onAddFilter, onAddExcludedFilter]);
 
+  const isExcludedCanvasFilter = useCallback((filter) => {
+    return filter.excluded || (excludedFilters?.[filter.categoryKey] || []).includes(filter.value);
+  }, [excludedFilters]);
+
+  const includedCanvasFilters = canvasFilters.filter(filter => !isExcludedCanvasFilter(filter));
+  const excludedCanvasFilters = canvasFilters.filter(filter => isExcludedCanvasFilter(filter));
+  const canResizePanels = showPalette && canvasFilters.length > 0;
+
+  const updateAvailableSectionHeight = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const sectionTop = sectionRef.current?.getBoundingClientRect().top;
+    const clampedTop = Number.isFinite(sectionTop)
+      ? Math.max(sectionTop, CANVAS_STICKY_TOP)
+      : CANVAS_STICKY_TOP;
+    const nextHeight = Math.max(
+      MIN_SECTION_HEIGHT,
+      Math.floor(window.innerHeight - clampedTop - CANVAS_BOTTOM_MARGIN)
+    );
+
+    setAvailableSectionHeight(prev => (prev === nextHeight ? prev : nextHeight));
+  }, []);
+
+  useEffect(() => {
+    updateAvailableSectionHeight();
+    window.addEventListener('resize', updateAvailableSectionHeight);
+    window.addEventListener('scroll', updateAvailableSectionHeight, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', updateAvailableSectionHeight);
+      window.removeEventListener('scroll', updateAvailableSectionHeight);
+    };
+  }, [updateAvailableSectionHeight]);
+
+  const getMaxPaletteHeight = useCallback(() => {
+    const sectionHeight = availableSectionHeight || 0;
+    const toolbarHeight = toolbarRef.current?.offsetHeight || 0;
+    const bannerHeight = bannerRef.current?.offsetHeight || 0;
+    const resultBarHeight = resultBarRef.current?.offsetHeight || 0;
+    const resizerHeight = canResizePanels ? (resizerRef.current?.offsetHeight || 26) : 0;
+    const availableHeight = sectionHeight - toolbarHeight - bannerHeight - resultBarHeight - resizerHeight - MIN_DROPZONE_HEIGHT - PANEL_GAP_ALLOWANCE;
+
+    return Math.max(MIN_PALETTE_HEIGHT, availableHeight);
+  }, [availableSectionHeight, canResizePanels]);
+
+  const getMaxDropzoneHeight = useCallback(() => {
+    const sectionHeight = availableSectionHeight || 0;
+    const toolbarHeight = toolbarRef.current?.offsetHeight || 0;
+    const bannerHeight = bannerRef.current?.offsetHeight || 0;
+    const resultBarHeight = resultBarRef.current?.offsetHeight || 0;
+    const resizerHeight = canResizePanels ? (resizerRef.current?.offsetHeight || 26) : 0;
+    const currentPaletteHeight = showPalette ? paletteHeight : 0;
+    const availableHeight = sectionHeight - toolbarHeight - bannerHeight - resultBarHeight - resizerHeight - currentPaletteHeight - PANEL_GAP_ALLOWANCE;
+
+    return Math.max(MIN_CONTENT_DROPZONE_HEIGHT, availableHeight);
+  }, [availableSectionHeight, canResizePanels, showPalette, paletteHeight]);
+
+  const clampPaletteHeight = useCallback((nextHeight) => {
+    const maxPaletteHeight = getMaxPaletteHeight();
+    return Math.max(MIN_PALETTE_HEIGHT, Math.min(nextHeight, maxPaletteHeight));
+  }, [getMaxPaletteHeight]);
+
+  useEffect(() => {
+    if (!showPalette) return;
+
+    const defaultHeight = isExpanded ? DEFAULT_PALETTE_HEIGHT_EXPANDED : DEFAULT_PALETTE_HEIGHT;
+    if (!canResizePanels) {
+      setPaletteHeight(defaultHeight);
+      return;
+    }
+
+    setPaletteHeight(prev => clampPaletteHeight(prev || defaultHeight));
+  }, [showPalette, isExpanded, notMode, canResizePanels, clampPaletteHeight]);
+
+  useEffect(() => {
+    if (!canResizePanels) return;
+
+    function syncPaletteHeight() {
+      setPaletteHeight(prev => clampPaletteHeight(prev));
+    }
+
+    window.addEventListener('resize', syncPaletteHeight);
+    return () => window.removeEventListener('resize', syncPaletteHeight);
+  }, [canResizePanels, clampPaletteHeight]);
+
+  useEffect(() => {
+    if (canvasFilters.length === 0) return;
+
+    function syncDropzoneHeight() {
+      const maxDropzoneHeight = getMaxDropzoneHeight();
+      const naturalHeight = canvasRef.current?.scrollHeight || MIN_CONTENT_DROPZONE_HEIGHT;
+      const nextHeight = Math.max(MIN_CONTENT_DROPZONE_HEIGHT, Math.min(naturalHeight, maxDropzoneHeight));
+      setDropzoneHeight(prev => (prev === nextHeight ? prev : nextHeight));
+    }
+
+    syncDropzoneHeight();
+    window.addEventListener('resize', syncDropzoneHeight);
+    return () => window.removeEventListener('resize', syncDropzoneHeight);
+  }, [canvasFilters, includedCanvasFilters.length, excludedCanvasFilters.length, showPalette, paletteHeight, notMode, isExpanded, getMaxDropzoneHeight]);
+
+  useEffect(() => {
+    return () => {
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, []);
+
+  const handlePanelResizeStart = useCallback((event) => {
+    if (!canResizePanels) return;
+
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = paletteHeight;
+
+    setIsResizingPanels(true);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'row-resize';
+
+    function handlePointerMove(moveEvent) {
+      const deltaY = moveEvent.clientY - startY;
+      setPaletteHeight(clampPaletteHeight(startHeight + deltaY));
+    }
+
+    function handlePointerUp() {
+      setIsResizingPanels(false);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    }
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  }, [canResizePanels, paletteHeight, clampPaletteHeight]);
+
+  function getCategoryMeta(catKey, cat) {
+    const label = cat?.label || catKey;
+    const labelMatch = label.match(/^([A-D]\d(?:\.\d+)?)\s+(.*)$/i);
+    if (labelMatch) {
+      return {
+        code: labelMatch[1].toUpperCase(),
+        title: labelMatch[2],
+      };
+    }
+    return {
+      code: null,
+      title: label,
+    };
+  }
+
+  function renderCanvasFilterGroups(filters, { showLogic = false, sectionTone = 'include' } = {}) {
+    const grouped = {};
+    for (const filter of filters) {
+      if (!grouped[filter.categoryKey]) grouped[filter.categoryKey] = [];
+      grouped[filter.categoryKey].push(filter);
+    }
+
+    const categoryKeys = [
+      ...CATEGORY_ORDER.filter(catKey => grouped[catKey]),
+      ...Object.keys(grouped)
+        .filter(catKey => !CATEGORY_ORDER_INDEX.has(catKey))
+        .sort((a, b) => a.localeCompare(b)),
+    ];
+
+    return categoryKeys.map((catKey, groupIdx) => {
+      const cat = FILTER_CATEGORIES[catKey];
+      const optionOrderIndex = new Map((cat?.options || []).map((opt, index) => [opt, index]));
+      const filtersInCategory = [...grouped[catKey]].sort((a, b) => {
+        const aIndex = optionOrderIndex.has(a.value) ? optionOrderIndex.get(a.value) : Number.MAX_SAFE_INTEGER;
+        const bIndex = optionOrderIndex.has(b.value) ? optionOrderIndex.get(b.value) : Number.MAX_SAFE_INTEGER;
+        if (aIndex !== bIndex) return aIndex - bIndex;
+        return a.value.localeCompare(b.value);
+      });
+      const { code, title } = getCategoryMeta(catKey, cat);
+      const activeCount = (activeFilters?.[catKey] || []).length;
+      const mode = filterModes?.[catKey] || 'or';
+      const dividerColor = sectionTone === 'exclude' ? '#c53030' : (cat?.color || '#8aa29e');
+      const dividerStyle = {
+        '--divider-color': dividerColor,
+        '--divider-surface': `${dividerColor}14`,
+      };
+
+      return (
+        <div key={catKey} className="canvas-chip-group-block">
+          <div className="canvas-chip-group-header">
+            {code && (
+              <span
+                className={`canvas-chip-group-id ${sectionTone === 'exclude' ? 'excluded' : ''}`}
+                style={{ borderColor: dividerColor, color: dividerColor, backgroundColor: `${dividerColor}14` }}
+              >
+                {code}
+              </span>
+            )}
+            <span className={`canvas-chip-group-title ${sectionTone === 'exclude' ? 'excluded' : ''}`}>
+              {title}
+            </span>
+          </div>
+          <div className="canvas-chip-group">
+            {showLogic && activeCount >= 2 && (
+              <button
+                className={`logic-toggle group-mode ${mode}`}
+                onClick={() => onToggleFilterMode && onToggleFilterMode(catKey)}
+                title={`Switch this category to ${mode === 'or' ? 'AND' : 'OR'} matching`}
+              >
+                {mode.toUpperCase()}
+              </button>
+            )}
+            {filtersInCategory.map(f => {
+              const isExcluded = isExcludedCanvasFilter(f);
+              return (
+                <div key={f.id} className="canvas-chip-with-logic">
+                  <div
+                    className={`canvas-chip ${isExcluded ? 'excluded' : ''}`}
+                    style={{
+                      borderColor: isExcluded ? '#c53030' : cat?.color,
+                      backgroundColor: isExcluded ? 'rgba(197,48,48,0.08)' : cat?.color + '12',
+                    }}
+                  >
+                    {isExcluded && <span className="chip-not-badge">NOT</span>}
+                    <span className="chip-icon">{cat?.icon}</span>
+                    <span className={`chip-label ${isExcluded ? 'chip-label-excluded' : ''}`}>{f.value}</span>
+                    {onToggleExclude && (
+                      <button
+                        className="chip-toggle-exclude"
+                        onClick={() => onToggleExclude(f.categoryKey, f.value)}
+                        title={isExcluded ? 'Switch to include' : 'Switch to exclude'}
+                      >
+                        {isExcluded ? '+' : '-'}
+                      </button>
+                    )}
+                    <button
+                      className="chip-remove"
+                      onClick={() => onRemoveFilter(f.id, f.categoryKey, f.value)}
+                      style={{ color: isExcluded ? '#c53030' : cat?.color }}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {groupIdx < categoryKeys.length - 1 && (
+            <div className={`canvas-chip-group-divider ${sectionTone === 'exclude' ? 'excluded' : ''}`} style={dividerStyle}>
+              <span className="canvas-chip-group-divider-line" />
+              <span className="canvas-chip-group-divider-plus">+</span>
+              <span className="canvas-chip-group-divider-line" />
+            </div>
+          )}
+        </div>
+      );
+    });
+  }
+
   if (canvasFilters.length === 0 && !showPalette) {
     return (
       <div className="filter-canvas-empty">
@@ -64,8 +340,12 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
   }
 
   return (
-    <div className={`filter-canvas-section ${notMode ? 'not-mode-active' : ''}`}>
-      <div className="canvas-toolbar">
+    <div
+      ref={sectionRef}
+      className={`filter-canvas-section ${notMode ? 'not-mode-active' : ''} ${isExpanded ? 'expanded' : ''}`}
+      style={availableSectionHeight ? { maxHeight: `${availableSectionHeight}px` } : undefined}
+    >
+      <div ref={toolbarRef} className="canvas-toolbar">
         <h3 className="canvas-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="2" y="2" width="20" height="20" rx="4"/>
@@ -73,6 +353,19 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
           </svg>
           Filter Canvas
         </h3>
+        <button
+          className={`canvas-expand-icon-btn ${isExpanded ? 'active' : ''}`}
+          onClick={() => setIsExpanded(prev => !prev)}
+          title={isExpanded ? 'Return to compact canvas width' : 'Expand the canvas width for easier scanning'}
+          aria-label={isExpanded ? 'Compact canvas' : 'Expand canvas'}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/>
+            <line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+        </button>
         <div className="canvas-actions">
           {onShowHelp && (
             <button className="canvas-help-btn" onClick={() => onShowHelp(2)} title="How filters work">
@@ -110,7 +403,7 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
       </div>
 
       {notMode && (
-        <div className="not-mode-banner">
+        <div ref={bannerRef} className="not-mode-banner">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10"/>
             <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
@@ -120,7 +413,7 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
       )}
 
       {showPalette && (
-        <div className="filter-palette">
+        <div className="filter-palette" style={{ height: `${paletteHeight}px` }}>
           <div className="palette-categories">
             {Object.entries(FILTER_GROUPS).map(([groupKey, group]) => (
               <div key={groupKey} className="palette-group">
@@ -163,12 +456,32 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
         </div>
       )}
 
+      {canResizePanels && (
+        <button
+          ref={resizerRef}
+          className={`canvas-panel-resizer ${isResizingPanels ? 'active' : ''}`}
+          onPointerDown={handlePanelResizeStart}
+          type="button"
+          aria-label="Resize palette and canvas panels"
+          title="Drag to resize the top and bottom canvas panels"
+        >
+          <span className="canvas-panel-resizer-line" />
+          <span className="canvas-panel-resizer-handle">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className="canvas-panel-resizer-line" />
+        </button>
+      )}
+
       <div
         ref={canvasRef}
         className={`canvas-dropzone ${dragOver ? 'drag-over' : ''} ${canvasFilters.length === 0 ? 'empty' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        style={canvasFilters.length > 0 ? { height: `${dropzoneHeight}px` } : undefined}
       >
         {canvasFilters.length === 0 ? (
           <div className="dropzone-placeholder">
@@ -178,77 +491,29 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
             <span>Drop filters here or click items from the palette</span>
           </div>
         ) : (
-          <div className="canvas-chips">
-            {(() => {
-              // Group chips by category to show AND/OR toggles
-              const grouped = {};
-              for (const f of canvasFilters) {
-                if (!grouped[f.categoryKey]) grouped[f.categoryKey] = [];
-                grouped[f.categoryKey].push(f);
-              }
-              const categoryKeys = Object.keys(grouped);
-              return categoryKeys.map((catKey, groupIdx) => {
-                const filters = grouped[catKey];
-                const cat = FILTER_CATEGORIES[catKey];
-                const activeCount = (activeFilters?.[catKey] || []).length;
-                const mode = filterModes?.[catKey] || 'or';
-                return (
-                  <div key={catKey} className="canvas-chip-group">
-                    {filters.map((f, chipIdx) => {
-                      const isExcluded = f.excluded || (excludedFilters?.[catKey] || []).includes(f.value);
-                      return (
-                        <div key={f.id} className="canvas-chip-with-logic">
-                          {chipIdx > 0 && !isExcluded && activeCount >= 2 && (
-                            <button
-                              className={`logic-toggle ${mode}`}
-                              onClick={() => onToggleFilterMode && onToggleFilterMode(catKey)}
-                              title={`Switch to ${mode === 'or' ? 'AND' : 'OR'} matching`}
-                            >
-                              {mode.toUpperCase()}
-                            </button>
-                          )}
-                          <div
-                            className={`canvas-chip ${isExcluded ? 'excluded' : ''}`}
-                            style={{
-                              borderColor: isExcluded ? '#c53030' : cat?.color,
-                              backgroundColor: isExcluded ? 'rgba(197,48,48,0.08)' : cat?.color + '12',
-                            }}
-                          >
-                            {isExcluded && <span className="chip-not-badge">NOT</span>}
-                            <span className="chip-icon">{cat?.icon}</span>
-                            <span className={`chip-label ${isExcluded ? 'chip-label-excluded' : ''}`}>{f.value}</span>
-                            {onToggleExclude && (
-                              <button
-                                className="chip-toggle-exclude"
-                                onClick={() => onToggleExclude(f.categoryKey, f.value)}
-                                title={isExcluded ? 'Switch to include' : 'Switch to exclude'}
-                              >
-                                {isExcluded ? '+' : '-'}
-                              </button>
-                            )}
-                            <button
-                              className="chip-remove"
-                              onClick={() => onRemoveFilter(f.id, f.categoryKey, f.value)}
-                              style={{ color: isExcluded ? '#c53030' : cat?.color }}
-                            >
-                              &times;
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {groupIdx < categoryKeys.length - 1 && (
-                      <span className="chip-group-separator">+</span>
-                    )}
-                  </div>
-                );
-              });
-            })()}
+          <div className="canvas-chip-sections">
+            {includedCanvasFilters.length > 0 && (
+              <div className="canvas-chip-section">
+                <div className="canvas-chip-groups">
+                  {renderCanvasFilterGroups(includedCanvasFilters, { showLogic: true, sectionTone: 'include' })}
+                </div>
+              </div>
+            )}
+            {excludedCanvasFilters.length > 0 && (
+              <div className="canvas-chip-section not-section">
+                <div className="canvas-chip-section-header">
+                  <span className="canvas-chip-section-label">NOT</span>
+                </div>
+                <div className="canvas-chip-groups">
+                  {renderCanvasFilterGroups(excludedCanvasFilters, { sectionTone: 'exclude' })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="canvas-result-bar">
+      <div ref={resultBarRef} className="canvas-result-bar">
         <div className="result-indicator">
           <div className="result-bar-track">
             <div

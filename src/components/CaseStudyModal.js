@@ -7,6 +7,22 @@ import getTaleaTypes from '../utils/getTaleaTypes';
 import findSimilarStudies from '../utils/findSimilarStudies';
 import cityCoordinates from '../data/cityCoordinates';
 
+const IMPACT_BULLET_REGEX = /^([-*\u2022]|\d+[.)])\s+(.*)$/;
+const SOURCE_URL_REGEX = /https?:\/\/[^\s|]+/g;
+const SECTION_ICONS = {
+  description: '\uD83D\uDCCB',
+  physicalInnovation: '\uD83D\uDD27',
+  socialInnovation: '\uD83E\uDD1D',
+  digitalInnovation: '\uD83D\uDCBB',
+  physicalCharacteristics: '\uD83C\uDFD7\uFE0F',
+  constraints: '\u26A1',
+  design: '\uD83C\uDFA8',
+  impacts: '\uD83D\uDCCA',
+  nbs: '\uD83C\uDF3F',
+  sources: '\uD83D\uDCDA',
+  similarStudies: '\uD83D\uDD17',
+};
+
 function Section({ title, children, icon }) {
   return (
     <div className="modal-section">
@@ -30,6 +46,64 @@ function TagList({ items, color }) {
       ))}
     </div>
   );
+}
+
+function renderSourceText(text, keyPrefix) {
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  SOURCE_URL_REGEX.lastIndex = 0;
+
+  while ((match = SOURCE_URL_REGEX.exec(text)) !== null) {
+    const rawUrl = match[0];
+    const cleanUrl = rawUrl.replace(/[.,;:)\]]+$/g, '');
+    const trailingText = rawUrl.slice(cleanUrl.length);
+
+    if (match.index > lastIndex) {
+      parts.push(
+        <span key={`${keyPrefix}-text-${lastIndex}`} className="source-text">
+          {text.slice(lastIndex, match.index)}
+        </span>
+      );
+    }
+
+    parts.push(
+      <a
+        key={`${keyPrefix}-link-${match.index}`}
+        href={cleanUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="source-link"
+      >
+        {cleanUrl}
+      </a>
+    );
+
+    if (trailingText) {
+      parts.push(
+        <span key={`${keyPrefix}-trail-${match.index}`} className="source-text">
+          {trailingText}
+        </span>
+      );
+    }
+
+    lastIndex = match.index + rawUrl.length;
+  }
+
+  if (parts.length === 0) {
+    return <span className="source-text">{text}</span>;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(
+      <span key={`${keyPrefix}-text-${lastIndex}`} className="source-text">
+        {text.slice(lastIndex)}
+      </span>
+    );
+  }
+
+  return parts;
 }
 
 function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompared, onToggleCompare, compareCount, onShowCompare, allStudies, onSelectStudy }) {
@@ -174,7 +248,7 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
         )}
 
         <div className="modal-body">
-          <Section title="Description" icon="📋">
+          <Section title="Description" icon={SECTION_ICONS.description}>
             <p className="modal-description">{study.description}</p>
           </Section>
 
@@ -189,19 +263,19 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
             </div>
           </div>
 
-          <Section title="Physical Innovation" icon="🔧">
+          <Section title="Physical Innovation" icon={SECTION_ICONS.physicalInnovation}>
             <p>{study.physical_innovation}</p>
           </Section>
 
-          <Section title="Social Innovation" icon="🤝">
+          <Section title="Social Innovation" icon={SECTION_ICONS.socialInnovation}>
             <p>{study.social_innovation}</p>
           </Section>
 
-          <Section title="Digital Innovation" icon="💻">
+          <Section title="Digital Innovation" icon={SECTION_ICONS.digitalInnovation}>
             <p>{study.digital_innovation}</p>
           </Section>
 
-          <Section title="A. Physical Characteristics" icon="🏗️">
+          <Section title="A. Physical Characteristics" icon={SECTION_ICONS.physicalCharacteristics}>
             <div className="characteristics-grid">
               <div><h4>A1 Urban Scale</h4><TagList items={study.a1_urban_scale} color="#21A84A" /></div>
               <div><h4>A2 Urban Area</h4><TagList items={study.a2_urban_area} color="#d69e2e" /></div>
@@ -215,7 +289,7 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
             </div>
           </Section>
 
-          <Section title="B. Constraints & Opportunities" icon="⚡">
+          <Section title="B. Constraints & Opportunities" icon={SECTION_ICONS.constraints}>
             <div className="characteristics-grid">
               <div><h4>B1 Physical</h4><TagList items={study.b1_physical} color="#c53030" /></div>
               <div><h4>B2 Regulations</h4><TagList items={study.b2_regulations} color="#d69e2e" /></div>
@@ -226,7 +300,7 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
             </div>
           </Section>
 
-          <Section title="C. Design Process & Results" icon="🎨">
+          <Section title="C. Design Process & Results" icon={SECTION_ICONS.design}>
             <div className="characteristics-grid">
               <div><h4>C1.1 Design</h4><TagList items={study.c1_1_design} color="#1272B7" /></div>
               <div><h4>C1.2 Funding</h4><TagList items={study.c1_2_funding} color="#21A84A" /></div>
@@ -238,22 +312,17 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
           </Section>
 
           {study.c5_impacts && (
-            <Section title="C5 Impacts" icon="📊">
+            <Section title="C5 Impacts" icon={SECTION_ICONS.impacts}>
               <div className="impacts-structured">
                 {study.c5_impacts.split('\n').filter(Boolean).map((line, i) => {
                   const trimmed = line.trim();
-                  // Detect heading-like lines (all caps, short, or ending with colon)
-                  const isHeading = /^[A-Z\s&/,()-]+:?$/.test(trimmed) || trimmed.endsWith(':');
-                  // Detect bullet points
-                  const isBullet = trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*');
-                  if (isHeading) {
-                    return <h4 key={i} className="impact-heading">{trimmed.replace(/:$/, '')}</h4>;
-                  }
-                  if (isBullet) {
+                  const bulletMatch = trimmed.match(IMPACT_BULLET_REGEX);
+
+                  if (bulletMatch) {
                     return (
                       <div key={i} className="impact-bullet">
                         <span className="impact-bullet-marker" />
-                        <span>{trimmed.replace(/^[-•*]\s*/, '')}</span>
+                        <span>{bulletMatch[2]}</span>
                       </div>
                     );
                   }
@@ -263,7 +332,7 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
             </Section>
           )}
 
-          <Section title="D. Nature-Based Solutions Applied" icon="🌿">
+          <Section title="D. Nature-Based Solutions Applied" icon={SECTION_ICONS.nbs}>
             <div className="nbs-grid">
               {Object.entries(NBS_CATEGORIES).map(([key, meta]) => {
                 const items = study[key] || [];
@@ -288,19 +357,19 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
           </Section>
 
           {study.sources && (
-            <Section title="Sources" icon="📚">
+            <Section title="Sources" icon={SECTION_ICONS.sources}>
               <div className="sources-list">
                 {study.sources.split('\n').filter(Boolean).map((src, i) => (
-                  <a key={i} href={src.trim()} target="_blank" rel="noopener noreferrer" className="source-link">
-                    {src.trim()}
-                  </a>
+                  <div key={i} className="source-line">
+                    {renderSourceText(src.trim(), `source-${i}`)}
+                  </div>
                 ))}
               </div>
             </Section>
           )}
 
           {similarStudies.length > 0 && (
-            <Section title="Similar Studies" icon="🔗">
+            <Section title="Similar Studies" icon={SECTION_ICONS.similarStudies}>
               <div className="similar-studies-grid">
                 {similarStudies.map(({ study: sim, score }) => {
                   const simImg = imageMap[sim.id];
@@ -320,7 +389,7 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
                       <div className="similar-card-info">
                         <span className="similar-card-title">{sim.title}</span>
                         <span className="similar-card-location">{sim.city}, {sim.country}</span>
-                        <span className="similar-card-meta">{sim.size} · {sim.climate_zone}</span>
+                        <span className="similar-card-meta">{sim.size} {"\u00B7"} {sim.climate_zone}</span>
                       </div>
                       <span className="similar-card-score" title="Similarity score">{score} pts</span>
                     </button>

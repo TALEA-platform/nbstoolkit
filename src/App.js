@@ -99,6 +99,7 @@ function App() {
   const [showCompare, setShowCompare] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [helpPage, setHelpPage] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const [chatMessages, setChatMessages] = useState([
     { role: 'bot', text: "Welcome to the NBS Toolkit! I'm your TALEA Abacus assistant. Search for hardware solutions by typing anything \u2014 city names, NBS types, or even misspelled words. I'll find the best matches!", type: 'greeting' },
   ]);
@@ -143,20 +144,6 @@ function App() {
       alert('Link copied to clipboard!');
     }).catch(() => {
       prompt('Copy this link:', url);
-    });
-  }, []);
-
-  const toggleFilter = useCallback((categoryKey, value) => {
-    setActiveFilters(prev => {
-      const current = prev[categoryKey] || [];
-      const updated = current.includes(value)
-        ? current.filter(v => v !== value)
-        : [...current, value];
-      if (updated.length === 0) {
-        const { [categoryKey]: _, ...rest } = prev;
-        return rest;
-      }
-      return { ...prev, [categoryKey]: updated };
     });
   }, []);
 
@@ -231,38 +218,80 @@ function App() {
     });
   }, []);
 
-  const toggleExcludeFilter = useCallback((categoryKey, value) => {
+  const removeCanvasFilterByValue = useCallback((categoryKey, value) => {
+    setCanvasFilters(prev => prev.filter(f => !(f.categoryKey === categoryKey && f.value === value)));
     setActiveFilters(prev => {
       const current = prev[categoryKey] || [];
-      if (current.includes(value)) {
-        const updated = current.filter(v => v !== value);
-        if (updated.length === 0) {
-          const { [categoryKey]: _, ...rest } = prev;
-          return rest;
-        }
-        return { ...prev, [categoryKey]: updated };
+      if (!current.includes(value)) return prev;
+      const updated = current.filter(v => v !== value);
+      if (updated.length === 0) {
+        const { [categoryKey]: _, ...rest } = prev;
+        return rest;
       }
-      return prev;
+      return { ...prev, [categoryKey]: updated };
     });
     setExcludedFilters(prev => {
       const current = prev[categoryKey] || [];
-      if (current.includes(value)) {
+      if (!current.includes(value)) return prev;
+      const updated = current.filter(v => v !== value);
+      if (updated.length === 0) {
+        const { [categoryKey]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [categoryKey]: updated };
+    });
+  }, []);
+
+  const toggleExcludeFilter = useCallback((categoryKey, value) => {
+    const isCurrentlyExcluded = (excludedFilters[categoryKey] || []).includes(value);
+
+    if (isCurrentlyExcluded) {
+      setExcludedFilters(prev => {
+        const current = prev[categoryKey] || [];
+        if (!current.includes(value)) return prev;
         const updated = current.filter(v => v !== value);
         if (updated.length === 0) {
           const { [categoryKey]: _, ...rest } = prev;
           return rest;
         }
         return { ...prev, [categoryKey]: updated };
+      });
+      setActiveFilters(prev => {
+        const current = prev[categoryKey] || [];
+        if (current.includes(value)) return prev;
+        return { ...prev, [categoryKey]: [...current, value] };
+      });
+      setCanvasFilters(prev => prev.map(f => {
+        if (f.categoryKey === categoryKey && f.value === value) {
+          return { ...f, excluded: false };
+        }
+        return f;
+      }));
+      return;
+    }
+
+    setActiveFilters(prev => {
+      const current = prev[categoryKey] || [];
+      if (!current.includes(value)) return prev;
+      const updated = current.filter(v => v !== value);
+      if (updated.length === 0) {
+        const { [categoryKey]: _, ...rest } = prev;
+        return rest;
       }
+      return { ...prev, [categoryKey]: updated };
+    });
+    setExcludedFilters(prev => {
+      const current = prev[categoryKey] || [];
+      if (current.includes(value)) return prev;
       return { ...prev, [categoryKey]: [...current, value] };
     });
     setCanvasFilters(prev => prev.map(f => {
       if (f.categoryKey === categoryKey && f.value === value) {
-        return { ...f, excluded: !f.excluded };
+        return { ...f, excluded: true };
       }
       return f;
     }));
-  }, []);
+  }, [excludedFilters]);
 
   const toggleFilterMode = useCallback((categoryKey) => {
     setFilterModes(prev => ({
@@ -291,7 +320,7 @@ function App() {
     return fuzzySearchFilters(searchQuery);
   }, [searchQuery]);
 
-  const filteredStudies = useMemo(() => {
+  const filterBaseStudies = useMemo(() => {
     const hasActiveFilters = Object.keys(activeFilters).length > 0;
     const hasExcludedFilters = Object.keys(excludedFilters).length > 0;
     let base = caseStudies;
@@ -309,10 +338,20 @@ function App() {
       }
     }
 
-    let results = base;
+    if (showFavorites && favorites.length > 0) {
+      base = base.filter(s => favorites.includes(s.id));
+    }
+
+    return base;
+  }, [searchQuery, activeFilters, excludedFilters, fuzzyResults, showFavorites, favorites, caseStudies]);
+
+  const filteredStudies = useMemo(() => {
+    const hasActiveFilters = Object.keys(activeFilters).length > 0;
+    const hasExcludedFilters = Object.keys(excludedFilters).length > 0;
+    let results = filterBaseStudies;
 
     if (hasActiveFilters || hasExcludedFilters) {
-      results = base.filter(study => {
+      results = filterBaseStudies.filter(study => {
         for (const [categoryKey, selectedValues] of Object.entries(activeFilters)) {
           if (selectedValues.length === 0) continue;
           const config = FILTER_CATEGORIES[categoryKey];
@@ -356,13 +395,8 @@ function App() {
       });
     }
 
-    // Apply favorites filter
-    if (showFavorites && favorites.length > 0) {
-      results = results.filter(s => favorites.includes(s.id));
-    }
-
     return results;
-  }, [searchQuery, activeFilters, excludedFilters, filterModes, fuzzyResults, showFavorites, favorites, caseStudies]);
+  }, [filterBaseStudies, activeFilters, excludedFilters, filterModes]);
 
   // Extract a numeric year from a string like "2017–2019", "21st century", "completed 2022", etc.
   // Returns the most recent year found, or 0 if none.
@@ -523,6 +557,42 @@ function App() {
     setShowHelp(true);
   }, []);
 
+  const overlayOpen = !!selectedStudy || showForm || showCompare || showStats || showHelp;
+
+  const getScrollBehavior = useCallback(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return 'auto';
+    }
+    return 'smooth';
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: getScrollBehavior() });
+  }, [getScrollBehavior]);
+
+  useEffect(() => {
+    function updateScrollShortcut() {
+      if (overlayOpen) {
+        setShowBackToTop(prev => (prev ? false : prev));
+        return;
+      }
+
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      const nextState = scrollY > 520;
+
+      setShowBackToTop(prev => (prev === nextState ? prev : nextState));
+    }
+
+    updateScrollShortcut();
+    window.addEventListener('scroll', updateScrollShortcut, { passive: true });
+    window.addEventListener('resize', updateScrollShortcut);
+
+    return () => {
+      window.removeEventListener('scroll', updateScrollShortcut);
+      window.removeEventListener('resize', updateScrollShortcut);
+    };
+  }, [overlayOpen, view]);
+
   const activeFilterCount = Object.values(activeFilters).reduce((sum, arr) => sum + arr.length, 0)
     + Object.values(excludedFilters).reduce((sum, arr) => sum + arr.length, 0);
 
@@ -552,12 +622,16 @@ function App() {
           onQueryChange={handleSearch}
           onSearchSubmit={handleSearchSubmit}
           onAddCanvasFilter={addCanvasFilter}
+          onAddExcludedFilter={addExcludedFilter}
+          onRemoveCanvasFilterByValue={removeCanvasFilterByValue}
           activeFilters={activeFilters}
-          toggleFilter={toggleFilter}
+          excludedFilters={excludedFilters}
+          filterModes={filterModes}
+          onToggleFilterMode={toggleFilterMode}
           filterSuggestions={filterSuggestions}
           chatMessages={chatMessages}
           onClearChat={clearChat}
-          studies={filteredStudies}
+          studies={filterBaseStudies}
         />
 
         <div className="content-layout">
@@ -685,6 +759,22 @@ function App() {
         onClose={() => setShowHelp(false)}
         initialPage={helpPage}
       />
+
+      {!overlayOpen && showBackToTop && (
+        <div className={`scroll-shortcuts ${!cookieConsent ? 'with-cookie-banner' : ''}`}>
+          <button
+            className="scroll-shortcut-btn top"
+            onClick={scrollToTop}
+            title="Back to top"
+            aria-label="Back to top"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20V6"/>
+              <path d="m6 12 6-6 6 6"/>
+            </svg>
+          </button>
+        </div>
+      )}
 
       {!cookieConsent && (
         <div className="cookie-banner">

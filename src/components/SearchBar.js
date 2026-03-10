@@ -1,5 +1,15 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { FILTER_CATEGORIES, FILTER_GROUPS } from '../data/filterConfig';
+import { hasTaleaType } from '../utils/getTaleaTypes';
+
+const INNOVATION_FIELD_MAP = {
+  Physical: 'has_physical_innovation',
+  Social: 'has_social_innovation',
+  Digital: 'has_digital_innovation',
+};
+const INITIAL_COLLAPSED_GROUPS = Object.fromEntries(
+  Object.keys(FILTER_GROUPS).map(groupKey => [groupKey, true])
+);
 
 const SLASH_COMMANDS = [
   // Navigation
@@ -33,12 +43,82 @@ const SLASH_COMMANDS = [
   { cmd: '/help', desc: 'Show all commands', group: 'info' },
 ];
 
-function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, activeFilters, toggleFilter, filterSuggestions, chatMessages, onClearChat, studies }) {
+function studyMatchesCategory(study, categoryKey, values, mode) {
+  const cat = FILTER_CATEGORIES[categoryKey];
+  if (!cat || !values || values.length === 0) return true;
+
+  const matcher = mode === 'and' ? 'every' : 'some';
+
+  if (cat.type === 'object') {
+    return values[matcher](value => hasTaleaType(study, value));
+  }
+
+  if (cat.type === 'value') {
+    if (mode === 'and') {
+      return values.every(value => study[cat.dataKey] === value);
+    }
+    return values.includes(study[cat.dataKey]);
+  }
+
+  if (cat.type === 'array') {
+    const arr = study[cat.dataKey] || [];
+    return values[matcher](value => arr.includes(value));
+  }
+
+  if (cat.type === 'innovation') {
+    return values[matcher](value => !!study[INNOVATION_FIELD_MAP[value]]);
+  }
+
+  return true;
+}
+
+function studyMatchesExcludedCategory(study, categoryKey, values) {
+  const cat = FILTER_CATEGORIES[categoryKey];
+  if (!cat || !values || values.length === 0) return true;
+
+  if (cat.type === 'object') {
+    return !values.some(value => hasTaleaType(study, value));
+  }
+
+  if (cat.type === 'value') {
+    return !values.includes(study[cat.dataKey]);
+  }
+
+  if (cat.type === 'array') {
+    const arr = study[cat.dataKey] || [];
+    return !values.some(value => arr.includes(value));
+  }
+
+  if (cat.type === 'innovation') {
+    return !values.some(value => !!study[INNOVATION_FIELD_MAP[value]]);
+  }
+
+  return true;
+}
+
+function studyMatchesAllFilters(study, nextActiveFilters, nextExcludedFilters, nextFilterModes) {
+  for (const [categoryKey, values] of Object.entries(nextActiveFilters || {})) {
+    if (!studyMatchesCategory(study, categoryKey, values, nextFilterModes?.[categoryKey] || 'or')) {
+      return false;
+    }
+  }
+
+  for (const [categoryKey, values] of Object.entries(nextExcludedFilters || {})) {
+    if (!studyMatchesExcludedCategory(study, categoryKey, values)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, onAddExcludedFilter, onRemoveCanvasFilterByValue, activeFilters, excludedFilters, filterModes, onToggleFilterMode, filterSuggestions, chatMessages, onClearChat, studies }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState(null);
-  const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [collapsedGroups, setCollapsedGroups] = useState(() => ({ ...INITIAL_COLLAPSED_GROUPS }));
+  const [panelNotModes, setPanelNotModes] = useState({});
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
@@ -77,6 +157,44 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, ac
 
   const suggestions = filterSuggestions || [];
 
+  function resetCategoryPanelState(catKey) {
+    setPanelNotModes(prev => {
+      if (!prev[catKey]) return prev;
+      const next = { ...prev };
+      delete next[catKey];
+      return next;
+    });
+
+    if ((activeFilters[catKey] || []).length === 0 && (filterModes?.[catKey] || 'or') === 'and' && onToggleFilterMode) {
+      onToggleFilterMode(catKey);
+    }
+  }
+
+  function handleGroupToggle(groupKey, group, isGroupCollapsed) {
+    if (!isGroupCollapsed) {
+      group.categories.forEach(resetCategoryPanelState);
+      if (expandedCategory && group.categories.includes(expandedCategory)) {
+        setExpandedCategory(null);
+      }
+    }
+
+    setCollapsedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+  }
+
+  function handleCategoryToggle(catKey, isExpanded) {
+    if (isExpanded) {
+      resetCategoryPanelState(catKey);
+      setExpandedCategory(null);
+      return;
+    }
+
+    if (expandedCategory && expandedCategory !== catKey) {
+      resetCategoryPanelState(expandedCategory);
+    }
+
+    setExpandedCategory(catKey);
+  }
+
   // Slash command autocomplete
   const isSlashQuery = query.startsWith('/');
   const filteredCommands = useMemo(() => {
@@ -85,28 +203,49 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, ac
     return SLASH_COMMANDS.filter(c => c.cmd.startsWith(typed) || typed === '/');
   }, [query, isSlashQuery]);
 
-  // Compute how many current studies match each filter option
+  // Compute dynamic counts for each option using the current query state.
   const filterCounts = useMemo(() => {
     if (!studies || studies.length === 0) return {};
     const counts = {};
+    const currentResultCount = studies.filter(study =>
+      studyMatchesAllFilters(study, activeFilters, excludedFilters, filterModes)
+    ).length;
+
     for (const [catKey, cat] of Object.entries(FILTER_CATEGORIES)) {
       counts[catKey] = {};
+      const selectedValues = activeFilters[catKey] || [];
+      const excludedValues = excludedFilters[catKey] || [];
+      const panelNotMode = !!panelNotModes[catKey];
       for (const opt of cat.options) {
-        let count = 0;
-        for (const s of studies) {
-          if (cat.type === 'object') {
-            if (s[cat.dataKey]?.[opt.toLowerCase()]) count++;
-          } else if (cat.type === 'value') {
-            if (s[cat.dataKey] === opt) count++;
-          } else if (cat.type === 'array') {
-            if ((s[cat.dataKey] || []).includes(opt)) count++;
-          }
+        const isActive = selectedValues.includes(opt);
+        const isExcluded = excludedValues.includes(opt);
+        if (isActive || isExcluded) {
+          counts[catKey][opt] = currentResultCount;
+          continue;
         }
-        counts[catKey][opt] = count;
+
+        if (panelNotMode) {
+          const nextExcludedFilters = {
+            ...excludedFilters,
+            [catKey]: [...excludedValues, opt],
+          };
+          counts[catKey][opt] = studies.filter(study =>
+            studyMatchesAllFilters(study, activeFilters, nextExcludedFilters, filterModes)
+          ).length;
+        } else {
+          const nextValues = [...selectedValues, opt];
+          const nextActiveFilters = {
+            ...activeFilters,
+            [catKey]: nextValues,
+          };
+          counts[catKey][opt] = studies.filter(study =>
+            studyMatchesAllFilters(study, nextActiveFilters, excludedFilters, filterModes)
+          ).length;
+        }
       }
     }
     return counts;
-  }, [studies]);
+  }, [studies, activeFilters, excludedFilters, filterModes, panelNotModes]);
 
   return (
     <div className="search-section">
@@ -370,12 +509,15 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, ac
           <div className="filter-panel-grid">
             {Object.entries(FILTER_GROUPS).map(([groupKey, group]) => {
               const isGroupCollapsed = collapsedGroups[groupKey];
-              const groupActiveCount = group.categories.reduce((sum, catKey) => sum + (activeFilters[catKey] || []).length, 0);
+              const groupActiveCount = group.categories.reduce(
+                (sum, catKey) => sum + (activeFilters[catKey] || []).length + (excludedFilters[catKey] || []).length,
+                0
+              );
               return (
                 <div key={groupKey} className="filter-group">
                   <button
-                    className="filter-group-header"
-                    onClick={() => setCollapsedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }))}
+                     className="filter-group-header"
+                     onClick={() => handleGroupToggle(groupKey, group, isGroupCollapsed)}
                   >
                     <span className="filter-group-icon">{group.icon}</span>
                     <span className="filter-group-label">{group.label}</span>
@@ -384,46 +526,103 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, ac
                       <polyline points={isGroupCollapsed ? "6 9 12 15 18 9" : "18 15 12 9 6 15"}/>
                     </svg>
                   </button>
-                  {!isGroupCollapsed && group.categories.map(catKey => {
-                    const cat = FILTER_CATEGORIES[catKey];
-                    if (!cat) return null;
-                    const isExpanded = expandedCategory === catKey;
-                    const activeCount = (activeFilters[catKey] || []).length;
-                    return (
-                      <div key={catKey} className={`filter-category ${isExpanded ? 'expanded' : ''}`}>
-                        <button
+                   {!isGroupCollapsed && group.categories.map(catKey => {
+                     const cat = FILTER_CATEGORIES[catKey];
+                     if (!cat) return null;
+                     const isExpanded = expandedCategory === catKey;
+                     const activeCount = (activeFilters[catKey] || []).length;
+                     const excludedCount = (excludedFilters[catKey] || []).length;
+                     const selectedCount = activeCount + excludedCount;
+                     const mode = filterModes?.[catKey] || 'or';
+                     const panelNotMode = !!panelNotModes[catKey];
+                     return (
+                       <div key={catKey} className={`filter-category ${isExpanded ? 'expanded' : ''}`}>
+                         <button
                           className="filter-category-header"
-                          onClick={() => setExpandedCategory(isExpanded ? null : catKey)}
-                        >
-                          <span className="filter-cat-icon">{cat.icon}</span>
-                          <span className="filter-cat-label">{cat.label}</span>
-                          {activeCount > 0 && <span className="filter-cat-count">{activeCount}</span>}
-                          <svg className="filter-cat-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points={isExpanded ? "18 15 12 9 6 15" : "6 9 12 15 18 9"}/>
-                          </svg>
-                        </button>
-                        {isExpanded && (
-                          <div className="filter-options">
-                            {cat.options.map(opt => {
-                              const isActive = (activeFilters[catKey] || []).includes(opt);
-                              const optCount = filterCounts[catKey]?.[opt] ?? 0;
-                              return (
-                                <button
-                                  key={opt}
-                                  className={`filter-option ${isActive ? 'active' : ''} ${!isActive && optCount === 0 ? 'dimmed' : ''}`}
-                                  onClick={() => {
-                                    toggleFilter(catKey, opt);
-                                    if (!isActive) onAddCanvasFilter(catKey, opt);
-                                  }}
-                                  style={isActive ? { borderColor: cat.color, backgroundColor: cat.color + '15' } : {}}
-                                >
-                                  <span className={`filter-checkbox ${isActive ? 'checked' : ''}`} style={isActive ? { backgroundColor: cat.color } : {}}>
-                                    {isActive && '\u2713'}
-                                  </span>
-                                  {opt}
-                                  <span className="filter-opt-count">{optCount}</span>
-                                </button>
-                              );
+                          onClick={() => handleCategoryToggle(catKey, isExpanded)}
+                         >
+                           <span className="filter-cat-icon">{cat.icon}</span>
+                           <span className="filter-cat-label">{cat.label}</span>
+                           {selectedCount > 0 && <span className={`filter-cat-count ${excludedCount > 0 && activeCount === 0 ? 'excluded' : ''}`}>{selectedCount}</span>}
+                           <svg className="filter-cat-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                             <polyline points={isExpanded ? "18 15 12 9 6 15" : "6 9 12 15 18 9"}/>
+                           </svg>
+                         </button>
+                         {isExpanded && (
+                           <div className="filter-options">
+                             <div className="filter-options-toolbar">
+                               <span className="filter-options-toolbar-label">Mode</span>
+                                <div className="filter-options-toolbar-actions">
+                                  <button
+                                    className={`logic-toggle panel-mode ${mode} ${panelNotMode ? 'disabled' : ''}`}
+                                    onClick={() => onToggleFilterMode && onToggleFilterMode(catKey)}
+                                    title={panelNotMode ? 'AND/OR is disabled while NOT mode is active' : `Switch this category to ${mode === 'or' ? 'AND' : 'OR'} matching`}
+                                    type="button"
+                                    disabled={panelNotMode}
+                                  >
+                                    {mode.toUpperCase()}
+                                  </button>
+                                 <button
+                                   className={`logic-toggle panel-mode not ${panelNotMode ? 'active' : ''}`}
+                                   onClick={() => setPanelNotModes(prev => ({ ...prev, [catKey]: !prev[catKey] }))}
+                                   title={panelNotMode ? 'NOT mode is on for this category' : 'Enable NOT mode for this category'}
+                                   type="button"
+                                 >
+                                   NOT
+                                 </button>
+                               </div>
+                             </div>
+                             {cat.options.map(opt => {
+                               const isActive = (activeFilters[catKey] || []).includes(opt);
+                               const isExcluded = (excludedFilters[catKey] || []).includes(opt);
+                               const isSelected = isActive || isExcluded;
+                               const optCount = filterCounts[catKey]?.[opt] ?? 0;
+                               return (
+                                 <button
+                                   key={opt}
+                                   className={`filter-option ${isActive ? 'active' : ''} ${isExcluded ? 'excluded' : ''} ${!isSelected && optCount === 0 ? 'dimmed' : ''}`}
+                                   onClick={() => {
+                                     if (panelNotMode) {
+                                       if (isExcluded) {
+                                         onRemoveCanvasFilterByValue(catKey, opt);
+                                       } else if (onAddExcludedFilter) {
+                                         onAddExcludedFilter(catKey, opt);
+                                       }
+                                     } else {
+                                       if (isExcluded) {
+                                         onRemoveCanvasFilterByValue(catKey, opt);
+                                       } else if (isActive) {
+                                         onRemoveCanvasFilterByValue(catKey, opt);
+                                       } else {
+                                         onAddCanvasFilter(catKey, opt);
+                                       }
+                                     }
+                                   }}
+                                   style={
+                                     isExcluded
+                                       ? { borderColor: '#c53030', backgroundColor: 'rgba(197, 48, 48, 0.08)' }
+                                       : isActive
+                                         ? { borderColor: cat.color, backgroundColor: cat.color + '15' }
+                                         : {}
+                                   }
+                                 >
+                                   <span
+                                     className={`filter-checkbox ${isActive ? 'checked' : ''} ${isExcluded ? 'excluded' : ''}`}
+                                     style={
+                                       isExcluded
+                                         ? { backgroundColor: '#c53030', borderColor: '#c53030' }
+                                         : isActive
+                                           ? { backgroundColor: cat.color }
+                                           : {}
+                                     }
+                                   >
+                                     {isExcluded ? '\u2212' : isActive ? '\u2713' : ''}
+                                   </span>
+                                   {opt}
+                                   {isExcluded && <span className="filter-option-not-badge">NOT</span>}
+                                   <span className="filter-opt-count">{optCount}</span>
+                                 </button>
+                               );
                             })}
                           </div>
                         )}

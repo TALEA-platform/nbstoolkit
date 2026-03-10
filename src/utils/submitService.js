@@ -22,7 +22,7 @@ const SUBMISSION_FIELDS = [
   'size', 'climate_zone',
   'physical_innovation', 'social_innovation', 'digital_innovation',
   'has_physical_innovation', 'has_social_innovation', 'has_digital_innovation',
-  'c5_impacts', 'sources',
+  'sources',
 ];
 
 /**
@@ -49,18 +49,21 @@ function flattenStudyData(formData) {
     'a3_3_infrastructures', 'a4_ownership', 'a5_management', 'a6_uses', 'a7_other',
     'b1_physical', 'b2_regulations', 'b3_uses_management', 'b4_public_opinion',
     'b5_synergy', 'b6_social_opportunities',
-    'd1_plants', 'd2_paving', 'd3_water', 'd4_roof_facade', 'd5_furnishings', 'd6_urban_spaces',
     'c1_1_design', 'c1_2_funding', 'c1_3_management', 'c2_actors', 'c3_goals', 'c4_services',
+    'd1_plants', 'd2_paving', 'd3_water', 'd4_roof_facade', 'd5_furnishings', 'd6_urban_spaces',
   ];
   for (const key of arrayFields) {
     flat[key] = Array.isArray(formData[key]) ? formData[key].join(', ') : '';
   }
+  flat.c5_impacts = formData.c5_impacts || '';
 
   // Include image URL (not DataURL) if available
   if (formData.image && !formData.image.startsWith('data:')) {
     flat.image_url = formData.image;
   }
 
+  // The Apps Script assigns the next numeric ID when the row is inserted.
+  flat.id = formData.id || '';
   flat.submitted_at = new Date().toISOString();
   flat.status = 'pending';
 
