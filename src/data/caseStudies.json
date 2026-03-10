@@ -29,7 +29,7 @@
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
       "Courtyard",
-      "Green area (park, garden)"
+      "Green area (park / garden)"
     ],
     "a3_3_infrastructures": [],
     "a4_ownership": [
@@ -104,7 +104,7 @@
     ],
     "c4_services": [
       "Benches/rest areas",
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Reduction of pollutant substances\nAlthough no local measurements directly attributable to the garden are available, the intervention is aligned with the “Clean Air for Krakow” program promoted by the Municipality, which has contributed to a reduction in air pollutants:\n• The levels of PM₁₀ and benzo(a)pyrene (BaP) decreased more rapidly in Krakow than in other municipalities of the Lesser Poland region, with an average reduction rate 1.5 times faster during the winter months.\n• Between 2000 and 2022, the average concentration of PM₂.₅ in Poland decreased by 35.9%, partly due to local interventions such as those implemented in Krakow.",
     "d1_plants": [
@@ -224,7 +224,7 @@
       "Valorisation"
     ],
     "c4_services": [
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Reduction of thermal dispersion\nThe presence of vegetation contributes to reducing thermal dispersion by approximately 2°C, creating a microclimate that improves indoor comfort and lowers energy demand.\nCO₂ sequestration and oxygen production\nPlants also play an active role in improving air quality. \nThe entire vegetation system enables the transformation of CO₂ into oxygen amounting to around 20,000 kg per year, with an estimated CO₂ absorption capacity of 30 tonnes per year and daily oxygen production of approximately 52 kg. \nThe total forested surface covers about 20,000 m², distributed vertically.",
     "d1_plants": [
@@ -275,7 +275,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space"
     ],
     "a3_3_infrastructures": [
@@ -292,7 +292,7 @@
     "a6_uses": [
       "Outdoor activities",
       "Refreshment point",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social"
     ],
     "a7_other": [],
@@ -515,7 +515,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Residual space or widening"
     ],
     "a3_3_infrastructures": [
@@ -539,7 +539,7 @@
       "Outdoor activities",
       "Recreational",
       "Refreshment point",
-      "Slow mobility (walking, bike, bus)"
+      "Slow mobility (walking / bike / bus)"
     ],
     "a7_other": [
       "Abandoned / underused area",
@@ -616,7 +616,7 @@
     "c4_services": [
       "Areas with shade/cool spots",
       "Care and maintenance services",
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Reduction of average temperature (air and surface)\nBetween 2016 and 2019, the average air temperature in the Corridor areas decreased from 31.6 °C to 27.1 °C, while surface temperature dropped by over 10 °C, from 40.5 °C to 30.2 °C.\nImprovement of air quality\nIn the same period, air quality improved significantly:\nPM₂.₅: from 21.81 µg/m³ to 20.26 µg/m³\nPM₁₀: from 46.04 µg/m³ to 40.40 µg/m³\nO₃: from 30.1 µg/m³ to 26.32 µg/m³\nCO₂ absorption\nA single green corridor can absorb 160,787 kg of CO₂ per year during early vegetation. Over 100 years, the biomass may sequester up to 2,308,505 kg.\nIncrease in active mobility\nShaded bike lanes along the corridors led to a 34.6% increase in cycling and a 4% rise in walking, reducing traffic and supporting urban health.\nIncrease in green employment\nThe project trained over 100 gardeners and created 2,600 jobs related to corridor maintenance and implementation.",
     "d1_plants": [
@@ -694,7 +694,7 @@
       "Commercial",
       "Multifunctional",
       "Outdoor activities",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social"
     ],
     "a7_other": [
@@ -876,7 +876,7 @@
       "Areas for meeting residents",
       "Areas with shade/cool spots",
       "Benches/rest areas",
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Increase in number of trees planted\nA total of 80 bay trees and 19 holm oaks are planned, in addition to 17 existing holm oaks, for an initial total of 116 trees. A more recent source reports 127 trees, likely reflecting changes during implementation.\nReduction of road space\nThe carriageway within the courtyard was redefined and narrowed from 6 m to 3.5 m, restricting access to residents only and improving pedestrian safety.",
     "d1_plants": [
@@ -988,7 +988,7 @@
       "Urban regeneration"
     ],
     "c4_services": [
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Community benefits\nEstimated indirect beneficiaries: 15,279 people, including students (300), families (975), associations (250), students' relatives (54), and neighborhood residents (14,000).\nDirect participation in workshops and training activities\nA total of 128 people participated directly, including 18 students, 18 creative teams involving 55 individuals, and 148 attendees at the summer closing event.\nCircular economy and crowdfunding\n600 perfume samples (2 ml) distributed and 333 bottles donated through crowdfunding.\nInternational media impact\nMedia coverage included 53 articles, 382 social media contents, and an estimated reach of 21 million people.",
     "d1_plants": [
@@ -1040,7 +1040,7 @@
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
       "Courtyard",
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Service yard or technical area"
     ],
     "a3_3_infrastructures": [],
@@ -1116,7 +1116,7 @@
       "Areas with shade/cool spots",
       "Benches/rest areas",
       "Care and maintenance services",
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Wellbeing of individuals\nAlthough no specific data are available for the Gardens in the Air project, a study on healing garden activities provides measurable evidence of stress reduction in older adults:\nParticipants over 60 engaging in 2 hours of gardening per week over 12 weeks showed a 6.5% decrease in overall stress levels.\nIncrease in biodiversity\nThe introduction of green infrastructure (e.g., insect hotels, beehives) supports the presence of pollinators and birds, increasingly integrated into residents’ daily lives.",
     "d1_plants": [],
@@ -1237,7 +1237,7 @@
       "Urban regeneration"
     ],
     "c4_services": [
-      "Educational, leisure and cultural uses",
+      "Educational - leisure and cultural uses",
       "Monitoring and warning systems"
     ],
     "c5_impacts": "Reduction of traffic noise\nGreen sound-absorbing barriers were installed, consisting of acoustic panels integrated with vertical vegetation. According to the city’s noise map, the area previously exceeded 75 dB; after installation, measurable noise reductions were recorded in the surrounding zone, improving acoustic comfort.\nContinuous quantitative monitoring\nAn environmental sensor system was implemented to measure: surface temperature reduction, air quality improvement (PM, NO₂), evapotranspiration and water management, and noise pollution reduction.\nData are collected via weather stations, IoT sensors, and a citizen-participation app, enabling validation of the environmental effectiveness of the implemented solutions.",
@@ -1250,7 +1250,7 @@
     "d4_roof_facade": [],
     "d5_furnishings": [],
     "d6_urban_spaces": [
-      "Green spaces in infrastructures (underpasses, viaducts)"
+      "Green spaces in infrastructures (underpasses / viaducts)"
     ],
     "sources": "https://www.urbangreenup.eu/solutions/green-noise-barriers.kl\nEuropean Commission. (2022). New Strategy for Re Naturing Cities through Nature Based Solutions (URBAN GreenUP). CORDIS final report",
     "has_physical_innovation": true
@@ -1390,7 +1390,7 @@
       "Prefabricated green modules"
     ],
     "d6_urban_spaces": [
-      "Green spaces in infrastructures (underpasses, viaducts)"
+      "Green spaces in infrastructures (underpasses / viaducts)"
     ],
     "sources": "https://www.singulargreen.com/en/green-shades/\nhttps://networknature.eu/casestudy/19393\nhttps://netzerocities.app/resource-1198",
     "has_physical_innovation": true
@@ -1498,7 +1498,7 @@
       "Areas for meeting residents",
       "Areas with shade/cool spots",
       "Benches/rest areas",
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Increase in urban greenery\nThe project includes the planting of approximately 94 native trees (72 on Place Flagey and 22 on Place Sainte-Croix), significantly increasing tree cover in both squares. Additionally, around 1,350 m² of new permeable green areas—comprising planting beds and water retention systems—have been introduced, improving infiltration and reducing runoff, also through the installation of a bioswale.\nUrban heat mitigation\nThe new vegetation and green coverage are designed to cool the environment during summer months, counteracting the urban heat island effect and providing strategically placed shaded areas to improve thermal comfort for residents.",
     "d1_plants": [
@@ -1554,7 +1554,7 @@
     ],
     "a3_2_open_spaces": [
       "Courtyard",
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space",
       "Parking area",
       "Waterfront"
@@ -1578,7 +1578,7 @@
       "Outdoor activities",
       "Recreational",
       "Residential",
-      "Slow mobility (walking, bike, bus)"
+      "Slow mobility (walking / bike / bus)"
     ],
     "a7_other": [
       "Neighbourhood space"
@@ -1809,7 +1809,7 @@
       "Building complex"
     ],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Residual space or widening"
     ],
     "a3_3_infrastructures": [],
@@ -1939,7 +1939,7 @@
       "Multifunctional",
       "Outdoor activities",
       "Recreational",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social",
       "Sports"
     ],
@@ -2062,7 +2062,7 @@
       "Multifunctional",
       "Outdoor activities",
       "Recreational",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social"
     ],
     "a7_other": [
@@ -2205,7 +2205,7 @@
       "Educational",
       "Recreational",
       "Residential",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social",
       "Vegetable garden"
     ],
@@ -2281,7 +2281,7 @@
       "Areas for meeting residents",
       "Areas with shade/cool spots",
       "Care and maintenance services",
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Density of pedestrian and cycle–pedestrian space\nA car-free street network ensures pedestrian permeability and cycling paths, supporting walkability in line with global sustainable neighborhood standards.\nIt includes low-traffic intersections, traffic-calming measures, and controlled street widths, enhancing urban livability.\nOpening of private space and increase in public greenery\nAbout 70% of land originally zoned as closed residential has been converted into pedestrian areas, public infrastructure, and shared green space.\nRapid rise in property value\nWithin six months of the upgrades (around 2010, before the 2017–2019 phase), ground-floor properties saw a 20–30% value increase, due to conversion to commercial use and better access to active mobility.\nRecognition for sustainable mobility\nThe district received Gold certification under the ITDP/TOD Standard, ranking among the world’s top five projects for sustainable mobility, as a replicable model of car-free, people-centered urban design with high pedestrian safety.",
     "d1_plants": [
@@ -2426,7 +2426,7 @@
       "Prefabricated green modules"
     ],
     "d6_urban_spaces": [
-      "Green spaces in infrastructures (underpasses, viaducts)",
+      "Green spaces in infrastructures (underpasses / viaducts)",
       "Micro parks",
       "Multifunctional green spaces"
     ],
@@ -2595,7 +2595,7 @@
       "Outdoor activities",
       "Refreshment point",
       "Residential",
-      "Slow mobility (walking, bike, bus)"
+      "Slow mobility (walking / bike / bus)"
     ],
     "a7_other": [
       "In-between space",
@@ -2717,7 +2717,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space",
       "Square"
     ],
@@ -2736,7 +2736,7 @@
       "Outdoor activities",
       "Refreshment point",
       "Residential",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social"
     ],
     "a7_other": [
@@ -2966,7 +2966,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Service yard or technical area",
       "Residual space or widening"
     ],
@@ -3055,7 +3055,7 @@
     "c4_services": [
       "Areas for meeting residents",
       "Benches/rest areas",
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Participatory regeneration with students and residents\nAs part of Re Sourcing Commons, participatory furniture was designed and installed by students from the University of Applied Arts Vienna and members of SimZim. The process involved local residents and the neighborhood, fostering a sense of collective care and active engagement in public space.\nCircular economy through reuse of urban furniture\nThe project created public furnishings by reusing metal components from existing benches and tubular structures, demonstrating the practical feasibility of recycling in urban design.\nCommunity engagement and care\nWorkshops, shared maintenance activities, and awareness-raising on responsible sourcing were promoted to strengthen community involvement.",
     "d1_plants": [],
@@ -3100,7 +3100,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space"
     ],
     "a3_3_infrastructures": [
@@ -3118,7 +3118,7 @@
       "Educational",
       "Multifunctional",
       "Recreational",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social",
       "Vegetable garden"
     ],
@@ -3177,7 +3177,7 @@
       "Transformation"
     ],
     "c4_services": [
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "15-hectare food forest extension\nThe neighborhood includes a 150,000 m² public green space designed as an urban food forest, featuring fruit trees, edible shrubs, and diverse plants. This green lung acts as ecological infrastructure, improving the local microclimate and water cycle management.\nIncrease in tree stock and biodiversity\nThe food forest contains over 1,000 fruit trees and 220 different species of edible plants, herbs, and shrubs.\n1,000 dwellings integrated into the green community\nThe new district comprises approximately 1,000 housing units, all embedded within the food forest system.\nSocial cohesion\nStrong resident involvement in maintenance and care, with reported positive impacts on wellbeing and sense of community.",
     "d1_plants": [
@@ -3424,7 +3424,7 @@
       "Areas for meeting residents",
       "Areas with shade/cool spots",
       "Benches/rest areas",
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Shared food production and cultural exchange\nParticipants meet regularly to cook traditional dishes from their own cultures, using vegetables grown in the garden. These sessions foster social interaction and mutual learning around food.\nEnvironmental benefits and urban micro-nature\nThe garden has improved the local microclimate, helping mitigate the urban heat island effect, enhance air quality, and create habitats for pollinators—common outcomes in urban community garden initiatives.\nInclusion and social integration\nThe gardens were designed as inclusive spaces for migrants, refugees, and local residents, promoting cultural exchange, emotional support, and mental health care.",
     "d1_plants": [
@@ -3601,7 +3601,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space",
       "Other"
     ],
@@ -3623,7 +3623,7 @@
       "Educational",
       "Multifunctional",
       "Outdoor activities",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social",
       "Sports",
       "Unconventional use",
@@ -3737,7 +3737,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Residual space or widening"
     ],
     "a3_3_infrastructures": [
@@ -4233,7 +4233,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space",
       "Square",
       "Residual space or widening"
@@ -4254,7 +4254,7 @@
       "Educational",
       "Outdoor activities",
       "Recreational",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social"
     ],
     "a7_other": [
@@ -4400,7 +4400,7 @@
     "a6_uses": [
       "Multifunctional",
       "Outdoor activities",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social"
     ],
     "a7_other": [
@@ -4510,7 +4510,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)"
+      "Green area (park / garden)"
     ],
     "a3_3_infrastructures": [
       "Carriageway",
@@ -4527,7 +4527,7 @@
     "a6_uses": [
       "Outdoor activities",
       "Recreational",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social"
     ],
     "a7_other": [
@@ -4678,7 +4678,7 @@
     "a3_2_open_spaces": [
       "Courtyard",
       "Entrance area",
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space",
       "Square"
     ],
@@ -4883,7 +4883,7 @@
       "Outdoor activities",
       "Recreational",
       "Residential",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Sports"
     ],
     "a7_other": [
@@ -5152,7 +5152,7 @@
     "c4_services": [
       "Access free to water",
       "Areas for meeting residents",
-      "Educational, leisure and cultural uses"
+      "Educational - leisure and cultural uses"
     ],
     "c5_impacts": "Urban cooling and pedestrian comfort\nThe flowing water creates evaporative cooling, reducing perceived temperature during summer peaks. Bächle improve the sensory experience of streets and attract foot traffic, supporting local commerce.\n\nPublic space activation\nChildren and families use Bächle as playful micro-places, enhancing vibrancy and dwell time in the historic centre.\n\nCultural identity reinforcement\nhe canals strengthen local identity and heritage, contributing to Freiburg’s branding and tourism appeal.\n\nBlue infrastructure resilience\nWater circulation from the Dreisam provides continuous flushing and supports runoff management.",
     "d1_plants": [],
@@ -5218,7 +5218,7 @@
       "Multifunctional",
       "Outdoor activities",
       "Residential",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social"
     ],
     "a7_other": [
@@ -5373,7 +5373,7 @@
       "Events",
       "Multifunctional",
       "Recreational",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social"
     ],
     "a7_other": [
@@ -5506,7 +5506,7 @@
       "Building façade"
     ],
     "a3_2_open_spaces": [
-      "Green area (park, garden)"
+      "Green area (park / garden)"
     ],
     "a3_3_infrastructures": [
       "Footpath"
@@ -5574,7 +5574,7 @@
       "Resilience"
     ],
     "c4_services": [
-      "Educational, leisure and cultural uses",
+      "Educational - leisure and cultural uses",
       "Online maps / informative materials"
     ],
     "c5_impacts": "Biodiversity integrated into everyday living\nBy embedding nesting boxes, flowering meadows and feeding habitats into the housing courtyard, the project enables residents to live daily alongside birds, insects and small mammals. This fosters ecological awareness and makes biodiversity a tangible part of neighbourhood life.\nLife-cycle habitats designed for target species\nAnimal-Aided Design identifies the full life-cycle needs of selected species and translates them into concrete spatial interventions. Brantstraße demonstrates how urban development can provide breeding, shelter and feeding habitats within a residential setting.\nEducational value for residents and planners\nInterpretive elements and the visibility of habitat structures help residents understand ecological processes. The project also serves as a reference model for urban planners, showing how fauna-oriented design can be integrated into regulatory planning and housing development.",
@@ -5632,7 +5632,7 @@
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
       "Courtyard",
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space",
       "Residual space or widening"
     ],
@@ -5792,7 +5792,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space",
       "Residual space or widening"
     ],
@@ -5887,7 +5887,7 @@
     ],
     "c4_services": [
       "Areas for meeting residents",
-      "Educational, leisure and cultural uses",
+      "Educational - leisure and cultural uses",
       "Online maps / informative materials"
     ],
     "c5_impacts": "Biodiversity integrated into daily urban life\nPollinator gardens, ecological corridors and micro-habitats are embedded in neighbourhood streets and parks, making biodiversity visible and tangible. This strengthens ecological resilience and expands everyday contact with nature.\nCommunity empowerment through ecological stewardship\nResidents engage in composting, community gardening and shared maintenance activities, generating a sense of collective care and reinforcing social cohesion around environmental practices.\nEnhanced environmental health through diffuse green infrastructure\nThe widespread introduction of vegetation, permeable surfaces and shade trees improves urban microclimate, reduces heat stress and enhances the overall quality of public spaces in a tropical context.",
@@ -5945,7 +5945,7 @@
     ],
     "a3_1_buildings": [],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space",
       "Parking area",
       "Residual space or widening"
@@ -6090,7 +6090,7 @@
       "Rooftop"
     ],
     "a3_2_open_spaces": [
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space",
       "Residual space or widening",
       "Other"
@@ -6184,7 +6184,7 @@
     "c4_services": [
       "Areas for meeting residents",
       "Benches/rest areas",
-      "Educational, leisure and cultural uses",
+      "Educational - leisure and cultural uses",
       "Online maps / informative materials"
     ],
     "c5_impacts": "Ecological regeneration of a post-industrial site\nThe creation of a rooftop garden, pollinator beds and an apiary reintroduces biodiversity into a formerly sealed industrial area, enhancing ecological connectivity and providing habitat for pollinators.\nStrengthened community cohesion through shared stewardship\nWorkshops, collective gardening and social agriculture activities foster collaboration between associations, residents, schools and volunteers, increasing community ownership and social inclusion.\nEducational impact on urban biodiversity and food production\nThe garden and apiary serve as open-air classrooms, enabling children, families and citizens to learn about pollinators, soil health, urban agriculture and sustainable practices.",
@@ -6345,7 +6345,7 @@
       "Green integrated furnishings"
     ],
     "d6_urban_spaces": [
-      "Green spaces in infrastructures (underpasses, viaducts)",
+      "Green spaces in infrastructures (underpasses / viaducts)",
       "Multifunctional green spaces"
     ],
     "sources": "Greenroofs.com – Project page: https://www.greenroofs.com/projects/parque-bicentenario-bogota/ | ArchDaily Chile – Project article: https://www.archdaily.cl/cl/898371/parque-bicentenario-un-proyecto-que-ayuda-a-coser-una-herida-urbana-en-bogota | Metropolis Magazine – Park analysis: https://metropolismag.com/projects/el-equipo-mazzanti-bogota-bicentenario-park",
@@ -6397,7 +6397,7 @@
     ],
     "a6_uses": [
       "Multifunctional",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social"
     ],
     "a7_other": [
@@ -6484,7 +6484,7 @@
       "Prefabricated green modules"
     ],
     "d6_urban_spaces": [
-      "Green spaces in infrastructures (underpasses, viaducts)",
+      "Green spaces in infrastructures (underpasses / viaducts)",
       "Multifunctional green spaces"
     ],
     "sources": "ArchDaily – Project: https://www.archdaily.cl/cl/886566/parque-lineal-ferrocarril-de-cuernavaca-gaeta-springall-arquitectos\nArchDaily Mexico – Inauguration: https://www.archdaily.mx/mx/886446/parque-lineal-ferrocarril-de-cuernavaca\nMooool Landscape Architecture: https://mooool.com/en/linear-park-ferrocarril-de-cuernavaca-by-gaeta-springall-arquitectos.html",
@@ -6661,7 +6661,7 @@
     ],
     "a3_2_open_spaces": [
       "Entrance area",
-      "Green area (park, garden)",
+      "Green area (park / garden)",
       "Open paved space",
       "Square",
       "Residual space or widening"
@@ -6687,7 +6687,7 @@
       "Recreational",
       "Refreshment point",
       "Residential",
-      "Slow mobility (walking, bike, bus)",
+      "Slow mobility (walking / bike / bus)",
       "Social",
       "Temporary use"
     ],
@@ -6776,7 +6776,7 @@
       "Areas for meeting residents",
       "Areas with shade/cool spots",
       "Benches/rest areas",
-      "Educational, leisure and cultural uses",
+      "Educational - leisure and cultural uses",
       "Online maps / informative materials"
     ],
     "c5_impacts": "Distributed greening of a dense urban district\nThrough micro-interventions—tree planting, pocket parks, planted benches and seasonal vegetation—the project has significantly increased green presence in narrow streets and hardscaped areas, improving comfort and urban character.\nImproved pedestrian experience and connectivity\nGreener streets and widened sidewalks create safer, more attractive routes linking key landmarks (Tate Modern, Borough Market, riverfront), enhancing walkability and local economic vitality.\nStrengthened community involvement and stewardship\nBusinesses, cultural institutions and residents actively participate in planting, maintenance and design decisions, fostering a sense of shared responsibility and long-term care for public space.",

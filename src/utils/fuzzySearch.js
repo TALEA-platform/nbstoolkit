@@ -209,8 +209,8 @@ const SYNONYM_MAP = {
   'commercial': 'Commercial', 'cultural': 'Cultural', 'educational': 'Educational',
   'recreational': 'Recreational', 'residential': 'Residential',
   'sports': 'Sports', 'events': 'Events', 'multifunctional': 'Multifunctional',
-  'bike': 'Slow mobility (walking, bike, bus)', 'walking': 'Slow mobility (walking, bike, bus)',
-  'cycling': 'Slow mobility (walking, bike, bus)', 'mobility': 'Slow mobility (walking, bike, bus)',
+  'bike': 'Slow mobility (walking / bike / bus)', 'walking': 'Slow mobility (walking / bike / bus)',
+  'cycling': 'Slow mobility (walking / bike / bus)', 'mobility': 'Slow mobility (walking / bike / bus)',
   // B categories
   'pollution': 'High levels of soil pollution',
   'cables': 'Aerial cables / power lines',
