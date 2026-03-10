@@ -4064,7 +4064,7 @@
     "has_social_innovation": true,
     "has_digital_innovation": true,
     "c5_impacts": "Usage increase\nDuring the temporary transformation, sensors rec\norded an average >27,000 daily presences, with a peak of ~36,000\nPolicy impact\nThe pilot triggered the Municipal Board’s decision to permanently pedestrianise Piazza Rossini, reallocating former parking and loading areas to surrounding streets and cycling facilities.\nSocial participation and community building\nThe project emerged from the U-Lab process involving 250+ participants, strengthening local stewardship and shared decision-making in the university district",
-    "sources": "Cultural Heritage in Action. (2021). A new life for Piazza Rossini—From a parking lot to a pedestrian green space (Case study, Bologna). (Accessed on November 9, 2025).  Cultural Heritage In Action\nBoulanger, S. O. M., Boeri, A., et al. (2020). Data Evidence-Based Transformative Actions in Historic Urban Context—The Bologna University Area Case Study. Smart Cities, 3(4), 1346–1369. (Accessed on November 9, 2025).",
+    "sources": "Cultural Heritage in Action. (2021). A new life for Piazza Rossini—From a parking lot to a pedestrian green space (Case study, Bologna). (Accessed on November 9, 2025).  Cultural Heritage In Action\nBoulanger, S. O. M., Boeri, A., et al. (2020). Data Evidence-Based Transformative Actions in Historic Urban Context��The Bologna University Area Case Study. Smart Cities, 3(4), 1346–1369. (Accessed on November 9, 2025).",
     "image_url": "https://i.ibb.co/Pbjh9TF/talea-cs-33.jpg",
     "talea_application": {
       "nodal": true
@@ -6761,6 +6761,116 @@
       "Community gardens",
       "Micro parks",
       "Multifunctional green spaces"
+    ]
+  },
+  {
+    "id": 51,
+    "title": "Test submission",
+    "city": "test",
+    "country": "test",
+    "year": "tsets 1170",
+    "size": "Medium",
+    "climate_zone": "Temperate",
+    "designer": "tess",
+    "promoter": "test",
+    "description": "tsetsetseta segqergadg",
+    "physical_innovation": "NO PHYSCAL INNOVATION S",
+    "social_innovation": "aergaregadfg eargaergarcgadf eargadfvaervg ad vb arg",
+    "digital_innovation": "",
+    "has_physical_innovation": false,
+    "has_social_innovation": true,
+    "has_digital_innovation": false,
+    "c5_impacts": "SDOJVBPUIbrgfbJDBòsobdgobubsjdfbpu\n* aiodègèioaerg\n* gaidrjpgajrpgoajg+\naèoisdhgèoiaherègoihag..dagohsrghag,,,,,sadgha8ehgpa",
+    "sources": "FBK: https://www.fbk.eu/it/",
+    "image_url": "https://i.ibb.co/r22YMynN/talea-TEST.jpg",
+    "talea_application": {
+      "nodal": true
+    },
+    "a1_urban_scale": [
+      "Territorial",
+      "Metropolitan"
+    ],
+    "a2_urban_area": [
+      "Consolidated city"
+    ],
+    "a3_1_buildings": [
+      "Building complex"
+    ],
+    "a3_2_open_spaces": [
+      "Residual space or widening",
+      "Entrance area",
+      "Green area (park / garden)",
+      "Service yard or technical area"
+    ],
+    "a3_3_infrastructures": [],
+    "a4_ownership": [
+      "Mixed (public/private)",
+      "Private"
+    ],
+    "a5_management": [
+      "Citizens' committee"
+    ],
+    "a6_uses": [],
+    "a7_other": [],
+    "b1_physical": [],
+    "b2_regulations": [
+      "Building codes and technical standards",
+      "Heritage/archaeological constraint",
+      "Flood risk / hydrogeological constraint",
+      "Public property rules / easements"
+    ],
+    "b3_uses_management": [],
+    "b4_public_opinion": [
+      "Collective memory / identity belonging",
+      "Fear of decay / improper use",
+      "Rejection or distrust of greenery",
+      "Perception of the space as \"private\""
+    ],
+    "b5_synergy": [],
+    "b6_social_opportunities": [
+      "Health promotion / active lifestyles",
+      "Safety and perception of security",
+      "Community building / social cohesion",
+      "Cultural and intercultural exchange"
+    ],
+    "c1_1_design": [],
+    "c1_2_funding": [],
+    "c1_3_management": [],
+    "c2_actors": [
+      "Age groups",
+      "Designers",
+      "Neighbourhood councils",
+      "Residents",
+      "Vulnerable individuals",
+      "Shopkeepers",
+      "Non-profit organizations",
+      "Students",
+      "Foundations",
+      "Groups of citizens",
+      "Public institutions"
+    ],
+    "c3_goals": [],
+    "c4_services": [
+      "Access free to water",
+      "Monitoring and warning systems"
+    ],
+    "d1_plants": [
+      "Dense hedges",
+      "Rows / tree lines",
+      "Ecological corridors - Pollinator-friendly gardens",
+      "Row of trees",
+      "Shading tree groups / tree clusters"
+    ],
+    "d2_paving": [],
+    "d3_water": [],
+    "d4_roof_facade": [
+      "Climbing structures on walls or nets",
+      "Intensive green roofs"
+    ],
+    "d5_furnishings": [],
+    "d6_urban_spaces": [
+      "Green spaces in infrastructures (underpasses / viaducts)",
+      "Urban gardens"
     ]
   }
 ]
