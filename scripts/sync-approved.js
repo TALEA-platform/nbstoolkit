@@ -113,8 +113,6 @@ function toArray(str) {
 
 /**
  * Convert a sheet row into a caseStudies.json entry.
- * Innovation flags (has_social/digital/physical) are derived dynamically
- * by the frontend from the text fields — no need to store booleans.
  */
 function rowToStudy(row, fallbackId) {
   const id = row.id ? parseInt(row.id, 10) : fallbackId;
@@ -133,6 +131,9 @@ function rowToStudy(row, fallbackId) {
     physical_innovation: row.physical_innovation || '',
     social_innovation: row.social_innovation || '',
     digital_innovation: row.digital_innovation || '',
+    has_physical_innovation: (row.has_physical_innovation || '').toLowerCase() === 'true',
+    has_social_innovation: (row.has_social_innovation || '').toLowerCase() === 'true',
+    has_digital_innovation: (row.has_digital_innovation || '').toLowerCase() === 'true',
   };
 
   // C5 impacts

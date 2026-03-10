@@ -21,6 +21,7 @@ const SUBMISSION_FIELDS = [
   'description', 'latitude', 'longitude',
   'size', 'climate_zone',
   'physical_innovation', 'social_innovation', 'digital_innovation',
+  'has_physical_innovation', 'has_social_innovation', 'has_digital_innovation',
   'c5_impacts', 'sources',
 ];
 
@@ -29,8 +30,13 @@ const SUBMISSION_FIELDS = [
  */
 function flattenStudyData(formData) {
   const flat = {};
+  const booleanFields = ['has_physical_innovation', 'has_social_innovation', 'has_digital_innovation'];
   for (const key of SUBMISSION_FIELDS) {
-    flat[key] = formData[key] || '';
+    if (booleanFields.includes(key)) {
+      flat[key] = formData[key] ? 'true' : 'false';
+    } else {
+      flat[key] = formData[key] || '';
+    }
   }
   // Handle talea_application (array → comma-separated)
   flat.talea_application = Array.isArray(formData.talea_application)

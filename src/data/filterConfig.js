@@ -239,13 +239,21 @@ export const FILTER_CATEGORIES = {
     dataKey: 'd6_urban_spaces',
     type: 'array',
   },
+  innovation: {
+    label: 'Innovation',
+    icon: '💡',
+    color: '#e07c3a',
+    options: ['Physical', 'Social', 'Digital'],
+    dataKey: 'innovation',
+    type: 'innovation',
+  },
 };
 
 export const FILTER_GROUPS = {
   core: {
     label: 'Core',
     icon: '⭐',
-    categories: ['talea_application', 'size', 'climate_zone'],
+    categories: ['talea_application', 'size', 'climate_zone', 'innovation'],
   },
   physical: {
     label: 'A - Physical',

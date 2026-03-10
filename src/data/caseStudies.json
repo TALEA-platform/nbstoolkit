@@ -127,7 +127,8 @@
       "Multifunctional green spaces",
       "Urban gardens"
     ],
-    "sources": "https://una.city/nbs/krakow/anti-smog-educational-garden-krakow\nhttps://terra-docs.s3.us-east-2.amazonaws.com/IJHSR/Articles/volume7-issue1/IJHSR_2025_71_46.pdf"
+    "sources": "https://una.city/nbs/krakow/anti-smog-educational-garden-krakow\nhttps://terra-docs.s3.us-east-2.amazonaws.com/IJHSR/Articles/volume7-issue1/IJHSR_2025_71_46.pdf",
+    "has_physical_innovation": true
   },
   {
     "id": 2,
@@ -241,7 +242,8 @@
     ],
     "d5_furnishings": [],
     "d6_urban_spaces": [],
-    "sources": "https://www.stefanoboeriarchitetti.net/project/bosco-verticale/\nhttps://www.greenroofs.com/projects/bosco-verticale-vertical-forest-milan/"
+    "sources": "https://www.stefanoboeriarchitetti.net/project/bosco-verticale/\nhttps://www.greenroofs.com/projects/bosco-verticale-vertical-forest-milan/",
+    "has_physical_innovation": true
   },
   {
     "id": 3,
@@ -368,7 +370,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "https://www.okra.nl/project/catharijnesingel/\nhttps://www.metalocus.es\nHolmes, M. (2024). Bringing water back: Catharijnesingel’s journey back from highway to canal. WLA"
+    "sources": "https://www.okra.nl/project/catharijnesingel/\nhttps://www.metalocus.es\nHolmes, M. (2024). Bringing water back: Catharijnesingel’s journey back from highway to canal. WLA",
+    "has_physical_innovation": true
   },
   {
     "id": 4,
@@ -390,7 +393,7 @@
     "social_innovation": "The project uses a Living Lab co‑design methodology: workshops with elderly citizens, parents of infants, low-income households to place and configure units according to their needs. It empowers vulnerable groups to claim public space, encourages social interaction, and increases awareness of heat resilience with community agency",
     "has_social_innovation": true,
     "digital_innovation": "Thermal imaging and structured surveys were used during evaluation to collect data on micro‑climate and user perceptions.",
-    "has_digital_innovation": false,
+    "has_digital_innovation": true,
     "a1_urban_scale": [
       "District"
     ],
@@ -479,7 +482,8 @@
       "Prefabricated green modules"
     ],
     "d6_urban_spaces": [],
-    "sources": "https://prizes.new-european-bauhaus.europa.eu/node/254908\nhttps://coolcos.eu/en/\nhttps://doi.org/10.1007/s43621-025-00975-7"
+    "sources": "https://prizes.new-european-bauhaus.europa.eu/node/254908\nhttps://coolcos.eu/en/\nhttps://doi.org/10.1007/s43621-025-00975-7",
+    "has_physical_innovation": true
   },
   {
     "id": 5,
@@ -639,7 +643,8 @@
       "Multifunctional green spaces",
       "Urban gardens"
     ],
-    "sources": "https://www.c40knowledgehub.org/s/article/Cities100-Medellin-s-interconnected-green-corridors?language=en_US"
+    "sources": "https://www.c40knowledgehub.org/s/article/Cities100-Medellin-s-interconnected-green-corridors?language=en_US",
+    "has_physical_innovation": true
   },
   {
     "id": 6,
@@ -756,7 +761,8 @@
     "d4_roof_facade": [],
     "d5_furnishings": [],
     "d6_urban_spaces": [],
-    "sources": "https://www.archdaily.pe/pe/625586/paisaje-y-arquitectura-remodelacion-del-paseo-de-st-joan-un-nuevo-corredor-verde-urbano-por-lola-domenech\nhttps://elpais.com/espana/catalunya/2025-02-08/el-contador-de-bicicletas-se-quedo-en-el-41.html"
+    "sources": "https://www.archdaily.pe/pe/625586/paisaje-y-arquitectura-remodelacion-del-paseo-de-st-joan-un-nuevo-corredor-verde-urbano-por-lola-domenech\nhttps://elpais.com/espana/catalunya/2025-02-08/el-contador-de-bicicletas-se-quedo-en-el-41.html",
+    "has_physical_innovation": true
   },
   {
     "id": 7,
@@ -888,7 +894,8 @@
       "Micro parks",
       "Multifunctional green spaces"
     ],
-    "sources": "https://www.archilovers.com/projects/324006/riqualificazione-corte-urbana-don-bosco-quartiere-san-paolo.html\nhttps://www.ambienteambienti.com/riqualificazione-green-g124-primo-rifugio-climatico-di-bari/"
+    "sources": "https://www.archilovers.com/projects/324006/riqualificazione-corte-urbana-don-bosco-quartiere-san-paolo.html\nhttps://www.ambienteambienti.com/riqualificazione-green-g124-primo-rifugio-climatico-di-bari/",
+    "has_physical_innovation": true
   },
   {
     "id": 8,
@@ -998,7 +1005,8 @@
     ],
     "d5_furnishings": [],
     "d6_urban_spaces": [],
-    "sources": "https://new-european-bauhaus.europa.eu/inspiring-projects-and-ideas/gardens-air_en\nhttps://landscape.coac.net/en/node/8398"
+    "sources": "https://new-european-bauhaus.europa.eu/inspiring-projects-and-ideas/gardens-air_en\nhttps://landscape.coac.net/en/node/8398",
+    "has_physical_innovation": true
   },
   {
     "id": 9,
@@ -1124,7 +1132,8 @@
       "Multifunctional green spaces",
       "Urban gardens"
     ],
-    "sources": "https://stad.gent/nl/wonen-bouwen/wonen-voor-senioren/woonzorgcentra/woonzorgcentrum-het-heiveld\nhttps://prizes.new-european-bauhaus.europa.eu/application/25130\nhttps://doi.org/10.3390/ijerph21020456 | https://prizes.new-european-bauhaus.europa.eu/node/254908"
+    "sources": "https://stad.gent/nl/wonen-bouwen/wonen-voor-senioren/woonzorgcentra/woonzorgcentrum-het-heiveld\nhttps://prizes.new-european-bauhaus.europa.eu/application/25130\nhttps://doi.org/10.3390/ijerph21020456 | https://prizes.new-european-bauhaus.europa.eu/node/254908",
+    "has_physical_innovation": true
   },
   {
     "id": 10,
@@ -1146,7 +1155,7 @@
     "social_innovation": "The project increases perceived environmental quality and contributes to social well-being by improving public space comfort near residential areas. While not co-designed, it supports citizen education about NBS through interpretative signage and public awareness campaigns in surrounding neighbourhoods.",
     "has_social_innovation": true,
     "digital_innovation": "The project integrates digital environmental monitoring (air quality, temperature, acoustic performance) and remote-controlled irrigation systems.",
-    "has_digital_innovation": false,
+    "has_digital_innovation": true,
     "a1_urban_scale": [
       "Urban",
       "District"
@@ -1243,7 +1252,8 @@
     "d6_urban_spaces": [
       "Green spaces in infrastructures (underpasses, viaducts)"
     ],
-    "sources": "https://www.urbangreenup.eu/solutions/green-noise-barriers.kl\nEuropean Commission. (2022). New Strategy for Re Naturing Cities through Nature Based Solutions (URBAN GreenUP). CORDIS final report"
+    "sources": "https://www.urbangreenup.eu/solutions/green-noise-barriers.kl\nEuropean Commission. (2022). New Strategy for Re Naturing Cities through Nature Based Solutions (URBAN GreenUP). CORDIS final report",
+    "has_physical_innovation": true
   },
   {
     "id": 11,
@@ -1382,7 +1392,8 @@
     "d6_urban_spaces": [
       "Green spaces in infrastructures (underpasses, viaducts)"
     ],
-    "sources": "https://www.singulargreen.com/en/green-shades/\nhttps://networknature.eu/casestudy/19393\nhttps://netzerocities.app/resource-1198"
+    "sources": "https://www.singulargreen.com/en/green-shades/\nhttps://networknature.eu/casestudy/19393\nhttps://netzerocities.app/resource-1198",
+    "has_physical_innovation": true
   },
   {
     "id": 12,
@@ -1504,7 +1515,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "https://landezine-award.com/greening-of-flagey-and-sainte-croix-squares-brussels-by-kollektif-landscape/\nhttps://www.thebulletin.be/new-plan-make-place-flagey-less-grey-more-green\nhttps://www.brusselstimes.com/645890/flagey-goes-green-works-expected-to-start-end-of-2023"
+    "sources": "https://landezine-award.com/greening-of-flagey-and-sainte-croix-squares-brussels-by-kollektif-landscape/\nhttps://www.thebulletin.be/new-plan-make-place-flagey-less-grey-more-green\nhttps://www.brusselstimes.com/645890/flagey-goes-green-works-expected-to-start-end-of-2023",
+    "has_physical_innovation": true
   },
   {
     "id": 13,
@@ -1658,7 +1670,8 @@
     "d4_roof_facade": [],
     "d5_furnishings": [],
     "d6_urban_spaces": [],
-    "sources": "https://www.ohga.it/hammarby-sjostad-il-quartiere-ecologico-e-sostenibile-di-stoccolma/\nhttps://www.diva-portal.org/smash/get/diva2:627215/FULLTEXT01.pdf\nhttps://c2e2.unepccc.org/kms_object/the-urban-redevelopment-of-hammarby-sjostad/"
+    "sources": "https://www.ohga.it/hammarby-sjostad-il-quartiere-ecologico-e-sostenibile-di-stoccolma/\nhttps://www.diva-portal.org/smash/get/diva2:627215/FULLTEXT01.pdf\nhttps://c2e2.unepccc.org/kms_object/the-urban-redevelopment-of-hammarby-sjostad/",
+    "has_physical_innovation": true
   },
   {
     "id": 14,
@@ -1762,7 +1775,8 @@
       "Prefabricated green modules"
     ],
     "d6_urban_spaces": [],
-    "sources": "https://www.positive-magazine.com/green-invasion-in-lima/\nhttps://architizer.com/projects/invasion-verde/\nhttps://inhabitat.com/pop-up-green-park-invades-the-city-of-lima-peru/\n"
+    "sources": "https://www.positive-magazine.com/green-invasion-in-lima/\nhttps://architizer.com/projects/invasion-verde/\nhttps://inhabitat.com/pop-up-green-park-invades-the-city-of-lima-peru/\n",
+    "has_physical_innovation": true
   },
   {
     "id": 15,
@@ -1872,7 +1886,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "https://landezine.com/jardin-des-joyeux-by-wagon-landscaping/\nhttps://www.wagon-landscaping.fr/eng_jardin-joyeux-aubervilliers-copy\nhttps://landscapeaustralia.com/lo-fi-landscapes"
+    "sources": "https://landezine.com/jardin-des-joyeux-by-wagon-landscaping/\nhttps://www.wagon-landscaping.fr/eng_jardin-joyeux-aubervilliers-copy\nhttps://landscapeaustralia.com/lo-fi-landscapes",
+    "has_physical_innovation": true
   },
   {
     "id": 16,
@@ -1993,7 +2008,8 @@
     "d4_roof_facade": [],
     "d5_furnishings": [],
     "d6_urban_spaces": [],
-    "sources": "https://www.publicspace.org/works/-/project/e078-amenagement-des-berges-du-rhone\nhttps://www.eco-counter.com/blog/counting-bikes-e-scooters-with-zelt-evo-counter"
+    "sources": "https://www.publicspace.org/works/-/project/e078-amenagement-des-berges-du-rhone\nhttps://www.eco-counter.com/blog/counting-bikes-e-scooters-with-zelt-evo-counter",
+    "has_physical_innovation": true
   },
   {
     "id": 17,
@@ -2128,7 +2144,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "https://www.osty.fr/fr/projets/view/3/les-promenades\nhttps://www.leseclaireurs.net/en/projects/les-promenades leseclaireurs.net"
+    "sources": "https://www.osty.fr/fr/projets/view/3/les-promenades\nhttps://www.leseclaireurs.net/en/projects/les-promenades leseclaireurs.net",
+    "has_physical_innovation": true
   },
   {
     "id": 18,
@@ -2289,7 +2306,8 @@
       "Multifunctional green spaces",
       "Urban gardens"
     ],
-    "sources": "https://www.fareast.mobi/en/bestpractices/liuyun/Liuyun-Xiaoqu-From-Housing-Estate-to-Mixed-Use\nhttps://itdp-indonesia.org/2018/02/pedestrians-first-walkability-tool/liuyun-xiaoqu_ln/\nhttps://www.smartcitiesdive.com | https://energyinnovation.org/report/cities-people-practice/"
+    "sources": "https://www.fareast.mobi/en/bestpractices/liuyun/Liuyun-Xiaoqu-From-Housing-Estate-to-Mixed-Use\nhttps://itdp-indonesia.org/2018/02/pedestrians-first-walkability-tool/liuyun-xiaoqu_ln/\nhttps://www.smartcitiesdive.com | https://energyinnovation.org/report/cities-people-practice/",
+    "has_physical_innovation": true
   },
   {
     "id": 19,
@@ -2412,7 +2430,8 @@
       "Micro parks",
       "Multifunctional green spaces"
     ],
-    "sources": "https://www.archipop.cz/en/projekt.php?s=passage-56\nhttps://designinfrastructuresinclusion.wordpress.com/tlp-database/passage-56-paris/"
+    "sources": "https://www.archipop.cz/en/projekt.php?s=passage-56\nhttps://designinfrastructuresinclusion.wordpress.com/tlp-database/passage-56-paris/",
+    "has_physical_innovation": true
   },
   {
     "id": 20,
@@ -2521,7 +2540,8 @@
     ],
     "d5_furnishings": [],
     "d6_urban_spaces": [],
-    "sources": "https://www.greenroofs.com/projects/musee-du-quai-branly-greenwall/ | https://www.researchgate.net/publication/371242382\nhttps://www.engie-fondation.com/renovation-mur-vegetal-quai-branly | https://m.quaibranly.fr/en/public-areas/the-living-wall-of-greenery"
+    "sources": "https://www.greenroofs.com/projects/musee-du-quai-branly-greenwall/ | https://www.researchgate.net/publication/371242382\nhttps://www.engie-fondation.com/renovation-mur-vegetal-quai-branly | https://m.quaibranly.fr/en/public-areas/the-living-wall-of-greenery",
+    "has_physical_innovation": true
   },
   {
     "id": 21,
@@ -2664,7 +2684,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "https://www.theoverview.art/superblocks-barcelona-blueprint-for-the-livable-city-of-the-future\nhttps://www.archdaily.com/938244/superblock-of-sant-antoni-leku-studio | https://doi.org/10.1186/s12889-025-21835-z\nhttps://openaccess.uoc.edu/bitstream/10609/152491/1/FerrerEscobar_Martin_TFM_DocFinal.pdf"
+    "sources": "https://www.theoverview.art/superblocks-barcelona-blueprint-for-the-livable-city-of-the-future\nhttps://www.archdaily.com/938244/superblock-of-sant-antoni-leku-studio | https://doi.org/10.1186/s12889-025-21835-z\nhttps://openaccess.uoc.edu/bitstream/10609/152491/1/FerrerEscobar_Martin_TFM_DocFinal.pdf",
+    "has_physical_innovation": true
   },
   {
     "id": 22,
@@ -2790,7 +2811,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "https://landezine.com/the-paillon-promenade-by-pena-paysages/\nhttps://www.monacolife.net/nices-promenade-du-paillon-celebrates-a-decade-of-transformation-and-green-space-expansion/\nhttps://www.investincotedazur.com/en/nice-city-garden-8-hectares-of-additional-green-spaces/"
+    "sources": "https://landezine.com/the-paillon-promenade-by-pena-paysages/\nhttps://www.monacolife.net/nices-promenade-du-paillon-celebrates-a-decade-of-transformation-and-green-space-expansion/\nhttps://www.investincotedazur.com/en/nice-city-garden-8-hectares-of-additional-green-spaces/",
+    "has_physical_innovation": true
   },
   {
     "id": 23,
@@ -2910,7 +2932,8 @@
       "Micro parks",
       "Multifunctional green spaces"
     ],
-    "sources": "https://estrategiaurbana.madrid.es/proyecto-micos-2/\nhttps://saludpublicayotrasdudas.wordpress.com/2017/07/08/el-patio-de-mi-escuela-es-particular/\nhttps://www.researchgate.net/publication/317836292"
+    "sources": "https://estrategiaurbana.madrid.es/proyecto-micos-2/\nhttps://saludpublicayotrasdudas.wordpress.com/2017/07/08/el-patio-de-mi-escuela-es-particular/\nhttps://www.researchgate.net/publication/317836292",
+    "has_physical_innovation": true
   },
   {
     "id": 24,
@@ -3043,7 +3066,8 @@
       "Prefabricated green modules"
     ],
     "d6_urban_spaces": [],
-    "sources": "https://neweuropeanbauhaus.es/proyectos/re-sourcing-commons-diseno-urbano-colectivo-para-la-sostenibilidad-social-material-e-inmaterial/ | https://re-sourcing.eu/reports/d12-in-rs-template-final/ re-sourcing.eu+1SpringerLink+1\nhttps://nachhaltigwirtschaften.at/resources/.../SD_Re-Sourcing_Commons_NEB_Jour_Fixe_Austria.pdf "
+    "sources": "https://neweuropeanbauhaus.es/proyectos/re-sourcing-commons-diseno-urbano-colectivo-para-la-sostenibilidad-social-material-e-inmaterial/ | https://re-sourcing.eu/reports/d12-in-rs-template-final/ re-sourcing.eu+1SpringerLink+1\nhttps://nachhaltigwirtschaften.at/resources/.../SD_Re-Sourcing_Commons_NEB_Jour_Fixe_Austria.pdf ",
+    "has_physical_innovation": true
   },
   {
     "id": 25,
@@ -3168,7 +3192,8 @@
       "Community gardens",
       "Micro parks"
     ],
-    "sources": "https://www.felixx.nl/projects/rijnvliet-edible-neighborhood-1 | https://landezine.com/rijnvliet-edible-neighborhood-by-felixx/\nhttps://worldlandscapearchitect.com/rijnvliet-edible-neighborhood-felixx/ | https://cultivate-project.eu/wp-content/uploads/2024/06/D2.2_CULTIVATE-Briefing-note-Food-sharing-landscapes-in-Hub-city-locations.pdf"
+    "sources": "https://www.felixx.nl/projects/rijnvliet-edible-neighborhood-1 | https://landezine.com/rijnvliet-edible-neighborhood-by-felixx/\nhttps://worldlandscapearchitect.com/rijnvliet-edible-neighborhood-felixx/ | https://cultivate-project.eu/wp-content/uploads/2024/06/D2.2_CULTIVATE-Briefing-note-Food-sharing-landscapes-in-Hub-city-locations.pdf",
+    "has_physical_innovation": true
   },
   {
     "id": 26,
@@ -3275,7 +3300,8 @@
       "Micro parks",
       "Multifunctional green spaces"
     ],
-    "sources": "https://observatoire-curiosite33.com/fr/1/7/14544_Rue-Kleber-Rue-Jardin.html \nhttps://doi.org/10.4000/120cq | https://jonctionspatiale.wordpress.com/2016/03/07/reamenagement-de-la-rue-kleber-bordeaux/\nhttps://www.caue-observatoire.fr/ouvrage/rue-jardin-bordeaux/"
+    "sources": "https://observatoire-curiosite33.com/fr/1/7/14544_Rue-Kleber-Rue-Jardin.html \nhttps://doi.org/10.4000/120cq | https://jonctionspatiale.wordpress.com/2016/03/07/reamenagement-de-la-rue-kleber-bordeaux/\nhttps://www.caue-observatoire.fr/ouvrage/rue-jardin-bordeaux/",
+    "has_physical_innovation": true
   },
   {
     "id": 27,
@@ -3423,7 +3449,8 @@
       "Multifunctional green spaces",
       "Urban gardens"
     ],
-    "sources": "https://doramester.com/set-community-gardens-amsterdam/ | https://weareintouch.org/?page_id=130\nhttps://prizes.new-european-bauhaus.europa.eu/finalists/applications/champions/reconnecting-with-nature\nhttps://voedseltuinijplein.nl/wp-content/uploads/2021/08/"
+    "sources": "https://doramester.com/set-community-gardens-amsterdam/ | https://weareintouch.org/?page_id=130\nhttps://prizes.new-european-bauhaus.europa.eu/finalists/applications/champions/reconnecting-with-nature\nhttps://voedseltuinijplein.nl/wp-content/uploads/2021/08/",
+    "has_physical_innovation": true
   },
   {
     "id": 28,
@@ -3542,7 +3569,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "https://51n4e.com/projects/skanderbeg-square/ | https://www.ijera.com/papers/Vol7_issue1/Part-2/M0701027782.pdf\nhttps://www.reuters.com/article/world/tiranas-chaotic-square-becomes-island-of-pedestrian-calm-idUSKBN1931QT/\nhttps://toposmagazine.com/skanderbeg-square-tirana/"
+    "sources": "https://51n4e.com/projects/skanderbeg-square/ | https://www.ijera.com/papers/Vol7_issue1/Part-2/M0701027782.pdf\nhttps://www.reuters.com/article/world/tiranas-chaotic-square-becomes-island-of-pedestrian-calm-idUSKBN1931QT/\nhttps://toposmagazine.com/skanderbeg-square-tirana/",
+    "has_physical_innovation": true
   },
   {
     "id": 29,
@@ -3674,7 +3702,8 @@
       "Community gardens",
       "Multifunctional green spaces"
     ],
-    "sources": "https://agile-city.com/blog/tempelhof-park-berlin/ https://www.tempelhoferfeld.de/en/ | https://doi.org/10.3390/atmos11050500\nhttps://egusphere.copernicus.org/preprints/2025/egusphere-2025-469/egusphere-2025-469.pdf\nhttps://use.metropolis.org/case-studies/germany-berlin-tempelhofer-freiheit-urban-open-space"
+    "sources": "https://agile-city.com/blog/tempelhof-park-berlin/ https://www.tempelhoferfeld.de/en/ | https://doi.org/10.3390/atmos11050500\nhttps://egusphere.copernicus.org/preprints/2025/egusphere-2025-469/egusphere-2025-469.pdf\nhttps://use.metropolis.org/case-studies/germany-berlin-tempelhofer-freiheit-urban-open-space",
+    "has_physical_innovation": true
   },
   {
     "id": 30,
@@ -3808,7 +3837,8 @@
       "Green integrated furnishings"
     ],
     "d6_urban_spaces": [],
-    "sources": "https://www.treesforstreets.org/treesforstreets-haringey/\nhttps://www.treesforcities.org/get-involved landscapeperformance.org+3en.wikipedia.org+3pmc.ncbi.nlm.nih.gov+3treesforcities.org\nhttps://treesforcities.org/beat-the-heat-25 en.wikipedia.org+4treesforcities.org+4linkedin.com+4"
+    "sources": "https://www.treesforstreets.org/treesforstreets-haringey/\nhttps://www.treesforcities.org/get-involved landscapeperformance.org+3en.wikipedia.org+3pmc.ncbi.nlm.nih.gov+3treesforcities.org\nhttps://treesforcities.org/beat-the-heat-25 en.wikipedia.org+4treesforcities.org+4linkedin.com+4",
+    "has_physical_innovation": true
   },
   {
     "id": 31,
@@ -3920,7 +3950,8 @@
     "d4_roof_facade": [],
     "d5_furnishings": [],
     "d6_urban_spaces": [],
-    "sources": "https://www.urbanisten.nl/work/benthemplein \nhttps://doi.org/10.3390/w11050983 | https://stormwater.wef.org/2014/03/first-full-scale-water-square-opens-rotterdam/\nhttps://www.researchgate.net/figure/Water-Square-in-Benthemplein-Rotterdam-NL-De-Urbanisten_fig7_337056771"
+    "sources": "https://www.urbanisten.nl/work/benthemplein \nhttps://doi.org/10.3390/w11050983 | https://stormwater.wef.org/2014/03/first-full-scale-water-square-opens-rotterdam/\nhttps://www.researchgate.net/figure/Water-Square-in-Benthemplein-Rotterdam-NL-De-Urbanisten_fig7_337056771",
+    "has_physical_innovation": true
   },
   {
     "id": 32,
@@ -4038,7 +4069,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "https://landezine-award.com/winkelriedplatz-basel-by-frl/ | https://www.cattaneo schueppel.com/portfolio/project one f5w4d c6f5n hddpx 8ezjh tmbb4 cattaneo-schueppel.com+1cattaneo-schueppel.com+1 | https://www.bs.ch/medienmitteilungen/bvd/2018 der winkelriedplatz bietet zukuenftig vielfaeltige nutzungsmoeglichkeiten fuer jung und alt bs.ch"
+    "sources": "https://landezine-award.com/winkelriedplatz-basel-by-frl/ | https://www.cattaneo schueppel.com/portfolio/project one f5w4d c6f5n hddpx 8ezjh tmbb4 cattaneo-schueppel.com+1cattaneo-schueppel.com+1 | https://www.bs.ch/medienmitteilungen/bvd/2018 der winkelriedplatz bietet zukuenftig vielfaeltige nutzungsmoeglichkeiten fuer jung und alt bs.ch",
+    "has_physical_innovation": true
   },
   {
     "id": 33,
@@ -4168,7 +4200,8 @@
       "Green integrated furnishings"
     ],
     "d6_urban_spaces": [],
-    "sources": "Cultural Heritage in Action. (2021). A new life for Piazza Rossini—From a parking lot to a pedestrian green space (Case study, Bologna). (Accessed on November 9, 2025).  Cultural Heritage In Action\nBoulanger, S. O. M., Boeri, A., et al. (2020). Data Evidence-Based Transformative Actions in Historic Urban Context—The Bologna University Area Case Study. Smart Cities, 3(4), 1346–1369. (Accessed on November 9, 2025). "
+    "sources": "Cultural Heritage in Action. (2021). A new life for Piazza Rossini—From a parking lot to a pedestrian green space (Case study, Bologna). (Accessed on November 9, 2025).  Cultural Heritage In Action\nBoulanger, S. O. M., Boeri, A., et al. (2020). Data Evidence-Based Transformative Actions in Historic Urban Context—The Bologna University Area Case Study. Smart Cities, 3(4), 1346–1369. (Accessed on November 9, 2025). ",
+    "has_physical_innovation": true
   },
   {
     "id": 34,
@@ -4320,7 +4353,8 @@
     "d6_urban_spaces": [
       "Micro parks"
     ],
-    "sources": "SLA Architects. (2019). Sankt Kjelds Square & Bryggervangen. (2015–2019; 34,900 m²; client: City of Copenhagen). Retrieved from SLA website. (Accessed on November 6, 2025)"
+    "sources": "SLA Architects. (2019). Sankt Kjelds Square & Bryggervangen. (2015–2019; 34,900 m²; client: City of Copenhagen). Retrieved from SLA website. (Accessed on November 6, 2025)",
+    "has_physical_innovation": true
   },
   {
     "id": 35,
@@ -4444,7 +4478,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "Yazgan Landscape Architecture. (2019, July 1). Hamamyolu Urban Deck by Yazgan. Retrieved from https://landezine.com/hamamyolu-urban-deck-by-yazgan/\n(Accessed on November 9, 2025)"
+    "sources": "Yazgan Landscape Architecture. (2019, July 1). Hamamyolu Urban Deck by Yazgan. Retrieved from https://landezine.com/hamamyolu-urban-deck-by-yazgan/\n(Accessed on November 9, 2025)",
+    "has_physical_innovation": true
   },
   {
     "id": 36,
@@ -4602,7 +4637,8 @@
     "d6_urban_spaces": [
       "Micro parks"
     ],
-    "sources": "https://landezine.com/lila-2020-ballerup-boulevard-by-marianne-levinsen-landskab/"
+    "sources": "https://landezine.com/lila-2020-ballerup-boulevard-by-marianne-levinsen-landskab/",
+    "has_physical_innovation": true
   },
   {
     "id": 37,
@@ -4783,7 +4819,8 @@
     "d6_urban_spaces": [
       "Micro parks"
     ],
-    "sources": "Juurlink + Geluk / CULD. (2021). Little C by Juurlink + Geluk / CULD Rotterdam. Retrieved from https://landezine.com/little-c-by-juurlink-geluk-culd-rotterdam/\n(Accessed on November 9, 2025)"
+    "sources": "Juurlink + Geluk / CULD. (2021). Little C by Juurlink + Geluk / CULD Rotterdam. Retrieved from https://landezine.com/little-c-by-juurlink-geluk-culd-rotterdam/\n(Accessed on November 9, 2025)",
+    "has_physical_innovation": true
   },
   {
     "id": 38,
@@ -4977,7 +5014,8 @@
       "Multifunctional green spaces",
       "Urban gardens"
     ],
-    "sources": "Landezine. (2023). Girondins Development Area – Lyon by BASE. Retrieved from https://landezine.com/girondins-development-area-lyon-by-base/\n(Accessed on November 9, 2025)\n\nLes Éclaireurs. (2020). ZAC des Girondins, Lyon. Retrieved from https://www.leseclaireurs.net/projects/girondins-district-lyon\n (Accessed on November 9, 2025)"
+    "sources": "Landezine. (2023). Girondins Development Area – Lyon by BASE. Retrieved from https://landezine.com/girondins-development-area-lyon-by-base/\n(Accessed on November 9, 2025)\n\nLes Éclaireurs. (2020). ZAC des Girondins, Lyon. Retrieved from https://www.leseclaireurs.net/projects/girondins-district-lyon\n (Accessed on November 9, 2025)",
+    "has_physical_innovation": true
   },
   {
     "id": 39,
@@ -5126,7 +5164,8 @@
     "d4_roof_facade": [],
     "d5_furnishings": [],
     "d6_urban_spaces": [],
-    "sources": "Freiburg bächle. (n.d.). Academic Dictionaries and Encyclopedias.https://en-academic.com/dic.nsf/enwiki/10097675\nÇatal, S. (2024). Water as a Sustainable Infrastructure and Cultural Symbol of City: Bächle in Freiburg im Breisgau.\nAlto Adige Innovazione. (2023). I Bächle, i canaletti di Friburgo.\nCity of Freiburg Tourism Office (2024). Freiburger Bächle."
+    "sources": "Freiburg bächle. (n.d.). Academic Dictionaries and Encyclopedias.https://en-academic.com/dic.nsf/enwiki/10097675\nÇatal, S. (2024). Water as a Sustainable Infrastructure and Cultural Symbol of City: Bächle in Freiburg im Breisgau.\nAlto Adige Innovazione. (2023). I Bächle, i canaletti di Friburgo.\nCity of Freiburg Tourism Office (2024). Freiburger Bächle.",
+    "has_physical_innovation": true
   },
   {
     "id": 40,
@@ -5282,7 +5321,8 @@
       "Green integrated furnishings"
     ],
     "d6_urban_spaces": [],
-    "sources": "European Environment Agency (2024). Transforming a busy road into a public open green space in Bilbao. Climate-ADAPT.\nCadenaser (2025). María Díaz de Haro se transforma: así quedará el nuevo corredor verde de Bilbao.\nCity of Bilbao (2024). Bilbao Green Corridors Programme."
+    "sources": "European Environment Agency (2024). Transforming a busy road into a public open green space in Bilbao. Climate-ADAPT.\nCadenaser (2025). María Díaz de Haro se transforma: así quedará el nuevo corredor verde de Bilbao.\nCity of Bilbao (2024). Bilbao Green Corridors Programme.",
+    "has_physical_innovation": true
   },
   {
     "id": 41,
@@ -5428,7 +5468,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "Henning Larsen Studio. (2015, April 2). Zollhallen Plaza by Henning Larsen. Retrieved from https://landezine.com/flood-zone-on-public-plaza-design-by-henning-larsen/\nUrban Resilience Thesis. (2025). Case study – Zollhallen Plaza, Freiburg. Retrieved from webthesis.biblio.polito.it/34542/"
+    "sources": "Henning Larsen Studio. (2015, April 2). Zollhallen Plaza by Henning Larsen. Retrieved from https://landezine.com/flood-zone-on-public-plaza-design-by-henning-larsen/\nUrban Resilience Thesis. (2025). Case study – Zollhallen Plaza, Freiburg. Retrieved from webthesis.biblio.polito.it/34542/",
+    "has_physical_innovation": true
   },
   {
     "id": 42,
@@ -5557,7 +5598,8 @@
     "d6_urban_spaces": [
       "Multifunctional green spaces"
     ],
-    "sources": "Animal-Aided Design. (n.d.). Animal-Aided Design in the living environment – A project from Munich\nHauck, T. E., & Weisser, W. (2018). Animal-Aided Design in the living environment – Brantstraße, Munich. Animal-Aided Design."
+    "sources": "Animal-Aided Design. (n.d.). Animal-Aided Design in the living environment – A project from Munich\nHauck, T. E., & Weisser, W. (2018). Animal-Aided Design in the living environment – Brantstraße, Munich. Animal-Aided Design.",
+    "has_physical_innovation": true
   },
   {
     "id": 43,
@@ -5716,7 +5758,8 @@
       "Micro parks",
       "Multifunctional green spaces"
     ],
-    "sources": "“Kettingplein, Ghent – DE Urbanisten.” DE Urbanisten. Retrieved from https://www.urbanisten.nl/work/kettingplein\nStad Gent. (2017, March 31). Eerste participatiemoment – Kettingplein. Retrieved from https://stad.gent/…/DO_Kettingplein_Participatiemoment.pdf"
+    "sources": "“Kettingplein, Ghent – DE Urbanisten.” DE Urbanisten. Retrieved from https://www.urbanisten.nl/work/kettingplein\nStad Gent. (2017, March 31). Eerste participatiemoment – Kettingplein. Retrieved from https://stad.gent/…/DO_Kettingplein_Participatiemoment.pdf",
+    "has_physical_innovation": true
   },
   {
     "id": 44,
@@ -5869,7 +5912,8 @@
       "Micro parks",
       "Multifunctional green spaces"
     ],
-    "sources": "Fiore, B. (2021, October 13). Curridabat, Costa Rica’s sweetest town. Atlas of the Future. Retrieved from https://atlasofthefuture.org/project/ciudad-dulce/\nGreenfield, P. (2020, April 29). ‘Sweet City’: the Costa Rica suburb that gave citizenship to bees, plants and trees. The Guardian."
+    "sources": "Fiore, B. (2021, October 13). Curridabat, Costa Rica’s sweetest town. Atlas of the Future. Retrieved from https://atlasofthefuture.org/project/ciudad-dulce/\nGreenfield, P. (2020, April 29). ‘Sweet City’: the Costa Rica suburb that gave citizenship to bees, plants and trees. The Guardian.",
+    "has_physical_innovation": true
   },
   {
     "id": 45,
@@ -6011,7 +6055,8 @@
       "Prefabricated green modules"
     ],
     "d6_urban_spaces": [],
-    "sources": "City of Vienna – Urban Oases: https://smartcity.wien.gv.at/en/neighborhood-oasis | Hickman, M. (2025, August 14). Why would you take away a parking place? The city where anyone can build an urban oasis. The Guardian. \nLokale Agenda 21 Wien – Grätzloasen: https://www.graetzloase.at\n"
+    "sources": "City of Vienna – Urban Oases: https://smartcity.wien.gv.at/en/neighborhood-oasis | Hickman, M. (2025, August 14). Why would you take away a parking place? The city where anyone can build an urban oasis. The Guardian. \nLokale Agenda 21 Wien – Grätzloasen: https://www.graetzloase.at\n",
+    "has_physical_innovation": true
   },
   {
     "id": 46,
@@ -6163,7 +6208,8 @@
       "Multifunctional green spaces",
       "Urban gardens"
     ],
-    "sources": "OrtiAlti – Orto WOW: https://ortialti.com/portfolio/orto-wow/\nOppla – Pollinator-friendly garden: https://oppla.eu/case-study/orto-wow-pollinator-friendly-garden"
+    "sources": "OrtiAlti – Orto WOW: https://ortialti.com/portfolio/orto-wow/\nOppla – Pollinator-friendly garden: https://oppla.eu/case-study/orto-wow-pollinator-friendly-garden",
+    "has_physical_innovation": true
   },
   {
     "id": 47,
@@ -6302,7 +6348,8 @@
       "Green spaces in infrastructures (underpasses, viaducts)",
       "Multifunctional green spaces"
     ],
-    "sources": "Greenroofs.com – Project page: https://www.greenroofs.com/projects/parque-bicentenario-bogota/ | ArchDaily Chile – Project article: https://www.archdaily.cl/cl/898371/parque-bicentenario-un-proyecto-que-ayuda-a-coser-una-herida-urbana-en-bogota | Metropolis Magazine – Park analysis: https://metropolismag.com/projects/el-equipo-mazzanti-bogota-bicentenario-park"
+    "sources": "Greenroofs.com – Project page: https://www.greenroofs.com/projects/parque-bicentenario-bogota/ | ArchDaily Chile – Project article: https://www.archdaily.cl/cl/898371/parque-bicentenario-un-proyecto-que-ayuda-a-coser-una-herida-urbana-en-bogota | Metropolis Magazine – Park analysis: https://metropolismag.com/projects/el-equipo-mazzanti-bogota-bicentenario-park",
+    "has_physical_innovation": true
   },
   {
     "id": 48,
@@ -6440,7 +6487,8 @@
       "Green spaces in infrastructures (underpasses, viaducts)",
       "Multifunctional green spaces"
     ],
-    "sources": "ArchDaily – Project: https://www.archdaily.cl/cl/886566/parque-lineal-ferrocarril-de-cuernavaca-gaeta-springall-arquitectos\nArchDaily Mexico – Inauguration: https://www.archdaily.mx/mx/886446/parque-lineal-ferrocarril-de-cuernavaca\nMooool Landscape Architecture: https://mooool.com/en/linear-park-ferrocarril-de-cuernavaca-by-gaeta-springall-arquitectos.html"
+    "sources": "ArchDaily – Project: https://www.archdaily.cl/cl/886566/parque-lineal-ferrocarril-de-cuernavaca-gaeta-springall-arquitectos\nArchDaily Mexico – Inauguration: https://www.archdaily.mx/mx/886446/parque-lineal-ferrocarril-de-cuernavaca\nMooool Landscape Architecture: https://mooool.com/en/linear-park-ferrocarril-de-cuernavaca-by-gaeta-springall-arquitectos.html",
+    "has_physical_innovation": true
   },
   {
     "id": 49,
@@ -6576,7 +6624,8 @@
       "Green mobile covers"
     ],
     "d6_urban_spaces": [],
-    "sources": "News article on pilot cool islands: https://www.leparisien.fr/paris-75/paris-teste-trois-ilots-de-fraicheur-pour-lutter-contre-les-coups-de-chaud-20-07-2018-7827912.php | City of Paris – Official cooling map: https://www.paris.fr/en/pages/where-to-cool-off-in-paris-when-it-s-hot-28052 | Plan Canicule documentation: https://cdn.paris.fr/paris/2021/05/12/92b8f55c368b25f126cd870d2343210b.pdf"
+    "sources": "News article on pilot cool islands: https://www.leparisien.fr/paris-75/paris-teste-trois-ilots-de-fraicheur-pour-lutter-contre-les-coups-de-chaud-20-07-2018-7827912.php | City of Paris – Official cooling map: https://www.paris.fr/en/pages/where-to-cool-off-in-paris-when-it-s-hot-28052 | Plan Canicule documentation: https://cdn.paris.fr/paris/2021/05/12/92b8f55c368b25f126cd870d2343210b.pdf",
+    "has_physical_innovation": true
   },
   {
     "id": 50,
@@ -6756,6 +6805,7 @@
       "Micro parks",
       "Multifunctional green spaces"
     ],
-    "sources": "Better Bankside Urban Forest Programme: https://betterbankside.co.uk/bankside/urban-forest/\nUForest Factsheet (2022): https://www.uforest.eu/wp-content/uploads/2022/02/Bankside-Urban-Forest_factsheet.pdf"
+    "sources": "Better Bankside Urban Forest Programme: https://betterbankside.co.uk/bankside/urban-forest/\nUForest Factsheet (2022): https://www.uforest.eu/wp-content/uploads/2022/02/Bankside-Urban-Forest_factsheet.pdf",
+    "has_physical_innovation": true
   }
 ]

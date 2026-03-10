@@ -43,12 +43,6 @@ function imgFormat(dataUrl) {
   return 'JPEG';
 }
 
-function hasInnovation(text) {
-  if (!text || typeof text !== 'string') return false;
-  const t = text.trim().toLowerCase();
-  return t.length > 0 && !t.startsWith('no evidence');
-}
-
 // ─── Reusable drawing helpers ────────────────────────────────────
 const W = 210;   // A4 portrait width
 const MARGIN = 14;
@@ -261,9 +255,9 @@ export async function exportSingleStudyPDF(study) {
     { label: study.size, color: [99, 102, 241] },
     { label: study.climate_zone, color: C.accent },
   ];
-  if (hasInnovation(study.physical_innovation)) badges.push({ label: 'Physical Innovation', color: [224, 124, 58] });
-  if (hasInnovation(study.social_innovation)) badges.push({ label: 'Social Innovation', color: [236, 72, 153] });
-  if (hasInnovation(study.digital_innovation)) badges.push({ label: 'Digital Innovation', color: [59, 130, 246] });
+  if (study.has_physical_innovation) badges.push({ label: 'Physical Innovation', color: [224, 124, 58] });
+  if (study.has_social_innovation) badges.push({ label: 'Social Innovation', color: [236, 72, 153] });
+  if (study.has_digital_innovation) badges.push({ label: 'Digital Innovation', color: [59, 130, 246] });
 
   let bx = MARGIN;
   for (const b of badges) {

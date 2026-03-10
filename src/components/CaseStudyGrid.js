@@ -3,12 +3,6 @@ import { NBS_CATEGORIES } from '../data/filterConfig';
 import imageMap from '../data/imageMap';
 import getTaleaTypes from '../utils/getTaleaTypes';
 
-function hasInnovation(text) {
-  if (!text || typeof text !== 'string') return false;
-  const t = text.trim().toLowerCase();
-  return t.length > 0 && !t.startsWith('no evidence');
-}
-
 function getNBSTags(study) {
   const tags = [];
   for (const [key, meta] of Object.entries(NBS_CATEGORIES)) {
@@ -49,7 +43,7 @@ function CaseStudyCard({ study, onSelect, isFavorite, onToggleFavorite, onCompar
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="card-image-container">
+      <div className={`card-image-container ${imgLoaded ? 'img-ready' : 'img-loading'}`}>
         {!imgError && imgSrc && (
           <img
             src={imgSrc}
@@ -58,6 +52,7 @@ function CaseStudyCard({ study, onSelect, isFavorite, onToggleFavorite, onCompar
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
             loading="lazy"
+            decoding="async"
           />
         )}
         {(!imgSrc || imgError) && (
@@ -96,9 +91,9 @@ function CaseStudyCard({ study, onSelect, isFavorite, onToggleFavorite, onCompar
           )}
         </div>
         <div className="card-innovations">
-          {hasInnovation(study.physical_innovation) && <span className="innovation-dot physical" title="Physical Innovation"><span className="innovation-label">P</span><span className="innovation-full">Physical</span></span>}
-          {hasInnovation(study.social_innovation) && <span className="innovation-dot social" title="Social Innovation"><span className="innovation-label">S</span><span className="innovation-full">Social</span></span>}
-          {hasInnovation(study.digital_innovation) && <span className="innovation-dot digital" title="Digital Innovation"><span className="innovation-label">D</span><span className="innovation-full">Digital</span></span>}
+          {study.has_physical_innovation && <span className="innovation-dot physical" title="Physical Innovation"><span className="innovation-label">P</span><span className="innovation-full">Physical</span></span>}
+          {study.has_social_innovation && <span className="innovation-dot social" title="Social Innovation"><span className="innovation-label">S</span><span className="innovation-full">Social</span></span>}
+          {study.has_digital_innovation && <span className="innovation-dot digital" title="Digital Innovation"><span className="innovation-label">D</span><span className="innovation-full">Digital</span></span>}
         </div>
       </div>
 

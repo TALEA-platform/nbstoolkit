@@ -8,6 +8,29 @@
 const IMGBB_API_KEY = process.env.REACT_APP_IMGBB_API_KEY || '';
 
 /**
+ * Convert a DataURL image to JPEG DataURL using canvas.
+ * Reduces file size significantly for PNG uploads.
+ */
+function convertToJpeg(dataURL, quality = 0.85) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      // White background (JPEG has no transparency)
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataURL); // fallback to original
+    img.src = dataURL;
+  });
+}
+
+/**
  * Extract base64 data from a DataURL string
  */
 function dataURLToBase64(dataURL) {
@@ -18,6 +41,7 @@ function dataURLToBase64(dataURL) {
 
 /**
  * Upload an image to imgbb and return the hosted URL.
+ * Converts to JPEG first to reduce file size.
  * @param {string} dataURL - The image as a DataURL (base64-encoded)
  * @param {string} name - Optional image name
  * @returns {Promise<{url: string, deleteUrl: string}|null>}
@@ -28,7 +52,9 @@ export async function uploadImage(dataURL, name = 'talea_submission') {
     return null;
   }
 
-  const base64 = dataURLToBase64(dataURL);
+  // Convert to JPEG before uploading
+  const jpegDataURL = await convertToJpeg(dataURL);
+  const base64 = dataURLToBase64(jpegDataURL);
   if (!base64) return null;
 
   const formData = new FormData();

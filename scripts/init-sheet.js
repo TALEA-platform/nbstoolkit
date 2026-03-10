@@ -23,6 +23,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const sharp = require('sharp');
 
 const CASE_STUDIES_PATH = path.resolve(__dirname, '../src/data/caseStudies.json');
 const IMAGES_DIR = path.resolve(__dirname, '../public/images');
@@ -34,7 +35,8 @@ const HEADERS = [
   'id', 'status', 'submitted_at', 'title', 'city', 'country', 'year',
   'latitude', 'longitude', 'size', 'climate_zone', 'talea_application',
   'designer', 'promoter', 'description',
-  'physical_innovation', 'social_innovation', 'digital_innovation', 'c5_impacts',
+  'physical_innovation', 'social_innovation', 'digital_innovation',
+  'has_physical_innovation', 'has_social_innovation', 'has_digital_innovation', 'c5_impacts',
   'a1_urban_scale', 'a2_urban_area', 'a3_1_buildings', 'a3_2_open_spaces',
   'a3_3_infrastructures', 'a4_ownership', 'a5_management', 'a6_uses', 'a7_other',
   'b1_physical', 'b2_regulations', 'b3_uses_management', 'b4_public_opinion',
@@ -54,13 +56,17 @@ function getLocalImagePath(studyId) {
 }
 
 /**
- * Upload a local file to imgbb. Returns the hosted URL or null.
+ * Convert image to JPEG buffer using sharp, then upload to imgbb.
+ * Returns the hosted URL or null.
  */
 async function uploadToImgbb(filePath, name) {
   if (!IMGBB_API_KEY) return null;
 
-  const imageData = fs.readFileSync(filePath);
-  const base64 = imageData.toString('base64');
+  // Convert to JPEG (quality 85) to reduce file size
+  const jpegBuffer = await sharp(filePath)
+    .jpeg({ quality: 85 })
+    .toBuffer();
+  const base64 = jpegBuffer.toString('base64');
 
   return new Promise((resolve) => {
     const postData = `key=${IMGBB_API_KEY}&image=${encodeURIComponent(base64)}&name=${encodeURIComponent(name)}`;
@@ -168,6 +174,10 @@ async function main() {
         case 'submitted_at': return new Date().toISOString();
         case 'talea_application': return taleaAppToString(study.talea_application);
         case 'image_url': return imageUrl;
+        case 'has_physical_innovation':
+        case 'has_social_innovation':
+        case 'has_digital_innovation':
+          return study[h] ? 'true' : 'false';
         default:
           if (arrayFields.includes(h)) return arrayToString(study[h]);
           return study[h] || '';

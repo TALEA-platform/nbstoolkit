@@ -32,10 +32,11 @@ const FORM_SECTIONS = [
   {
     title: 'Innovation',
     icon: '💡',
+    description: 'For each innovation type, check the box if present and optionally describe it below.',
     fields: [
-      { key: 'physical_innovation', label: 'Physical Innovation', type: 'textarea' },
-      { key: 'social_innovation', label: 'Social Innovation', type: 'textarea' },
-      { key: 'digital_innovation', label: 'Digital Innovation', type: 'textarea' },
+      { key: 'has_physical_innovation', label: 'Physical Innovation', type: 'innovation-group', textKey: 'physical_innovation', color: '#e07c3a', example: 'No physical innovation identified' },
+      { key: 'has_social_innovation', label: 'Social Innovation', type: 'innovation-group', textKey: 'social_innovation', color: '#f5c542', example: 'No social innovation identified' },
+      { key: 'has_digital_innovation', label: 'Digital Innovation', type: 'innovation-group', textKey: 'digital_innovation', color: '#1272B7', example: 'No digital innovation identified' },
     ]
   },
   {
@@ -274,6 +275,7 @@ function SubmitForm({ onClose }) {
 
         <div className="form-body">
           <h3 className="form-section-title">{section.icon} {section.title}</h3>
+          {section.description && <p className="form-section-description">{section.description}</p>}
 
           {section.fields.map(field => {
             const hasError = errorKeys.has(field.key);
@@ -343,6 +345,31 @@ function SubmitForm({ onClose }) {
                     ))}
                   </div>
                   {hasError && <span className="field-error-msg">Please select at least one option</span>}
+                </div>
+              );
+            }
+            if (field.type === 'innovation-group') {
+              const checked = !!formData[field.key];
+              const inputId = `inno-${field.key}`;
+              return (
+                <div key={field.key} className={`form-field innovation-group ${checked ? 'innovation-active' : ''}`} style={{ '--inno-color': field.color }}>
+                  <div className="innovation-group-toggle">
+                    <input
+                      type="checkbox"
+                      id={inputId}
+                      className="innovation-group-checkbox"
+                      checked={checked}
+                      onChange={e => updateField(field.key, e.target.checked)}
+                    />
+                    <label htmlFor={inputId} className="innovation-group-label">{field.label}</label>
+                  </div>
+                  <textarea
+                    className="innovation-group-text"
+                    value={formData[field.textKey] || ''}
+                    onChange={e => updateField(field.textKey, e.target.value)}
+                    placeholder={checked ? `Describe the ${field.label.toLowerCase()}...` : `Optional: add notes even if not present (e.g. "${field.example}")`}
+                    rows={3}
+                  />
                 </div>
               );
             }

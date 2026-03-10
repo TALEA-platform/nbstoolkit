@@ -4011,3 +4011,123 @@ body {
 .cookie-accept-btn:hover {
   background: var(--talea-dark-green);
 }
+
+/* ─── Image loading shimmer ─── */
+.card-image-container.img-loading::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, var(--bg-card, #f0f0f0) 25%, var(--bg-hover, #e0e0e0) 50%, var(--bg-card, #f0f0f0) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: inherit;
+}
+
+.card-image-container.img-ready::before {
+  display: none;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Compare mode expanded ─── */
+.compare-long-text {
+  display: block;
+  font-size: 0.85em;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.compare-innovation-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.compare-innovation-dots .innovation-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #fff;
+}
+
+.compare-innovation-dots .innovation-dot.physical { background: #e07c3a; }
+.compare-innovation-dots .innovation-dot.social { background: #f5c542; color: #333; }
+.compare-innovation-dots .innovation-dot.digital { background: #1272B7; }
+
+/* ─── Form section description ─── */
+.form-section-description {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+/* ─── Innovation group (checkbox + textarea pair) ─── */
+.innovation-group {
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.innovation-group:has(.innovation-group-indicator.active) {
+  border-color: var(--inno-color, #21A84A);
+}
+
+.innovation-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.innovation-group .innovation-group-checkbox {
+  width: 28px !important;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 !important;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--inno-color, #21A84A);
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.innovation-group .innovation-group-label {
+  display: inline !important;
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+  color: var(--text-primary) !important;
+  margin-bottom: 0 !important;
+  cursor: pointer;
+}
+
+.innovation-group-text {
+  display: block;
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--border, #e0e0e0);
+  padding: 12px 16px;
+  font: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 70px;
+  background: var(--bg-card, #fafafa);
+}
+
+.innovation-group-text:focus {
+  outline: none;
+  background: var(--bg, #fff);
+}

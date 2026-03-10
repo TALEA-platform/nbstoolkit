@@ -109,9 +109,9 @@ function App() {
 
   const toggleCompare = useCallback((id) => {
     setCompareIds(prev => {
-      if (prev.includes(id)) return prev.filter(x => x !== id);
-      if (prev.length >= 3) return prev; // max 3
-      return [...prev, id];
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : (prev.length >= 3 ? prev : [...prev, id]);
+      if (next.length < 2) setShowCompare(false);
+      return next;
     });
   }, []);
 
@@ -331,6 +331,9 @@ function App() {
           } else if (config.type === 'array') {
             const arr = study[config.dataKey] || [];
             if (!selectedValues[matcher](v => arr.includes(v))) return false;
+          } else if (config.type === 'innovation') {
+            const innovMap = { Physical: 'has_physical_innovation', Social: 'has_social_innovation', Digital: 'has_digital_innovation' };
+            if (!selectedValues[matcher](v => !!study[innovMap[v]])) return false;
           }
         }
         for (const [categoryKey, excludedValues] of Object.entries(excludedFilters)) {
@@ -344,6 +347,9 @@ function App() {
           } else if (config.type === 'array') {
             const arr = study[config.dataKey] || [];
             if (excludedValues.some(v => arr.includes(v))) return false;
+          } else if (config.type === 'innovation') {
+            const innovMap = { Physical: 'has_physical_innovation', Social: 'has_social_innovation', Digital: 'has_digital_innovation' };
+            if (excludedValues.some(v => !!study[innovMap[v]])) return false;
           }
         }
         return true;
@@ -635,7 +641,7 @@ function App() {
                 >
                   Compare{compareIds.length >= 2 ? ` (${compareIds.length})` : ''}
                 </button>
-                <button className="compare-clear" onClick={() => setCompareIds([])}>Clear</button>
+                <button className="compare-clear" onClick={() => { setCompareIds([]); setShowCompare(false); }}>Clear</button>
               </div>
             )}
           </div>

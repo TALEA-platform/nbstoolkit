@@ -1,12 +1,6 @@
 import { FILTER_CATEGORIES } from '../data/filterConfig';
 import { findCommonFilters } from './fuzzySearch';
 
-function hasInnovation(text) {
-  if (!text || typeof text !== 'string') return false;
-  const t = text.trim().toLowerCase();
-  return t.length > 0 && !t.startsWith('no evidence');
-}
-
 /**
  * Execute a slash command and return { response, actions }.
  * `actions` is an object of side-effects for App.js to apply.
@@ -107,9 +101,9 @@ export function executeCommand(cmd, arg, ctx) {
       const sizeStr = Object.entries(sizes).map(([k, v]) => `${k}: ${v}`).join(', ');
       const climateStr = Object.entries(climates).map(([k, v]) => `${k}: ${v}`).join(', ');
       const countryStr = topCountries.map(([k, v]) => `${k} (${v})`).join(', ');
-      const physicalInno = studies.filter(s => hasInnovation(s.physical_innovation)).length;
-      const socialInno = studies.filter(s => hasInnovation(s.social_innovation)).length;
-      const digitalInno = studies.filter(s => hasInnovation(s.digital_innovation)).length;
+      const physicalInno = studies.filter(s => s.has_physical_innovation).length;
+      const socialInno = studies.filter(s => s.has_social_innovation).length;
+      const digitalInno = studies.filter(s => s.has_digital_innovation).length;
       const nbsCount = studies.reduce((sum, s) => {
         return sum + (s.d1_plants?.length || 0) + (s.d2_paving?.length || 0) + (s.d3_water?.length || 0)
           + (s.d4_roof_facade?.length || 0) + (s.d5_furnishings?.length || 0) + (s.d6_urban_spaces?.length || 0);
@@ -284,9 +278,9 @@ export function executeCommand(cmd, arg, ctx) {
     }
     case '/innovations': {
       if (studies.length === 0) { response = 'No results.'; break; }
-      const physical = studies.filter(s => hasInnovation(s.physical_innovation));
-      const social = studies.filter(s => hasInnovation(s.social_innovation));
-      const digital = studies.filter(s => hasInnovation(s.digital_innovation));
+      const physical = studies.filter(s => s.has_physical_innovation);
+      const social = studies.filter(s => s.has_social_innovation);
+      const digital = studies.filter(s => s.has_digital_innovation);
       let iText = `Innovations in ${studies.length} results:\n\n`;
       const formatSection = (label, list, field) => {
         let t = `${label}: ${list.length}/${studies.length} (${Math.round(list.length / studies.length * 100)}%)\n`;
