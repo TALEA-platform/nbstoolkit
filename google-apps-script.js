@@ -35,14 +35,11 @@ function doPost(e) {
 
     var data = JSON.parse(e.postData.contents);
     var headers = ensureHeaders(sheet, getDesiredHeaders());
-
-    if (!data.id) {
-      data.id = String(getNextSubmissionId(sheet, headers));
-    }
+    data = normalizeSubmissionData(data, sheet, headers);
 
     // Build row in header order
     var row = headers.map(function(h) {
-      return data[h] || "";
+      return getCellValue(data, h);
     });
 
     sheet.appendRow(row);
@@ -107,48 +104,184 @@ function getDesiredHeaders() {
   ];
 }
 
-function ensureHeaders(sheet, desiredHeaders) {
-  if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, desiredHeaders.length).setValues([desiredHeaders]);
-    sheet.getRange(1, 1, 1, desiredHeaders.length).setFontWeight("bold");
-    sheet.setFrozenRows(1);
-    return desiredHeaders.slice();
-  }
+function normalizeSubmissionData(data, sheet, headers) {
+  var normalized = {};
 
-  var headerWidth = Math.max(sheet.getLastColumn(), 1);
-  var existingHeaders = sheet.getRange(1, 1, 1, headerWidth).getValues()[0]
-    .map(function(value) {
-      return String(value || "").trim();
-    })
-    .filter(function(value) {
-      return value !== "";
-    });
-
-  if (existingHeaders.length === 0) {
-    sheet.getRange(1, 1, 1, desiredHeaders.length).setValues([desiredHeaders]);
-    sheet.getRange(1, 1, 1, desiredHeaders.length).setFontWeight("bold");
-    sheet.setFrozenRows(1);
-    return desiredHeaders.slice();
-  }
-
-  var missingHeaders = desiredHeaders.filter(function(header) {
-    return existingHeaders.indexOf(header) === -1;
+  Object.keys(data || {}).forEach(function(key) {
+    normalized[key] = data[key];
   });
 
-  if (missingHeaders.length === 0) {
-    return existingHeaders;
+  if (!normalized.status) {
+    normalized.status = "pending";
   }
 
-  var updatedHeaders = existingHeaders.concat(missingHeaders);
+  if (!normalized.submitted_at) {
+    normalized.submitted_at = new Date().toISOString();
+  }
+
+  if (!normalized.id) {
+    normalized.id = String(getNextSubmissionId(sheet, headers));
+  }
+
+  return normalized;
+}
+
+function getCellValue(data, key) {
+  return Object.prototype.hasOwnProperty.call(data, key) && data[key] !== null && data[key] !== undefined
+    ? data[key]
+    : "";
+}
+
+function ensureHeaders(sheet, desiredHeaders) {
+  if (sheet.getLastRow() === 0) {
+    writeHeaderRow(sheet, desiredHeaders);
+    return desiredHeaders.slice();
+  }
+
+  var lastRow = sheet.getLastRow();
+  var currentWidth = Math.max(sheet.getLastColumn(), 1);
+  var requiredWidth = Math.max(currentWidth, desiredHeaders.length);
+  var rawData = sheet.getRange(1, 1, lastRow, requiredWidth).getValues();
+  var rawHeaders = rawData[0]
+    .map(function(value) {
+      return String(value || "").trim();
+    });
+  var existingHeaders = rawHeaders.filter(function(value) {
+    return value !== "";
+  });
+
+  if (existingHeaders.length === 0) {
+    writeHeaderRow(sheet, desiredHeaders);
+    return desiredHeaders.slice();
+  }
+
+  var extraHeaders = existingHeaders.filter(function(header) {
+    return desiredHeaders.indexOf(header) === -1;
+  });
+  var orderedHeaders = desiredHeaders.concat(extraHeaders);
+
+  var headersAlreadyOrdered =
+    existingHeaders.length === orderedHeaders.length &&
+    orderedHeaders.every(function(header, index) {
+      return existingHeaders[index] === header;
+    });
+
+  if (headersAlreadyOrdered) {
+    writeHeaderRow(sheet, orderedHeaders);
+    return orderedHeaders;
+  }
+
+  var rowObjects = rawData.slice(1).map(function(row) {
+    var rowObject = {};
+    rawHeaders.forEach(function(header, index) {
+      if (header) {
+        rowObject[header] = row[index];
+      }
+    });
+    return rowObject;
+  });
+
+  ensureColumnCapacity(sheet, orderedHeaders.length);
+
+  var rewrittenRows = [orderedHeaders].concat(rowObjects.map(function(rowObject) {
+    return orderedHeaders.map(function(header) {
+      return Object.prototype.hasOwnProperty.call(rowObject, header) ? rowObject[header] : "";
+    });
+  }));
+
+  var clearWidth = Math.max(requiredWidth, orderedHeaders.length);
+  sheet.getRange(1, 1, lastRow, clearWidth).clearContent();
+  sheet.getRange(1, 1, rewrittenRows.length, orderedHeaders.length).setValues(rewrittenRows);
+  applyHeaderFormatting(sheet, orderedHeaders.length);
+
+  return orderedHeaders;
+}
+
+function ensureColumnCapacity(sheet, width) {
   var maxColumns = sheet.getMaxColumns();
-  if (maxColumns < updatedHeaders.length) {
-    sheet.insertColumnsAfter(maxColumns, updatedHeaders.length - maxColumns);
+  if (maxColumns < width) {
+    sheet.insertColumnsAfter(maxColumns, width - maxColumns);
+  }
+}
+
+function writeHeaderRow(sheet, headers) {
+  ensureColumnCapacity(sheet, headers.length);
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  applyHeaderFormatting(sheet, headers.length);
+}
+
+function applyHeaderFormatting(sheet, width) {
+  sheet.getRange(1, 1, 1, width).setFontWeight("bold");
+  sheet.setFrozenRows(1);
+}
+
+function repairSubmissionSheet() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Submissions");
+  if (!sheet) {
+    throw new Error('Sheet "Submissions" not found.');
   }
 
-  sheet.getRange(1, 1, 1, updatedHeaders.length).setValues([updatedHeaders]);
-  sheet.getRange(1, 1, 1, updatedHeaders.length).setFontWeight("bold");
-  sheet.setFrozenRows(1);
-  return updatedHeaders;
+  var headers = ensureHeaders(sheet, getDesiredHeaders());
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+    return;
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+  var rowObjects = values.map(function(row) {
+    var rowObject = {};
+    headers.forEach(function(header, index) {
+      rowObject[header] = row[index];
+    });
+    return rowObject;
+  });
+
+  fillMissingSystemFields(rowObjects);
+
+  var rewrittenRows = rowObjects.map(function(rowObject) {
+    return headers.map(function(header) {
+      return getCellValue(rowObject, header);
+    });
+  });
+
+  sheet.getRange(2, 1, lastRow - 1, headers.length).clearContent();
+  sheet.getRange(2, 1, rewrittenRows.length, headers.length).setValues(rewrittenRows);
+}
+
+function fillMissingSystemFields(rowObjects) {
+  var usedIds = {};
+  var nextId = 1;
+
+  rowObjects.forEach(function(rowObject) {
+    var parsedId = parseInt(rowObject.id, 10);
+    if (!isNaN(parsedId) && parsedId > 0) {
+      usedIds[parsedId] = true;
+      if (parsedId >= nextId) {
+        nextId = parsedId + 1;
+      }
+    }
+  });
+
+  rowObjects.forEach(function(rowObject) {
+    if (!rowObject.status) {
+      rowObject.status = "pending";
+    }
+
+    if (!rowObject.submitted_at) {
+      rowObject.submitted_at = new Date().toISOString();
+    }
+
+    var parsedId = parseInt(rowObject.id, 10);
+    if (isNaN(parsedId) || parsedId <= 0) {
+      while (usedIds[nextId]) {
+        nextId++;
+      }
+      rowObject.id = String(nextId);
+      usedIds[nextId] = true;
+      nextId++;
+    }
+  });
 }
 
 function getNextSubmissionId(sheet, headers) {
