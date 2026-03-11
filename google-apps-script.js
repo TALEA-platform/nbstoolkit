@@ -123,8 +123,14 @@ function normalizeSubmissionData(data, sheet, headers) {
     normalized.id = String(getNextSubmissionId(sheet, headers));
   }
 
-  normalized.latitude = normalizeCoordinateInput(normalized.latitude, "latitude");
-  normalized.longitude = normalizeCoordinateInput(normalized.longitude, "longitude");
+  var coordinates = getNormalizedCoordinatePair(normalized.latitude, normalized.longitude);
+  if (coordinates) {
+    normalized.latitude = coordinates.lat;
+    normalized.longitude = coordinates.lng;
+  } else {
+    normalized.latitude = normalizeCoordinateInput(normalized.latitude, "latitude");
+    normalized.longitude = normalizeCoordinateInput(normalized.longitude, "longitude");
+  }
 
   return normalized;
 }
@@ -234,6 +240,24 @@ function normalizeCoordinateInput(value, axis) {
   return formatCoordinateValue(parsed);
 }
 
+function getNormalizedCoordinatePair(latitudeValue, longitudeValue) {
+  var latitude = parseCoordinateValue(latitudeValue, "latitude");
+  var longitude = parseCoordinateValue(longitudeValue, "longitude");
+
+  if (latitude !== null && longitude !== null) {
+    return { lat: latitude, lng: longitude, swapped: false };
+  }
+
+  var swappedLatitude = parseCoordinateValue(longitudeValue, "latitude");
+  var swappedLongitude = parseCoordinateValue(latitudeValue, "longitude");
+
+  if (swappedLatitude !== null && swappedLongitude !== null) {
+    return { lat: swappedLatitude, lng: swappedLongitude, swapped: true };
+  }
+
+  return null;
+}
+
 function ensureHeaders(sheet, desiredHeaders) {
   if (sheet.getLastRow() === 0) {
     writeHeaderRow(sheet, desiredHeaders);
@@ -325,7 +349,7 @@ function applyCoordinateColumnFormatting(sheet, headers) {
   ["latitude", "longitude"].forEach(function(header) {
     var index = headers.indexOf(header);
     if (index !== -1) {
-      sheet.getRange(2, index + 1, totalRows - 1, 1).setNumberFormat("@");
+      sheet.getRange(2, index + 1, totalRows - 1, 1).setNumberFormat("0.000000");
     }
   });
 }
