@@ -4064,7 +4064,7 @@
     "has_social_innovation": true,
     "has_digital_innovation": true,
     "c5_impacts": "Usage increase\nDuring the temporary transformation, sensors rec\norded an average >27,000 daily presences, with a peak of ~36,000\nPolicy impact\nThe pilot triggered the Municipal Board’s decision to permanently pedestrianise Piazza Rossini, reallocating former parking and loading areas to surrounding streets and cycling facilities.\nSocial participation and community building\nThe project emerged from the U-Lab process involving 250+ participants, strengthening local stewardship and shared decision-making in the university district",
-    "sources": "Cultural Heritage in Action. (2021). A new life for Piazza Rossini—From a parking lot to a pedestrian green space (Case study, Bologna). (Accessed on November 9, 2025).  Cultural Heritage In Action\nBoulanger, S. O. M., Boeri, A., et al. (2020). Data Evidence-Based Transformative Actions in Historic Urban Context—The Bologna University Area Case Study. Smart Cities, 3(4), 1346–1369. (Accessed on November 9, 2025).",
+    "sources": "Cultural Heritage in Action. (2021). A new life for Piazza Rossini—From a parking lot to a pedestrian green space (Case study, Bologna). (Accessed on November 9, 2025).  Cultural Heritage In Action\nBoulanger, S. O. M., Boeri, A., et al. (2020). Data Evidence-Based Transformative Actions in Historic Urban Context��The Bologna University Area Case Study. Smart Cities, 3(4), 1346–1369. (Accessed on November 9, 2025).",
     "image_url": "https://i.ibb.co/Pbjh9TF/talea-cs-33.jpg",
     "talea_application": {
       "nodal": true
@@ -5582,7 +5582,7 @@
     "has_social_innovation": true,
     "has_digital_innovation": false,
     "c5_impacts": "Local infiltration and water buffering capacity\nThe redesigned square handles a total storage volume of around 100 m³ of rainwater from adjacent roads and roofs, channelled into depressions and underground storage, significantly reducing surface runoff and improving local storm resilience. \nImproved neighbourhood comfort and greenery\nBy replacing large areas of impermeable paving with green planting beds, shade trees and a calm pedestrian-friendly layout, the project creates a comfortable “living room” in the neighbourhood, supporting social use, outdoor activities and slower mobility.\nEnhanced community involvement and engagement\nThe design process included participatory workshops with around 50 local residents in 2017, allowing their input on features such as slope gradients, seating design and access for older users and those with limited mobility, strengthening local ownership of the public space.",
-    "sources": "“Kettingplein, Ghent – DE Urbanisten.” DE Urbanisten. Retrieved from https://www.urbanisten.nl/work/kettingplein\nStad Gent. (2017, March 31). Eerste participatiemoment – Kettingplein. Retrieved from https://stad.gent/…/DO_Kettingplein_Participatiemoment.pdf",
+    "sources": "“Kettingplein, Ghent – DE Urbanisten.” DE Urbanisten. Retrieved from https://www.urbanisten.nl/work/kettingplein\nStad Gent. (2017, March 31). Eerste participatiemoment – Kettingplein. Retrieved from https://stad.gent/���/DO_Kettingplein_Participatiemoment.pdf",
     "image_url": "https://i.ibb.co/21wRFbYx/talea-cs-43.jpg",
     "talea_application": {
       "fragmented": true
@@ -6762,5 +6762,137 @@
       "Micro parks",
       "Multifunctional green spaces"
     ]
+  },
+  {
+    "id": 51,
+    "title": "TEST SUBMISSION",
+    "city": "TEST",
+    "country": "TEST",
+    "year": "TEST 1700",
+    "size": "Large",
+    "climate_zone": "Arid",
+    "designer": "TEETSTETEST",
+    "promoter": "TESTETSTET",
+    "description": "SGADGDAFHADHARVGADG",
+    "physical_innovation": "NOONONONONO",
+    "social_innovation": "SISISSISISISISI",
+    "digital_innovation": "",
+    "has_physical_innovation": false,
+    "has_social_innovation": true,
+    "has_digital_innovation": false,
+    "c5_impacts": "QEGuisbdpfibWPIEFVBisvdfiuBJIFBpuisvfbpIVEFIvsfd,,,............,\n,.,ò.,+\n\n* iuSGDIgei\n* AOISGèOIhèrgbo\n\nPSDGIHiègheWE",
+    "sources": "FBK: https://www.fbk.eu/it/",
+    "latitude": "45.4861",
+    "longitude": "9.1905",
+    "image_url": "https://i.ibb.co/r22YMynN/talea-TEST.jpg",
+    "talea_application": {
+      "linear": true
+    },
+    "a1_urban_scale": [
+      "Territorial",
+      "Metropolitan"
+    ],
+    "a2_urban_area": [
+      "Consolidated city",
+      "Peripheral area"
+    ],
+    "a3_1_buildings": [
+      "Building complex"
+    ],
+    "a3_2_open_spaces": [
+      "Entrance area",
+      "Residual space or widening"
+    ],
+    "a3_3_infrastructures": [
+      "Cycle lane (dedicated)",
+      "Drainage channel / urban ditch",
+      "Sidewalk on commercial axis",
+      "Overpass or viaduct",
+      "Traffic island",
+      "Footpath"
+    ],
+    "a4_ownership": [
+      "Mixed (public/private)"
+    ],
+    "a5_management": [],
+    "a6_uses": [
+      "Commercial",
+      "Performance",
+      "Slow mobility (walking / bike / bus)",
+      "Unconventional use"
+    ],
+    "a7_other": [
+      "In-between space"
+    ],
+    "b1_physical": [
+      "Subsurface utilities",
+      "Impermeable or rigidly paved soil",
+      "Critical slopes / steep gradients",
+      "Existing large tree or plant roots",
+      "Limited technical accessibility",
+      "Narrow spaces / complex morphologies"
+    ],
+    "b2_regulations": [],
+    "b3_uses_management": [
+      "Commercial buildings/services",
+      "Functional equipment"
+    ],
+    "b4_public_opinion": [
+      "Fear of decay / improper use",
+      "Rejection or distrust of greenery",
+      "Perception of the space as \"private\""
+    ],
+    "b5_synergy": [],
+    "b6_social_opportunities": [
+      "Community building / social cohesion",
+      "Health promotion / active lifestyles",
+      "Safety and perception of security",
+      "Well-being"
+    ],
+    "c1_1_design": [],
+    "c1_2_funding": [],
+    "c1_3_management": [],
+    "c2_actors": [
+      "Artists",
+      "Facilitators",
+      "Neighbourhood councils",
+      "Shopkeepers",
+      "Vulnerable individuals",
+      "Non-profit organizations",
+      "Students",
+      "Universities",
+      "Public institutions"
+    ],
+    "c3_goals": [
+      "Care",
+      "Environmental sustainability",
+      "Intergenerational collaboration",
+      "New perception",
+      "New connections",
+      "Safety",
+      "Sense of community"
+    ],
+    "c4_services": [
+      "Benches/rest areas",
+      "Monitoring and warning systems"
+    ],
+    "d1_plants": [],
+    "d2_paving": [],
+    "d3_water": [
+      "Water mirror",
+      "Fountains",
+      "Bioretention areas",
+      "Ground-level fountain",
+      "Reopened canals",
+      "Green channels"
+    ],
+    "d4_roof_facade": [
+      "Extensive green roofs"
+    ],
+    "d5_furnishings": [
+      "Green mobile covers",
+      "Vegetated awnings"
+    ],
+    "d6_urban_spaces": []
   }
 ]
