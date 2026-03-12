@@ -3,7 +3,7 @@ main = "worker.js"
 compatibility_date = "2025-01-01"
 
 [vars]
-ALLOWED_ORIGIN = "https://talea.comune.bologna.it/nbstoolkit"
+ALLOWED_ORIGIN = "https://talea.comune.bologna.it"
 
 # Set these as secrets via `wrangler secret put`:
 # GROQ_API_KEY
