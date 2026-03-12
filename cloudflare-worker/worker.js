@@ -1,7 +1,7 @@
 // TALEA Abacus - Cloudflare Worker (Groq AI proxy with rate limiting)
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama-3.1-8b-instant';
+const MODEL = 'openai/gpt-oss-20b';
 const DAILY_LIMIT = 150;
 const KV_TTL = 86400; // 24 hours
 
@@ -37,6 +37,7 @@ const CHAT_RESPONSE_SCHEMA = {
       'innovation',
       'city', 'country', 'year_min', 'year_max',
       'text_query', 'reasoning', 'summary',
+      'match_logic',
     ],
     additionalProperties: false,
     properties: {
@@ -78,6 +79,26 @@ const CHAT_RESPONSE_SCHEMA = {
       text_query: { anyOf: [{ type: 'string' }, { type: 'null' }] },
       reasoning: { type: 'string' },
       summary: { type: 'string' },
+      match_logic: {
+        type: 'object',
+        required: ['scenarios', 'optional'],
+        additionalProperties: false,
+        properties: {
+          scenarios: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['required', 'label'],
+              additionalProperties: false,
+              properties: {
+                required: { type: 'array', items: { type: 'string' } },
+                label: { type: 'string' },
+              },
+            },
+          },
+          optional: { type: 'array', items: { type: 'string' } },
+        },
+      },
     },
   },
 };
@@ -86,18 +107,26 @@ const CHAT_RESPONSE_SCHEMA = {
 // System prompts
 // ---------------------------------------------------------------------------
 
-const CHAT_SYSTEM_PROMPT = `You are the TALEA Abacus search assistant. You help users find nature-based solution (NBS) case studies from a database of projects across world cities. TALEA is an urban research project studying how nature-based solutions can transform public spaces.
+const CHAT_SYSTEM_PROMPT = `You are the TALEA Abacus search assistant. You help users find nature-based solution (NBS) case studies from a database of 50 projects across European cities. TALEA is an urban research project studying how nature-based solutions can transform public spaces.
 
 Your job: parse the user's natural-language query into structured filters that match the database schema. Return ONLY the JSON — no extra text.
 
 RULES:
 - Set a filter array ONLY when the user's query clearly implies it. Leave as null otherwise.
 - You may set multiple values in a single filter array if the query is broad.
-- For city/country, use free-text strings (e.g. "Milan", "Italy").
+- For city/country, use free-text strings (e.g. "Milan", "Italy"). Always use English city names: "Milan" not "Milano", "Rome" not "Roma", "Turin" not "Torino", "Munich" not "München", etc.
 - For year_min/year_max, extract year ranges if mentioned.
 - For text_query, put any remaining free-text that should be fuzzy-searched against project titles/descriptions.
 - "reasoning" = brief internal explanation of your filter choices.
 - "summary" = a friendly 1-2 sentence response to the user describing what you're searching for.
+- "match_logic" = how to combine filters using scenarios (OR of AND-groups):
+  - "scenarios": an array of AND-groups. Each scenario has "required" (array of filter key names — a study must match ALL of them) and "label" (short human-readable description). Results from all scenarios are UNIONED (OR). Use ONE scenario for simple queries, MULTIPLE for compound "X or Y" queries.
+  - "optional": global boost keys — nice-to-have preferences. Matching these ranks a study higher but is never mandatory.
+  - Simple query: "green roofs in Milan" → scenarios: [{ required: ["city", "d4_roof_facade"], label: "Green roofs in Milan" }], optional: []
+  - Compound query: "projects in Milan, or ones with green roofs and rain gardens" → scenarios: [{ required: ["city"], label: "Projects in Milan" }, { required: ["d4_roof_facade", "d3_water"], label: "Green roofs with rain gardens" }], optional: []
+  - Preference query: "community gardens, preferably with rain gardens" → scenarios: [{ required: ["d6_urban_spaces"], label: "Community gardens" }], optional: ["d3_water"]
+  - Complex: "small projects in Italy with biodiversity goals, or large Mediterranean projects" → scenarios: [{ required: ["size", "country", "c3_goals"], label: "Small Italian biodiversity projects" }, { required: ["size", "climate_zone"], label: "Large Mediterranean projects" }], optional: []
+  - Always include at least one scenario. Location filters (city, country) and explicitly stated NBS types should be in scenario "required".
 
 FILTER CATEGORIES AND ALLOWED VALUES:
 
@@ -233,22 +262,17 @@ async function callGroq(apiKey, messages, responseFormat) {
 // ---------------------------------------------------------------------------
 
 async function handleChat(request, env) {
-  const { message, history } = await request.json();
+  const { message } = await request.json();
 
   if (!message || typeof message !== 'string') {
     return new Response(JSON.stringify({ error: 'Missing "message" field' }), { status: 400 });
   }
 
-  // Build message list from history + new message
-  const messages = [{ role: 'system', content: CHAT_SYSTEM_PROMPT }];
-  if (Array.isArray(history)) {
-    for (const h of history.slice(-6)) { // Keep last 6 turns to stay within context
-      if (h.role && h.content) {
-        messages.push({ role: h.role, content: h.content });
-      }
-    }
-  }
-  messages.push({ role: 'user', content: message });
+  // Stateless: each request is independent (no history)
+  const messages = [
+    { role: 'system', content: CHAT_SYSTEM_PROMPT },
+    { role: 'user', content: message },
+  ];
 
   const content = await callGroq(env.GROQ_API_KEY, messages, {
     type: 'json_schema',

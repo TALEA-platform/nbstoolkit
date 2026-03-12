@@ -121,7 +121,8 @@ function App() {
   const [helpPage, setHelpPage] = useState(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [showRefineSearch, setShowRefineSearch] = useState(false);
-  const [showDeepAI, setShowDeepAI] = useState(false);
+  const [showDeepAI, setShowDeepAI] = useState(false); // false | 'overlay' | 'sidebar'
+  const [aiFilteredStudies, setAiFilteredStudies] = useState(null);
   const [chatMessages, setChatMessages] = useState([
     { role: 'bot', text: "Welcome to the NBS Toolkit! I'm your TALEA Abacus assistant. Search for hardware solutions by typing anything \u2014 city names, NBS types, or even misspelled words. I'll find the best matches!", type: 'greeting' },
   ]);
@@ -898,7 +899,7 @@ function App() {
     + Object.values(excludedFilters).reduce((sum, arr) => sum + arr.length, 0);
 
   return (
-    <div className="app">
+    <div className={`app${showDeepAI === 'sidebar' ? ' ai-sidebar-open' : ''}`}>
         <Header
           onShowForm={() => setShowForm(true)}
           activeFilterCount={activeFilterCount}
@@ -930,7 +931,7 @@ function App() {
           onSearchSubmit={handleSearchSubmit}
           onSearchModeChange={setSearchMode}
           onSearchLogicChange={setSearchLogic}
-          onOpenDeepAI={() => setShowDeepAI(true)}
+          onOpenDeepAI={() => setShowDeepAI('overlay')}
           onClearSearchContext={clearSearchContext}
           onEditSearchContext={editSearchContext}
           onAddCanvasFilter={addCanvasFilter}
@@ -964,14 +965,31 @@ function App() {
           />
 
           <div className="results-area">
+            {aiFilteredStudies && (
+              <div className="ai-results-banner">
+                <div className="ai-results-banner-left">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 16.4 5.7 21l2.3-7L2 9.4h7.6z"/>
+                  </svg>
+                  <span>AI Search: {aiFilteredStudies.length} result{aiFilteredStudies.length !== 1 ? 's' : ''}</span>
+                </div>
+                <button className="ai-results-banner-clear" onClick={() => { setAiFilteredStudies(null); setShowDeepAI(false); }}>
+                  Clear AI filter
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            )}
             <div className="results-header">
               <div className="results-heading">
                 <span className="results-count">
-                  {filteredStudies.length} of {caseStudies.length} solutions
-                  {activeTextQueries.length > 0 && (
+                  {aiFilteredStudies ? aiFilteredStudies.length : filteredStudies.length} of {caseStudies.length} solutions
+                  {activeTextQueries.length > 0 && !aiFilteredStudies && (
                     <span className="fuzzy-label"> (local retrieval)</span>
                   )}
                   {showFavorites && <span className="fuzzy-label"> (favorites)</span>}
+                  {aiFilteredStudies && <span className="fuzzy-label"> (AI search)</span>}
                 </span>
                 {showRefineSearch && (activeFilterCount > 0 || searchContexts.length > 0 || searchInputQuery.length >= 2) && (
                   <button
@@ -1018,10 +1036,10 @@ function App() {
             </div>
 
             {view === 'map' ? (
-              <MapView studies={sortedStudies} onSelect={setSelectedStudy} />
+              <MapView studies={aiFilteredStudies || sortedStudies} onSelect={setSelectedStudy} />
             ) : (
               <CaseStudyGrid
-                studies={sortedStudies}
+                studies={aiFilteredStudies || sortedStudies}
                 onSelect={setSelectedStudy}
                 view={view}
                 favorites={favorites}
@@ -1093,7 +1111,17 @@ function App() {
       {showDeepAI && (
         <DeepAISearch
           caseStudies={caseStudies}
-          onClose={() => setShowDeepAI(false)}
+          mode={showDeepAI}
+          onClose={() => { setShowDeepAI(false); setAiFilteredStudies(null); }}
+          onSelectStudy={(study) => {
+            setSelectedStudy(study);
+            if (showDeepAI === 'overlay') setShowDeepAI(false);
+          }}
+          onShowAllResults={(studies) => {
+            setAiFilteredStudies(studies);
+            setShowDeepAI('sidebar');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
       )}
 
