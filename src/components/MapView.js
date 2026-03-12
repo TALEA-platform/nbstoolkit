@@ -20,6 +20,8 @@ function MapView({ studies, onSelect }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const popupRef = useRef(null);
+  const cameraRestoreRef = useRef(null);
+  const dataSignatureRef = useRef('');
   const [mapStyle, setMapStyle] = useState('liberty');
   const [mapReady, setMapReady] = useState(false);
 
@@ -53,6 +55,68 @@ function MapView({ studies, onSelect }) {
     const avgLat = features.reduce((s, f) => s + f.geometry.coordinates[1], 0) / features.length;
     return [avgLng, avgLat];
   }, [geojson]);
+
+  const geojsonSignature = useMemo(
+    () => geojson.features.map(feature => feature.properties.id).join('|'),
+    [geojson]
+  );
+
+  const ensureStudyLayers = useCallback((map, data) => {
+    if (!map.getSource('studies')) {
+      map.addSource('studies', {
+        type: 'geojson',
+        data,
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50,
+      });
+    }
+
+    if (!map.getLayer('clusters')) {
+      map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: 'studies',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': ['step', ['get', 'point_count'], '#21A84A', 5, '#1a9e5c', 10, '#004d19'],
+          'circle-radius': ['step', ['get', 'point_count'], 18, 5, 24, 10, 30],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': 'rgba(255,255,255,0.6)',
+        },
+      });
+    }
+
+    if (!map.getLayer('cluster-count')) {
+      map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: 'studies',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['Noto Sans Regular'],
+          'text-size': 13,
+        },
+        paint: { 'text-color': '#ffffff' },
+      });
+    }
+
+    if (!map.getLayer('unclustered-point')) {
+      map.addLayer({
+        id: 'unclustered-point',
+        type: 'circle',
+        source: 'studies',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': '#21A84A',
+          'circle-radius': 8,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+    }
+  }, []);
 
   // Build a single-study popup HTML
   function buildSinglePopup(props, lat, lng) {
@@ -95,53 +159,7 @@ function MapView({ studies, onSelect }) {
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
     map.on('load', () => {
-      map.addSource('studies', {
-        type: 'geojson',
-        data: geojson,
-        cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 50,
-      });
-
-      map.addLayer({
-        id: 'clusters',
-        type: 'circle',
-        source: 'studies',
-        filter: ['has', 'point_count'],
-        paint: {
-          'circle-color': ['step', ['get', 'point_count'], '#21A84A', 5, '#1a9e5c', 10, '#004d19'],
-          'circle-radius': ['step', ['get', 'point_count'], 18, 5, 24, 10, 30],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': 'rgba(255,255,255,0.6)',
-        },
-      });
-
-      map.addLayer({
-        id: 'cluster-count',
-        type: 'symbol',
-        source: 'studies',
-        filter: ['has', 'point_count'],
-        layout: {
-          'text-field': '{point_count_abbreviated}',
-          'text-font': ['Noto Sans Regular'],
-          'text-size': 13,
-        },
-        paint: { 'text-color': '#ffffff' },
-      });
-
-      map.addLayer({
-        id: 'unclustered-point',
-        type: 'circle',
-        source: 'studies',
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-color': '#21A84A',
-          'circle-radius': 8,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
-
+      ensureStudyLayers(map, geojson);
       setMapReady(true);
     });
 
@@ -247,7 +265,7 @@ function MapView({ studies, onSelect }) {
       mapRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [center, ensureStudyLayers, geojson, mapStyle, onSelect, studies]);
 
   // Update data when studies change
   useEffect(() => {
@@ -259,73 +277,48 @@ function MapView({ studies, onSelect }) {
   // Fly to center when data changes
   useEffect(() => {
     if (!mapRef.current || !mapReady) return;
+    if (cameraRestoreRef.current) {
+      cameraRestoreRef.current = null;
+      dataSignatureRef.current = geojsonSignature;
+      return;
+    }
+    if (dataSignatureRef.current === geojsonSignature) return;
+    dataSignatureRef.current = geojsonSignature;
     if (geojson.features.length > 0) {
       mapRef.current.easeTo({ center, zoom: 3.5, duration: 800 });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [center, mapReady]);
+  }, [center, geojson.features.length, geojsonSignature, mapReady]);
 
   // Switch map style
   const handleStyleChange = useCallback((styleKey) => {
+    if (styleKey === mapStyle) return;
     setMapStyle(styleKey);
     if (!mapRef.current) return;
     setMapReady(false);
+    const map = mapRef.current;
+    cameraRestoreRef.current = {
+      center: map.getCenter().toArray(),
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
+      pitch: map.getPitch(),
+    };
 
-    mapRef.current.setStyle(MAP_STYLES[styleKey].url);
+    map.setStyle(MAP_STYLES[styleKey].url);
 
-    mapRef.current.once('style.load', () => {
-      const map = mapRef.current;
-      if (!map.getSource('studies')) {
-        map.addSource('studies', {
-          type: 'geojson',
-          data: geojson,
-          cluster: true,
-          clusterMaxZoom: 14,
-          clusterRadius: 50,
-        });
+    map.once('style.load', () => {
+      const liveMap = mapRef.current;
+      if (!liveMap) return;
 
-        map.addLayer({
-          id: 'clusters',
-          type: 'circle',
-          source: 'studies',
-          filter: ['has', 'point_count'],
-          paint: {
-            'circle-color': ['step', ['get', 'point_count'], '#21A84A', 5, '#1a9e5c', 10, '#004d19'],
-            'circle-radius': ['step', ['get', 'point_count'], 18, 5, 24, 10, 30],
-            'circle-stroke-width': 2,
-            'circle-stroke-color': 'rgba(255,255,255,0.6)',
-          },
-        });
+      ensureStudyLayers(liveMap, geojson);
 
-        map.addLayer({
-          id: 'cluster-count',
-          type: 'symbol',
-          source: 'studies',
-          filter: ['has', 'point_count'],
-          layout: {
-            'text-field': '{point_count_abbreviated}',
-            'text-font': ['Noto Sans Regular'],
-            'text-size': 13,
-          },
-          paint: { 'text-color': '#ffffff' },
-        });
-
-        map.addLayer({
-          id: 'unclustered-point',
-          type: 'circle',
-          source: 'studies',
-          filter: ['!', ['has', 'point_count']],
-          paint: {
-            'circle-color': '#21A84A',
-            'circle-radius': 8,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff',
-          },
-        });
+      if (cameraRestoreRef.current) {
+        liveMap.jumpTo(cameraRestoreRef.current);
       }
+
       setMapReady(true);
     });
-  }, [geojson]);
+  }, [ensureStudyLayers, geojson, mapStyle]);
 
   const markerCount = geojson.features.length;
 

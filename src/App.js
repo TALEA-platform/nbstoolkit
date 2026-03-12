@@ -1,7 +1,9 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect, useDeferredValue } from 'react';
 import staticCaseStudies from './data/caseStudies.json';
 import { FILTER_CATEGORIES } from './data/filterConfig';
-import { createCaseStudyFuse, multiWordCaseStudySearch, fuzzySearchFilters, generateChatResponse, parseMultiWordQuery, findCommonFilters } from './utils/fuzzySearch';
+import { generateChatResponse, findCommonFilters } from './utils/fuzzySearch';
+import { createLocalSearchIndex, runLocalRetrieval, getLocalFilterSuggestions, parseMultiWordQuery } from './utils/localRetrieval';
+import { studyMatchesAllFilters } from './utils/filterMatcher';
 import { exportFilteredResultsPDF } from './utils/pdfExport';
 import { downloadCSV, downloadExcel } from './utils/dataExport';
 import { hasTaleaType } from './utils/getTaleaTypes';
@@ -16,7 +18,22 @@ import MapView from './components/MapView';
 import CompareMode from './components/CompareMode';
 import StatsPanel from './components/StatsPanel';
 import HelpPopup from './components/HelpPopup';
+import DeepAISearch from './components/DeepAISearch';
 import './App.css';
+
+const DEFAULT_FILTER_MODE = 'and';
+const SEARCH_MODE_STORAGE_KEY = 'talea_search_mode';
+const SEARCH_LOGIC_STORAGE_KEY = 'talea_search_logic';
+
+function shouldAutoApplyParsedFilter(option, pureFilterQuery) {
+  if (option.source === 'fuzzy') return false;
+  if (option.source === 'alias') return false;
+  if (pureFilterQuery) return true;
+  if (option.source === 'exact' || option.source === 'token' || option.source === 'context') {
+    return true;
+  }
+  return (option.matchedWordCount || 0) >= 2;
+}
 
 // Studies come only from the static JSON (synced via nightly build).
 // User submissions go through Google Sheet → approval → sync pipeline.
@@ -48,7 +65,7 @@ function decodeHashToState(hash) {
 
 function App() {
   const caseStudies = staticCaseStudies;
-  const csFuse = useMemo(() => createCaseStudyFuse(caseStudies), [caseStudies]);
+  const localSearchIndex = useMemo(() => createLocalSearchIndex(caseStudies), [caseStudies]);
 
   // Cookie consent
   const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem('talea_cookie_consent') === 'true');
@@ -87,10 +104,13 @@ function App() {
 
   // Core state
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchContexts, setSearchContexts] = useState([]);
+  const [searchMode, setSearchMode] = useState(() => localStorage.getItem(SEARCH_MODE_STORAGE_KEY) || 'both');
+  const [searchLogic, setSearchLogic] = useState(() => localStorage.getItem(SEARCH_LOGIC_STORAGE_KEY) || 'and');
   const [activeFilters, setActiveFilters] = useState({});
   const [excludedFilters, setExcludedFilters] = useState({});
   const [canvasFilters, setCanvasFilters] = useState([]);
-  const [filterModes, setFilterModes] = useState({}); // { [categoryKey]: 'or' | 'and' }, default 'or'
+  const [filterModes, setFilterModes] = useState({}); // { [categoryKey]: 'or' | 'and' }, default 'and'
   const [selectedStudy, setSelectedStudy] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState('grid');
@@ -100,13 +120,54 @@ function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [helpPage, setHelpPage] = useState(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [showRefineSearch, setShowRefineSearch] = useState(false);
+  const [showDeepAI, setShowDeepAI] = useState(false);
   const [chatMessages, setChatMessages] = useState([
     { role: 'bot', text: "Welcome to the NBS Toolkit! I'm your TALEA Abacus assistant. Search for hardware solutions by typing anything \u2014 city names, NBS types, or even misspelled words. I'll find the best matches!", type: 'greeting' },
   ]);
   const [committedQuery, setCommittedQuery] = useState('');
+  const searchInputQuery = searchQuery.startsWith('/') ? '' : searchQuery.trim();
+  const deferredSearchQuery = useDeferredValue(searchInputQuery);
+  const searchContextQuery = searchContexts.join(' ').trim();
+  const rawSuggestionQuery = deferredSearchQuery.length >= 2 ? deferredSearchQuery : '';
+  const [suggestionQuery, setSuggestionQuery] = useState('');
+  useEffect(() => {
+    if (!rawSuggestionQuery) {
+      setSuggestionQuery('');
+      return;
+    }
+    const timer = setTimeout(() => setSuggestionQuery(rawSuggestionQuery), 280);
+    return () => clearTimeout(timer);
+  }, [rawSuggestionQuery]);
+  const activeTextQueries = useMemo(() => {
+    const uniqueQueries = [];
+    const seen = new Set();
+    const candidates = [...searchContexts, deferredSearchQuery];
+
+    for (const candidate of candidates) {
+      const normalized = String(candidate || '').trim();
+      if (normalized.length < 2) continue;
+
+      const dedupeKey = normalized.toLowerCase();
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      uniqueQueries.push(normalized);
+    }
+
+    return uniqueQueries;
+  }, [searchContexts, deferredSearchQuery]);
+
+  useEffect(() => {
+    localStorage.setItem(SEARCH_MODE_STORAGE_KEY, searchMode);
+  }, [searchMode]);
+
+  useEffect(() => {
+    localStorage.setItem(SEARCH_LOGIC_STORAGE_KEY, searchLogic);
+  }, [searchLogic]);
 
   // Compare mode
   const [compareIds, setCompareIds] = useState([]);
+  const searchSectionRef = useRef(null);
 
   const toggleCompare = useCallback((id) => {
     setCompareIds(prev => {
@@ -122,7 +183,7 @@ function App() {
       const { filters, query } = decodeHashToState(window.location.hash);
       if (Object.keys(filters).length > 0) setActiveFilters(filters);
       if (query) {
-        setSearchQuery(query);
+        setSearchContexts([query]);
         setCommittedQuery(query);
       }
     }
@@ -130,13 +191,16 @@ function App() {
 
   // Update URL hash when filters change
   useEffect(() => {
-    const hash = encodeStateToHash(activeFilters, searchQuery);
+    const hashQuery = searchQuery.startsWith('/')
+      ? searchContextQuery
+      : (searchQuery.trim().length >= 2 ? searchQuery.trim() : searchContextQuery);
+    const hash = encodeStateToHash(activeFilters, hashQuery);
     if (hash) {
       window.history.replaceState(null, '', `#${hash}`);
     } else {
       window.history.replaceState(null, '', window.location.pathname);
     }
-  }, [activeFilters, searchQuery]);
+  }, [activeFilters, searchQuery, searchContextQuery]);
 
   const shareURL = useCallback(() => {
     const url = window.location.href;
@@ -293,11 +357,15 @@ function App() {
     }));
   }, [excludedFilters]);
 
-  const toggleFilterMode = useCallback((categoryKey) => {
-    setFilterModes(prev => ({
-      ...prev,
-      [categoryKey]: prev[categoryKey] === 'and' ? 'or' : 'and',
-    }));
+  const setFilterMode = useCallback((categoryKey, mode) => {
+    setFilterModes(prev => {
+      const nextMode = mode === 'or' ? 'or' : 'and';
+      if (prev[categoryKey] === nextMode) return prev;
+      return {
+        ...prev,
+        [categoryKey]: nextMode,
+      };
+    });
   }, []);
 
   const clearAllFilters = useCallback(() => {
@@ -306,36 +374,84 @@ function App() {
     setCanvasFilters([]);
     setFilterModes({});
     setSearchQuery('');
+    setSearchContexts([]);
+    setCommittedQuery('');
   }, []);
 
-  // Fuzzy search results — per-word intersection for multi-word queries
-  const fuzzyResults = useMemo(() => {
-    if (!searchQuery || searchQuery.length < 2) return null;
-    return multiWordCaseStudySearch(searchQuery, csFuse, caseStudies);
-  }, [searchQuery, csFuse, caseStudies]);
+  const clearStructuredFilters = useCallback(() => {
+    setActiveFilters({});
+    setExcludedFilters({});
+    setCanvasFilters([]);
+    setFilterModes({});
+  }, []);
 
-  // Filter suggestions from fuzzy search
-  const filterSuggestions = useMemo(() => {
-    if (!searchQuery || searchQuery.length < 2) return [];
-    return fuzzySearchFilters(searchQuery);
-  }, [searchQuery]);
+  const parsedSuggestionQuery = useMemo(() => {
+    if (!suggestionQuery) return null;
+    return parseMultiWordQuery(suggestionQuery);
+  }, [suggestionQuery]);
+
+  const textRetrievalResults = useMemo(() => {
+    if (activeTextQueries.length === 0) return null;
+
+    return activeTextQueries.map((textQuery) => {
+      const parsedQuery = parseMultiWordQuery(textQuery);
+      const results = runLocalRetrieval(textQuery, localSearchIndex, caseStudies, parsedQuery, searchLogic) || [];
+      return { textQuery, results };
+    });
+  }, [activeTextQueries, localSearchIndex, caseStudies, searchLogic]);
+
+  const lexicalTextRankedStudies = useMemo(() => {
+    if (!textRetrievalResults) return null;
+
+    const scoreById = new Map();
+    const bestRankById = new Map();
+    const matchCountById = new Map();
+    const studyById = new Map(caseStudies.map(study => [study.id, study]));
+    const requiredMatches = searchLogic === 'or' ? 1 : textRetrievalResults.length;
+
+    for (const { results } of textRetrievalResults) {
+      results.forEach((study, index) => {
+        const rankScore = 1 / (index + 1);
+        scoreById.set(study.id, (scoreById.get(study.id) || 0) + rankScore);
+        matchCountById.set(study.id, (matchCountById.get(study.id) || 0) + 1);
+        if (!bestRankById.has(study.id) || index < bestRankById.get(study.id)) {
+          bestRankById.set(study.id, index);
+        }
+      });
+    }
+
+    return [...scoreById.keys()]
+      .filter(id => (matchCountById.get(id) || 0) >= requiredMatches)
+      .sort((a, b) => {
+        const scoreDiff = (scoreById.get(b) || 0) - (scoreById.get(a) || 0);
+        if (Math.abs(scoreDiff) > 1e-9) return scoreDiff;
+
+        const rankDiff = (bestRankById.get(a) || Number.MAX_SAFE_INTEGER)
+          - (bestRankById.get(b) || Number.MAX_SAFE_INTEGER);
+        if (rankDiff !== 0) return rankDiff;
+
+        return String(studyById.get(a)?.title || '').localeCompare(String(studyById.get(b)?.title || ''));
+      })
+      .map(id => studyById.get(id))
+      .filter(Boolean);
+  }, [textRetrievalResults, caseStudies, searchLogic]);
+
+  const activeTextRankedStudies = useMemo(() => {
+    if (activeTextQueries.length === 0) return null;
+    return lexicalTextRankedStudies;
+  }, [activeTextQueries.length, lexicalTextRankedStudies]);
+
+  const textFilteredIds = useMemo(() => {
+    if (!activeTextRankedStudies) return null;
+
+    return new Set(activeTextRankedStudies.map(study => study.id));
+  }, [activeTextRankedStudies]);
 
   const filterBaseStudies = useMemo(() => {
-    const hasActiveFilters = Object.keys(activeFilters).length > 0;
-    const hasExcludedFilters = Object.keys(excludedFilters).length > 0;
-    let base = caseStudies;
+    let base = activeTextRankedStudies || caseStudies;
 
-    if (searchQuery && searchQuery.length >= 2 && fuzzyResults) {
-      if (hasActiveFilters || hasExcludedFilters) {
-        // When filters are active, use full dataset so filters do the work
-        // but intersect with fuzzy results if both exist
-        const fuzzyIds = new Set(fuzzyResults.map(s => s.id));
-        base = caseStudies.filter(s => fuzzyIds.has(s.id));
-        // If fuzzy search found nothing, fall back to full dataset for filter-only mode
-        if (base.length === 0) base = caseStudies;
-      } else {
-        base = fuzzyResults;
-      }
+    if (textFilteredIds) {
+      base = base.filter(study => textFilteredIds.has(study.id));
     }
 
     if (showFavorites && favorites.length > 0) {
@@ -343,7 +459,13 @@ function App() {
     }
 
     return base;
-  }, [searchQuery, activeFilters, excludedFilters, fuzzyResults, showFavorites, favorites, caseStudies]);
+  }, [activeTextRankedStudies, textFilteredIds, showFavorites, favorites, caseStudies]);
+
+  // Filter suggestions from fuzzy search
+  const filterSuggestions = useMemo(() => {
+    if (!suggestionQuery || !parsedSuggestionQuery) return [];
+    return getLocalFilterSuggestions(suggestionQuery, parsedSuggestionQuery);
+  }, [suggestionQuery, parsedSuggestionQuery]);
 
   const filteredStudies = useMemo(() => {
     const hasActiveFilters = Object.keys(activeFilters).length > 0;
@@ -356,7 +478,7 @@ function App() {
           if (selectedValues.length === 0) continue;
           const config = FILTER_CATEGORIES[categoryKey];
           if (!config) continue;
-          const isAnd = filterModes[categoryKey] === 'and';
+          const isAnd = (filterModes[categoryKey] || DEFAULT_FILTER_MODE) === 'and';
           const matcher = isAnd ? 'every' : 'some';
           if (config.type === 'object') {
             if (!selectedValues[matcher](v => hasTaleaType(study, v))) return false;
@@ -475,6 +597,40 @@ function App() {
     if (query.length < 2) setCommittedQuery('');
   }, []);
 
+  const editSearchContext = useCallback((contextIndex) => {
+    setSearchContexts(prev => {
+      if (contextIndex < 0 || contextIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [context] = next.splice(contextIndex, 1);
+      if (context) {
+        setSearchQuery(context);
+      }
+      return next;
+    });
+    setCommittedQuery('');
+  }, []);
+
+  const clearSearchContext = useCallback((contextIndex) => {
+    setSearchContexts(prev => prev.filter((_, index) => index !== contextIndex));
+  }, []);
+
+  const clearTextSearch = useCallback(() => {
+    setSearchQuery('');
+    setSearchContexts([]);
+    setCommittedQuery('');
+  }, []);
+
+  const appendSearchContext = useCallback((nextContext) => {
+    const normalizedContext = nextContext.trim();
+    if (normalizedContext.length < 2) return;
+
+    setSearchContexts(prev => {
+      const alreadyExists = prev.some(entry => entry.toLowerCase() === normalizedContext.toLowerCase());
+      if (alreadyExists) return prev;
+      return [...prev, normalizedContext];
+    });
+  }, []);
+
   const handleSearchSubmit = useCallback(() => {
     // Handle slash commands
     if (searchQuery.startsWith('/') && searchQuery.length > 1) {
@@ -509,19 +665,151 @@ function App() {
       return;
     }
 
-    if (searchQuery.length < 2) return;
-    // Save query for chat before potentially clearing
-    setCommittedQuery(searchQuery);
+    const submittedQuery = searchQuery.trim();
+    if (submittedQuery.length < 2) return;
+    const {
+      matches,
+      exclusions,
+      categoryModes,
+      pureFilterQuery,
+      freeTextTokens,
+    } = parseMultiWordQuery(submittedQuery);
+    const canAutoApplyFilters = searchMode === 'both';
+    const retrievalPreview = runLocalRetrieval(submittedQuery, localSearchIndex, caseStudies, null, searchLogic)
+      || filteredStudiesRef.current
+      || caseStudies;
+    const previewBaseStudies = retrievalPreview.length > 0 ? retrievalPreview : filteredStudiesRef.current || caseStudies;
 
-    // Try to extract filter matches from the query
-    const { matches, exclusions } = parseMultiWordQuery(searchQuery);
-    if (matches.length > 0 || exclusions.length > 0) {
-      for (const m of matches) addCanvasFilter(m.categoryKey, m.value);
-      for (const e of exclusions) addExcludedFilter(e.categoryKey, e.value);
-      // Clear search text — filters are now visible as chips on the canvas
-      setSearchQuery('');
+    let previewActiveFilters = { ...activeFiltersRef.current };
+    let previewExcludedFilters = { ...excludedFilters };
+    let previewFilterModes = { ...filterModes };
+    const acceptedCategoryModes = {};
+    const autoAppliedMatches = [];
+    const autoAppliedExclusions = [];
+
+    const shouldKeepPreviewResults = (nextActive, nextExcluded, nextModes) => {
+      if (!Array.isArray(previewBaseStudies) || previewBaseStudies.length === 0) return true;
+
+      const nextCount = previewBaseStudies.filter(study =>
+        studyMatchesAllFilters(study, nextActive, nextExcluded, nextModes)
+      ).length;
+
+      return nextCount > 0;
+    };
+
+    const preservesPreviewAnchor = (nextActive, nextExcluded, nextModes) => {
+      if (pureFilterQuery) return true;
+      const anchorStudy = Array.isArray(previewBaseStudies) ? previewBaseStudies[0] : null;
+      if (!anchorStudy) return true;
+      return studyMatchesAllFilters(anchorStudy, nextActive, nextExcluded, nextModes);
+    };
+
+    if (canAutoApplyFilters) {
+      for (const option of matches) {
+        if (!shouldAutoApplyParsedFilter(option, pureFilterQuery)) continue;
+
+        const nextActiveValues = [...(previewActiveFilters[option.categoryKey] || [])];
+        if (!nextActiveValues.includes(option.value)) {
+          nextActiveValues.push(option.value);
+        }
+
+        const nextActiveFilters = {
+          ...previewActiveFilters,
+          [option.categoryKey]: nextActiveValues,
+        };
+
+        const nextExcludedValues = (previewExcludedFilters[option.categoryKey] || []).filter(value => value !== option.value);
+        const nextExcludedFilters = nextExcludedValues.length > 0
+          ? { ...previewExcludedFilters, [option.categoryKey]: nextExcludedValues }
+          : Object.fromEntries(Object.entries(previewExcludedFilters).filter(([key]) => key !== option.categoryKey));
+
+        const nextFilterModes = {
+          ...previewFilterModes,
+          ...(categoryModes?.[option.categoryKey] ? { [option.categoryKey]: categoryModes[option.categoryKey] } : {}),
+        };
+
+        if (!shouldKeepPreviewResults(nextActiveFilters, nextExcludedFilters, nextFilterModes)) {
+          continue;
+        }
+
+        if (!preservesPreviewAnchor(nextActiveFilters, nextExcludedFilters, nextFilterModes)) {
+          continue;
+        }
+
+        autoAppliedMatches.push(option);
+        previewActiveFilters = nextActiveFilters;
+        previewExcludedFilters = nextExcludedFilters;
+        previewFilterModes = nextFilterModes;
+        if (categoryModes?.[option.categoryKey]) {
+          acceptedCategoryModes[option.categoryKey] = categoryModes[option.categoryKey];
+        }
+      }
+
+      for (const option of exclusions) {
+        if (!shouldAutoApplyParsedFilter(option, pureFilterQuery)) continue;
+
+        const nextExcludedValues = [...(previewExcludedFilters[option.categoryKey] || [])];
+        if (!nextExcludedValues.includes(option.value)) {
+          nextExcludedValues.push(option.value);
+        }
+
+        const nextExcludedFilters = {
+          ...previewExcludedFilters,
+          [option.categoryKey]: nextExcludedValues,
+        };
+
+        const nextActiveValues = (previewActiveFilters[option.categoryKey] || []).filter(value => value !== option.value);
+        const nextActiveFilters = nextActiveValues.length > 0
+          ? { ...previewActiveFilters, [option.categoryKey]: nextActiveValues }
+          : Object.fromEntries(Object.entries(previewActiveFilters).filter(([key]) => key !== option.categoryKey));
+
+        const nextFilterModes = {
+          ...previewFilterModes,
+          ...(categoryModes?.[option.categoryKey] ? { [option.categoryKey]: categoryModes[option.categoryKey] } : {}),
+        };
+
+        if (!shouldKeepPreviewResults(nextActiveFilters, nextExcludedFilters, nextFilterModes)) {
+          continue;
+        }
+
+        if (!preservesPreviewAnchor(nextActiveFilters, nextExcludedFilters, nextFilterModes)) {
+          continue;
+        }
+
+        autoAppliedExclusions.push(option);
+        previewActiveFilters = nextActiveFilters;
+        previewExcludedFilters = nextExcludedFilters;
+        previewFilterModes = nextFilterModes;
+        if (categoryModes?.[option.categoryKey]) {
+          acceptedCategoryModes[option.categoryKey] = categoryModes[option.categoryKey];
+        }
+      }
     }
-  }, [searchQuery, addCanvasFilter, addExcludedFilter, clearAllFilters, handleExportPDF, caseStudies]);
+
+    const hasAutoAppliedFilters = autoAppliedMatches.length > 0 || autoAppliedExclusions.length > 0;
+
+    if (hasAutoAppliedFilters) {
+      for (const m of autoAppliedMatches) addCanvasFilter(m.categoryKey, m.value);
+      for (const e of autoAppliedExclusions) addExcludedFilter(e.categoryKey, e.value);
+      for (const [categoryKey, mode] of Object.entries(acceptedCategoryModes)) {
+        setFilterMode(categoryKey, mode);
+      }
+    }
+
+    if (pureFilterQuery && canAutoApplyFilters && hasAutoAppliedFilters) {
+      setSearchQuery('');
+      setCommittedQuery(submittedQuery);
+      return;
+    }
+
+    const remainingQuery = canAutoApplyFilters
+      ? (hasAutoAppliedFilters && freeTextTokens.length > 0 ? freeTextTokens.join(' ') : submittedQuery)
+      : submittedQuery;
+
+    setCommittedQuery(submittedQuery);
+    appendSearchContext(remainingQuery);
+    setSearchQuery('');
+  }, [searchQuery, searchMode, localSearchIndex, caseStudies, searchLogic, excludedFilters, filterModes, addCanvasFilter, addExcludedFilter, appendSearchContext, clearAllFilters, handleExportPDF, setFilterMode]);
 
   useEffect(() => {
     if (!committedQuery || committedQuery.length < 2) return;
@@ -532,11 +820,11 @@ function App() {
 
     const response = generateChatResponse(committedQuery, filteredStudiesRef.current, filterSuggestionsRef.current, activeFiltersRef.current);
     if (response) {
-      const commonFilters = findCommonFilters(filteredStudiesRef.current, activeFiltersRef.current);
       const timer = setTimeout(() => {
         setChatMessages(prev => {
           const recent = prev.slice(-7);
           const msg = { role: 'bot', text: response.message, type: response.type };
+          const commonFilters = findCommonFilters(filteredStudiesRef.current, activeFiltersRef.current);
           if (commonFilters.length > 0) msg.suggestedFilters = commonFilters;
           return [...recent, msg];
         });
@@ -570,17 +858,30 @@ function App() {
     window.scrollTo({ top: 0, behavior: getScrollBehavior() });
   }, [getScrollBehavior]);
 
+  const scrollToSearch = useCallback(() => {
+    const searchTop = searchSectionRef.current
+      ? Math.max(0, searchSectionRef.current.getBoundingClientRect().top + window.scrollY - 84)
+      : 0;
+    window.scrollTo({ top: searchTop, behavior: getScrollBehavior() });
+  }, [getScrollBehavior]);
+
   useEffect(() => {
     function updateScrollShortcut() {
       if (overlayOpen) {
         setShowBackToTop(prev => (prev ? false : prev));
+        setShowRefineSearch(prev => (prev ? false : prev));
         return;
       }
 
       const scrollY = window.scrollY || window.pageYOffset || 0;
       const nextState = scrollY > 520;
+      const searchRect = searchSectionRef.current?.getBoundingClientRect();
+      const nextRefineState = searchRect
+        ? searchRect.bottom <= 96
+        : scrollY > 360;
 
       setShowBackToTop(prev => (prev === nextState ? prev : nextState));
+      setShowRefineSearch(prev => (prev === nextRefineState ? prev : nextRefineState));
     }
 
     updateScrollShortcut();
@@ -591,19 +892,21 @@ function App() {
       window.removeEventListener('scroll', updateScrollShortcut);
       window.removeEventListener('resize', updateScrollShortcut);
     };
-  }, [overlayOpen, view]);
+  }, [overlayOpen, view, activeTextQueries.length]);
 
   const activeFilterCount = Object.values(activeFilters).reduce((sum, arr) => sum + arr.length, 0)
     + Object.values(excludedFilters).reduce((sum, arr) => sum + arr.length, 0);
 
   return (
     <div className="app">
-      <Header
-        onShowForm={() => setShowForm(true)}
-        activeFilterCount={activeFilterCount}
-        onClearAll={clearAllFilters}
-        resultCount={filteredStudies.length}
-        totalCount={caseStudies.length}
+        <Header
+          onShowForm={() => setShowForm(true)}
+          activeFilterCount={activeFilterCount}
+          onClearFilters={clearStructuredFilters}
+          hasActiveTextSearch={searchContexts.length > 0 || searchInputQuery.length >= 2}
+          onClearTextSearch={clearTextSearch}
+          resultCount={filteredStudies.length}
+          totalCount={caseStudies.length}
         onExportPDF={handleExportPDF}
         onExportCSV={handleDownloadCSV}
         onExportExcel={handleDownloadExcel}
@@ -618,16 +921,25 @@ function App() {
 
       <main className="main-content">
         <SearchBar
+          sectionRef={searchSectionRef}
           query={searchQuery}
+          searchContexts={searchContexts}
+          searchMode={searchMode}
+          searchLogic={searchLogic}
           onQueryChange={handleSearch}
           onSearchSubmit={handleSearchSubmit}
+          onSearchModeChange={setSearchMode}
+          onSearchLogicChange={setSearchLogic}
+          onOpenDeepAI={() => setShowDeepAI(true)}
+          onClearSearchContext={clearSearchContext}
+          onEditSearchContext={editSearchContext}
           onAddCanvasFilter={addCanvasFilter}
           onAddExcludedFilter={addExcludedFilter}
           onRemoveCanvasFilterByValue={removeCanvasFilterByValue}
           activeFilters={activeFilters}
           excludedFilters={excludedFilters}
           filterModes={filterModes}
-          onToggleFilterMode={toggleFilterMode}
+          onSetFilterMode={setFilterMode}
           filterSuggestions={filterSuggestions}
           chatMessages={chatMessages}
           onClearChat={clearChat}
@@ -648,16 +960,34 @@ function App() {
             onShowHelp={openHelp}
             activeFilters={activeFilters}
             filterModes={filterModes}
-            onToggleFilterMode={toggleFilterMode}
+            onSetFilterMode={setFilterMode}
           />
 
           <div className="results-area">
             <div className="results-header">
-              <span className="results-count">
-                {filteredStudies.length} of {caseStudies.length} solutions
-                {searchQuery && searchQuery.length >= 2 && <span className="fuzzy-label"> (fuzzy match)</span>}
-                {showFavorites && <span className="fuzzy-label"> (favorites)</span>}
-              </span>
+              <div className="results-heading">
+                <span className="results-count">
+                  {filteredStudies.length} of {caseStudies.length} solutions
+                  {activeTextQueries.length > 0 && (
+                    <span className="fuzzy-label"> (local retrieval)</span>
+                  )}
+                  {showFavorites && <span className="fuzzy-label"> (favorites)</span>}
+                </span>
+                {showRefineSearch && (activeFilterCount > 0 || searchContexts.length > 0 || searchInputQuery.length >= 2) && (
+                  <button
+                    className="results-refine-link"
+                    onClick={scrollToSearch}
+                    title="Edit search and filters"
+                    aria-label="Edit search and filters"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 18V6"/>
+                      <path d="m7 11 5-5 5 5"/>
+                    </svg>
+                    Edit search
+                  </button>
+                )}
+              </div>
               <div className="results-actions">
                 <select className="sort-select" value={sortBy} onChange={e => setSortBy(e.target.value)} title="Sort results">
                   <option value="default">Sort: Default</option>
@@ -759,6 +1089,13 @@ function App() {
         onClose={() => setShowHelp(false)}
         initialPage={helpPage}
       />
+
+      {showDeepAI && (
+        <DeepAISearch
+          caseStudies={caseStudies}
+          onClose={() => setShowDeepAI(false)}
+        />
+      )}
 
       {!overlayOpen && showBackToTop && (
         <div className={`scroll-shortcuts ${!cookieConsent ? 'with-cookie-banner' : ''}`}>

@@ -1,5 +1,5 @@
 import { processFormImage } from './imageHosting';
-import { normalizeCoordinateInput } from './coordinates';
+import { normalizeCoordinateInputs } from './coordinates';
 
 const GOOGLE_SHEET_WEBAPP_URL = process.env.REACT_APP_GOOGLE_SHEET_URL || '';
 
@@ -24,8 +24,9 @@ function flattenStudyData(formData) {
     }
   }
 
-  flat.latitude = normalizeCoordinateInput(flat.latitude, 'latitude');
-  flat.longitude = normalizeCoordinateInput(flat.longitude, 'longitude');
+  const normalizedCoords = normalizeCoordinateInputs(flat.latitude, flat.longitude);
+  flat.latitude = normalizedCoords.latitude;
+  flat.longitude = normalizedCoords.longitude;
 
   flat.talea_application = Array.isArray(formData.talea_application)
     ? formData.talea_application.join(', ')

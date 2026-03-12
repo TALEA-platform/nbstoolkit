@@ -1,0 +1,13 @@
+name = "talea-abacus-api"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+ALLOWED_ORIGIN = "https://talea.comune.bologna.it/nbstoolkit"
+
+# Set these as secrets via `wrangler secret put`:
+# GROQ_API_KEY
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "5ce150ccc75a4d359627942ae74750e1"

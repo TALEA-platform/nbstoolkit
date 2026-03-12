@@ -1,15 +1,11 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { FILTER_CATEGORIES, FILTER_GROUPS } from '../data/filterConfig';
-import { hasTaleaType } from '../utils/getTaleaTypes';
+import { studyMatchesAllFilters } from '../utils/filterMatcher';
 
-const INNOVATION_FIELD_MAP = {
-  Physical: 'has_physical_innovation',
-  Social: 'has_social_innovation',
-  Digital: 'has_digital_innovation',
-};
 const INITIAL_COLLAPSED_GROUPS = Object.fromEntries(
   Object.keys(FILTER_GROUPS).map(groupKey => [groupKey, true])
 );
+const DEFAULT_FILTER_MODE = 'and';
 
 const SLASH_COMMANDS = [
   // Navigation
@@ -43,79 +39,36 @@ const SLASH_COMMANDS = [
   { cmd: '/help', desc: 'Show all commands', group: 'info' },
 ];
 
-function studyMatchesCategory(study, categoryKey, values, mode) {
-  const cat = FILTER_CATEGORIES[categoryKey];
-  if (!cat || !values || values.length === 0) return true;
-
-  const matcher = mode === 'and' ? 'every' : 'some';
-
-  if (cat.type === 'object') {
-    return values[matcher](value => hasTaleaType(study, value));
-  }
-
-  if (cat.type === 'value') {
-    if (mode === 'and') {
-      return values.every(value => study[cat.dataKey] === value);
-    }
-    return values.includes(study[cat.dataKey]);
-  }
-
-  if (cat.type === 'array') {
-    const arr = study[cat.dataKey] || [];
-    return values[matcher](value => arr.includes(value));
-  }
-
-  if (cat.type === 'innovation') {
-    return values[matcher](value => !!study[INNOVATION_FIELD_MAP[value]]);
-  }
-
-  return true;
-}
-
-function studyMatchesExcludedCategory(study, categoryKey, values) {
-  const cat = FILTER_CATEGORIES[categoryKey];
-  if (!cat || !values || values.length === 0) return true;
-
-  if (cat.type === 'object') {
-    return !values.some(value => hasTaleaType(study, value));
-  }
-
-  if (cat.type === 'value') {
-    return !values.includes(study[cat.dataKey]);
-  }
-
-  if (cat.type === 'array') {
-    const arr = study[cat.dataKey] || [];
-    return !values.some(value => arr.includes(value));
-  }
-
-  if (cat.type === 'innovation') {
-    return !values.some(value => !!study[INNOVATION_FIELD_MAP[value]]);
-  }
-
-  return true;
-}
-
-function studyMatchesAllFilters(study, nextActiveFilters, nextExcludedFilters, nextFilterModes) {
-  for (const [categoryKey, values] of Object.entries(nextActiveFilters || {})) {
-    if (!studyMatchesCategory(study, categoryKey, values, nextFilterModes?.[categoryKey] || 'or')) {
-      return false;
-    }
-  }
-
-  for (const [categoryKey, values] of Object.entries(nextExcludedFilters || {})) {
-    if (!studyMatchesExcludedCategory(study, categoryKey, values)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, onAddExcludedFilter, onRemoveCanvasFilterByValue, activeFilters, excludedFilters, filterModes, onToggleFilterMode, filterSuggestions, chatMessages, onClearChat, studies }) {
+function SearchBar({
+  sectionRef,
+  query,
+  searchContexts,
+  searchMode,
+  searchLogic,
+  onQueryChange,
+  onSearchSubmit,
+  onSearchModeChange,
+  onSearchLogicChange,
+  onOpenDeepAI,
+  onClearSearchContext,
+  onEditSearchContext,
+  onAddCanvasFilter,
+  onAddExcludedFilter,
+  onRemoveCanvasFilterByValue,
+  activeFilters,
+  excludedFilters,
+  filterModes,
+  onSetFilterMode,
+  filterSuggestions,
+  chatMessages,
+  onClearChat,
+  studies,
+}) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [assistantDismissed, setAssistantDismissed] = useState(false);
+  const [hasUnreadAssistant, setHasUnreadAssistant] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState(() => ({ ...INITIAL_COLLAPSED_GROUPS }));
   const [panelNotModes, setPanelNotModes] = useState({});
@@ -137,25 +90,53 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
 
   // Auto-scroll chat only when new messages are added
   useEffect(() => {
-    if (chatMessages.length > prevMessageCountRef.current && chatEndRef.current) {
+    const hasNewMessages = chatMessages.length > prevMessageCountRef.current;
+
+    if (hasNewMessages && chatEndRef.current && showChat) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
+
+    if (hasNewMessages) {
+      setHasUnreadAssistant(prev => (showChat ? false : true));
+    }
+
     prevMessageCountRef.current = chatMessages.length;
-  }, [chatMessages.length]);
+  }, [chatMessages.length, showChat]);
 
   // Show chat when we have messages beyond the initial greeting
   useEffect(() => {
-    if (chatMessages.length > 1) {
+    if (chatMessages.length > 1 && !assistantDismissed) {
       setShowChat(true);
+      setHasUnreadAssistant(false);
     }
-  }, [chatMessages.length]);
+  }, [chatMessages.length, assistantDismissed]);
 
   // Reset highlight when query changes
   useEffect(() => {
     setHighlightedIndex(-1);
   }, [query]);
 
-  const suggestions = filterSuggestions || [];
+  const suggestions = searchMode === 'text' ? [] : (filterSuggestions || []);
+  const searchPlaceholder = 'Search with natural language or type / for commands...';
+
+  function openAssistant() {
+    setShowChat(true);
+    setAssistantDismissed(false);
+    setHasUnreadAssistant(false);
+  }
+
+  function closeAssistant() {
+    setShowChat(false);
+    setAssistantDismissed(true);
+  }
+
+  function toggleAssistant() {
+    if (showChat) {
+      closeAssistant();
+      return;
+    }
+    openAssistant();
+  }
 
   function resetCategoryPanelState(catKey) {
     setPanelNotModes(prev => {
@@ -165,8 +146,8 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
       return next;
     });
 
-    if ((activeFilters[catKey] || []).length === 0 && (filterModes?.[catKey] || 'or') === 'and' && onToggleFilterMode) {
-      onToggleFilterMode(catKey);
+    if ((activeFilters[catKey] || []).length === 0 && (filterModes?.[catKey] || DEFAULT_FILTER_MODE) !== DEFAULT_FILTER_MODE && onSetFilterMode) {
+      onSetFilterMode(catKey, DEFAULT_FILTER_MODE);
     }
   }
 
@@ -197,6 +178,8 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
 
   // Slash command autocomplete
   const isSlashQuery = query.startsWith('/');
+  const showSearchLogic = !isSlashQuery && ((searchContexts?.length || 0) > 0 || query.trim().length >= 2);
+  const showInputControls = showSearchLogic || !!query;
   const filteredCommands = useMemo(() => {
     if (!isSlashQuery) return [];
     const typed = query.toLowerCase();
@@ -249,7 +232,44 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
 
   return (
     <div className="search-section">
-      <div className="search-bar-container">
+      <div className="search-mode-banner">
+        <div className="search-mode-control">
+          <span className="search-mode-label">Search behavior</span>
+          <div className="search-mode-toggle" role="group" aria-label="Search mode">
+            <button
+              type="button"
+              className={`search-mode-btn ${searchMode !== 'text' ? 'active' : ''}`}
+              aria-pressed={searchMode !== 'text'}
+              onClick={() => onSearchModeChange && onSearchModeChange('both')}
+              title="Auto-detect filter matches and keep the rest as text search"
+            >
+              Smart Tags
+            </button>
+            <button
+              type="button"
+              className={`search-mode-btn ${searchMode === 'text' ? 'active' : ''}`}
+              aria-pressed={searchMode === 'text'}
+              onClick={() => onSearchModeChange && onSearchModeChange('text')}
+              title="Use the full query as text search only"
+            >
+              Text Only
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="deep-ai-btn"
+          onClick={() => onOpenDeepAI && onOpenDeepAI()}
+          title="Open Deep AI Search powered by Groq"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 16.4 5.7 21l2.3-7L2 9.4h7.6z"/>
+          </svg>
+          Deep AI Search
+        </button>
+      </div>
+
+      <div className="search-bar-container" ref={sectionRef}>
         <div className="search-input-wrapper">
           <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -257,8 +277,8 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
           <input
             ref={inputRef}
             type="text"
-            className="search-input"
-            placeholder="Search NBS solutions or type / for commands..."
+            className={`search-input ${showInputControls ? 'has-search-controls' : ''} ${showSearchLogic ? 'has-search-logic' : ''} ${query ? 'has-clear' : ''}`}
+            placeholder={searchPlaceholder}
             value={query}
             onChange={e => {
               onQueryChange(e.target.value);
@@ -266,7 +286,6 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
             }}
             onFocus={() => {
               setShowSuggestions(true);
-              if (chatMessages.length > 0) setShowChat(true);
             }}
             onKeyDown={e => {
               // Determine which list is active
@@ -312,33 +331,62 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
               }
             }}
           />
-          {query && (
-            <button className="search-clear" onClick={() => { onQueryChange(''); setShowSuggestions(false); }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
+          {showInputControls && (
+            <div className="search-input-controls">
+              {showSearchLogic && (
+                <button
+                  type="button"
+                  className={`search-logic-chip ${searchLogic === 'or' ? 'or' : 'and'}`}
+                  onClick={() => onSearchLogicChange && onSearchLogicChange(searchLogic === 'and' ? 'or' : 'and')}
+                  title={`Text query logic: ${searchLogic.toUpperCase()}. Click to switch to ${searchLogic === 'and' ? 'OR' : 'AND'}.`}
+                  aria-label={`Text query logic ${searchLogic.toUpperCase()}. Click to switch to ${searchLogic === 'and' ? 'OR' : 'AND'}.`}
+                >
+                  {searchLogic.toUpperCase()}
+                </button>
+              )}
+              {showSearchLogic && query && <span className="search-control-divider" aria-hidden="true" />}
+              {query && (
+                <button type="button" className="search-clear" onClick={() => { onQueryChange(''); setShowSuggestions(false); }} aria-label="Clear search text">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              )}
+            </div>
           )}
-          <button
-            className={`chat-toggle-btn ${showChat ? 'active' : ''}`}
-            onClick={() => setShowChat(!showChat)}
-            title="Toggle assistant"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          </button>
         </div>
 
-        <button
-          className={`filter-toggle-btn ${showFilterPanel ? 'active' : ''}`}
-          onClick={() => setShowFilterPanel(!showFilterPanel)}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-          </svg>
-          Filters
-        </button>
+        <div className="search-bar-actions">
+          <div className="search-assistant-action">
+            <button
+              type="button"
+              className={`chat-toggle-btn ${showChat ? 'active' : ''} ${hasUnreadAssistant ? 'has-unread' : ''}`}
+              onClick={toggleAssistant}
+              title={showChat ? 'Hide assistant' : 'Open assistant'}
+              aria-label={showChat ? 'Hide assistant' : 'Open assistant'}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              {hasUnreadAssistant && <span className="chat-toggle-badge" />}
+            </button>
+          </div>
+
+          <span className="search-action-divider" aria-hidden="true" />
+
+          <div className="search-panel-action">
+            <button
+              type="button"
+              className={`filter-toggle-btn ${showFilterPanel ? 'active' : ''}`}
+              onClick={() => setShowFilterPanel(!showFilterPanel)}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              </svg>
+              Filters
+            </button>
+          </div>
+        </div>
 
         {/* Slash command autocomplete */}
         {isSlashQuery && filteredCommands.length > 0 && (
@@ -389,7 +437,7 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                 <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
-              Fuzzy matches - click to add as filter:
+              Suggested filter matches - click to add as filter:
             </div>
             {suggestions.map((s, i) => {
               const isActive = (activeFilters[s.categoryKey] || []).includes(s.value);
@@ -406,6 +454,8 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
                   <span className="suggestion-icon">{s.icon}</span>
                   <span className="suggestion-value">{s.value}</span>
                   <span className="suggestion-category" style={{ color: s.color }}>{s.category}</span>
+                  {s.source === 'fuzzy' && <span className="suggestion-hint">Did you mean</span>}
+                  {s.source === 'context' && <span className="suggestion-hint">Interpreted</span>}
                   {s.score !== undefined && (
                     <span className="suggestion-score">{Math.round((1 - s.score) * 100)}%</span>
                   )}
@@ -416,6 +466,44 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
           </div>
         )}
       </div>
+
+      {searchContexts?.length > 0 && (
+        <div className="search-context-row">
+          <div className="search-context-meta">
+            <span className="search-context-label">Text filter{searchContexts.length > 1 ? 's' : ''}</span>
+            <div className="search-context-list">
+              {searchContexts.map((searchContext, index) => (
+                <div key={`${searchContext}-${index}`} className="search-context-chip">
+                  <button
+                    className="search-context-edit"
+                    onClick={() => {
+                      if (onEditSearchContext) onEditSearchContext(index);
+                      requestAnimationFrame(() => inputRef.current?.focus());
+                    }}
+                    title="Edit text filter"
+                    aria-label={`Edit text filter ${searchContext}`}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+                    </svg>
+                    <span className="search-context-value">{searchContext}</span>
+                  </button>
+                  <button
+                    className="search-context-remove"
+                    onClick={() => onClearSearchContext && onClearSearchContext(index)}
+                    title="Remove text filter"
+                    aria-label={`Remove text filter ${searchContext}`}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Chatbot panel */}
       {showChat && (
@@ -428,7 +516,7 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
                 </svg>
               </div>
               <span className="chat-title">TALEA Assistant</span>
-              <span className="chat-status">Online</span>
+              <span className="chat-status">Manual</span>
             </div>
             {onClearChat && (
               <button className="chat-clear-btn" onClick={onClearChat} title="Clear chat">
@@ -437,7 +525,7 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
                 </svg>
               </button>
             )}
-            <button className="chat-close" onClick={() => setShowChat(false)}>
+            <button className="chat-close" onClick={closeAssistant} title="Hide assistant">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
@@ -533,7 +621,7 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
                      const activeCount = (activeFilters[catKey] || []).length;
                      const excludedCount = (excludedFilters[catKey] || []).length;
                      const selectedCount = activeCount + excludedCount;
-                     const mode = filterModes?.[catKey] || 'or';
+                     const mode = filterModes?.[catKey] || DEFAULT_FILTER_MODE;
                      const panelNotMode = !!panelNotModes[catKey];
                      return (
                        <div key={catKey} className={`filter-category ${isExpanded ? 'expanded' : ''}`}>
@@ -552,18 +640,31 @@ function SearchBar({ query, onQueryChange, onSearchSubmit, onAddCanvasFilter, on
                            <div className="filter-options">
                              <div className="filter-options-toolbar">
                                <span className="filter-options-toolbar-label">Mode</span>
-                                <div className="filter-options-toolbar-actions">
+                                 <div className="filter-options-toolbar-actions">
+                                  <div className={`logic-toggle-group panel-mode ${panelNotMode ? 'disabled' : ''}`} role="group" aria-label={`${cat.label} filter mode`}>
+                                    <button
+                                      className={`logic-toggle panel-mode ${mode === 'and' ? 'and active' : ''}`}
+                                      onClick={() => onSetFilterMode && onSetFilterMode(catKey, 'and')}
+                                      title={panelNotMode ? 'AND/OR is disabled while NOT mode is active' : 'Use AND logic for this category'}
+                                      type="button"
+                                      disabled={panelNotMode}
+                                      aria-pressed={mode === 'and'}
+                                    >
+                                      AND
+                                    </button>
+                                    <button
+                                      className={`logic-toggle panel-mode ${mode === 'or' ? 'or active' : ''}`}
+                                      onClick={() => onSetFilterMode && onSetFilterMode(catKey, 'or')}
+                                      title={panelNotMode ? 'AND/OR is disabled while NOT mode is active' : 'Use OR logic for this category'}
+                                      type="button"
+                                      disabled={panelNotMode}
+                                      aria-pressed={mode === 'or'}
+                                    >
+                                      OR
+                                    </button>
+                                  </div>
                                   <button
-                                    className={`logic-toggle panel-mode ${mode} ${panelNotMode ? 'disabled' : ''}`}
-                                    onClick={() => onToggleFilterMode && onToggleFilterMode(catKey)}
-                                    title={panelNotMode ? 'AND/OR is disabled while NOT mode is active' : `Switch this category to ${mode === 'or' ? 'AND' : 'OR'} matching`}
-                                    type="button"
-                                    disabled={panelNotMode}
-                                  >
-                                    {mode.toUpperCase()}
-                                  </button>
-                                 <button
-                                   className={`logic-toggle panel-mode not ${panelNotMode ? 'active' : ''}`}
+                                    className={`logic-toggle panel-mode not ${panelNotMode ? 'active' : ''}`}
                                    onClick={() => setPanelNotModes(prev => ({ ...prev, [catKey]: !prev[catKey] }))}
                                    title={panelNotMode ? 'NOT mode is on for this category' : 'Enable NOT mode for this category'}
                                    type="button"

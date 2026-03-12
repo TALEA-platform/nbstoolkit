@@ -12,8 +12,9 @@ const PANEL_GAP_ALLOWANCE = 18;
 const CANVAS_STICKY_TOP = 90;
 const CANVAS_BOTTOM_MARGIN = 16;
 const MIN_SECTION_HEIGHT = 320;
+const DEFAULT_FILTER_MODE = 'and';
 
-function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExcludedFilter, onClearAll, filteredCount, totalCount, onToggleExclude, excludedFilters, onShowHelp, activeFilters, filterModes, onToggleFilterMode }) {
+function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExcludedFilter, onClearAll, filteredCount, totalCount, onToggleExclude, excludedFilters, onShowHelp, activeFilters, filterModes, onSetFilterMode }) {
   const canvasRef = useRef(null);
   const sectionRef = useRef(null);
   const toolbarRef = useRef(null);
@@ -242,7 +243,7 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
       });
       const { code, title } = getCategoryMeta(catKey, cat);
       const activeCount = (activeFilters?.[catKey] || []).length;
-      const mode = filterModes?.[catKey] || 'or';
+      const mode = filterModes?.[catKey] || DEFAULT_FILTER_MODE;
       const dividerColor = sectionTone === 'exclude' ? '#c53030' : (cat?.color || '#8aa29e');
       const dividerStyle = {
         '--divider-color': dividerColor,
@@ -266,13 +267,26 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
           </div>
           <div className="canvas-chip-group">
             {showLogic && activeCount >= 2 && (
-              <button
-                className={`logic-toggle group-mode ${mode}`}
-                onClick={() => onToggleFilterMode && onToggleFilterMode(catKey)}
-                title={`Switch this category to ${mode === 'or' ? 'AND' : 'OR'} matching`}
-              >
-                {mode.toUpperCase()}
-              </button>
+              <div className="logic-toggle-group group-mode" role="group" aria-label={`${title} filter mode`}>
+                <button
+                  className={`logic-toggle group-mode ${mode === 'and' ? 'and active' : ''}`}
+                  onClick={() => onSetFilterMode && onSetFilterMode(catKey, 'and')}
+                  title="Use AND logic for this category"
+                  type="button"
+                  aria-pressed={mode === 'and'}
+                >
+                  AND
+                </button>
+                <button
+                  className={`logic-toggle group-mode ${mode === 'or' ? 'or active' : ''}`}
+                  onClick={() => onSetFilterMode && onSetFilterMode(catKey, 'or')}
+                  title="Use OR logic for this category"
+                  type="button"
+                  aria-pressed={mode === 'or'}
+                >
+                  OR
+                </button>
+              </div>
             )}
             {filtersInCategory.map(f => {
               const isExcluded = isExcludedCanvasFilter(f);

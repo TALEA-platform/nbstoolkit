@@ -198,6 +198,24 @@ function formatCoordinateValue(value) {
   return value.toFixed(6).replace(/\.?0+$/, '');
 }
 
+function getNormalizedCoordinatePair(latitudeValue, longitudeValue) {
+  const latitude = parseCoordinateValue(latitudeValue, 'latitude');
+  const longitude = parseCoordinateValue(longitudeValue, 'longitude');
+
+  if (latitude !== null && longitude !== null) {
+    return { lat: latitude, lng: longitude, swapped: false };
+  }
+
+  const swappedLatitude = parseCoordinateValue(longitudeValue, 'latitude');
+  const swappedLongitude = parseCoordinateValue(latitudeValue, 'longitude');
+
+  if (swappedLatitude !== null && swappedLongitude !== null) {
+    return { lat: swappedLatitude, lng: swappedLongitude, swapped: true };
+  }
+
+  return null;
+}
+
 /**
  * Convert a sheet row into a caseStudies.json entry.
  */
@@ -230,11 +248,10 @@ function rowToStudy(row, fallbackId) {
   if (row.sources) study.sources = row.sources;
 
   // Coordinates
-  const latitude = parseCoordinateValue(row.latitude, 'latitude');
-  const longitude = parseCoordinateValue(row.longitude, 'longitude');
-  if (latitude !== null && longitude !== null) {
-    study.latitude = formatCoordinateValue(latitude);
-    study.longitude = formatCoordinateValue(longitude);
+  const coordinates = getNormalizedCoordinatePair(row.latitude, row.longitude);
+  if (coordinates) {
+    study.latitude = formatCoordinateValue(coordinates.lat);
+    study.longitude = formatCoordinateValue(coordinates.lng);
   }
 
   // Image URL

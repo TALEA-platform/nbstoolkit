@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import ThemeToggle from './ThemeToggle';
 
-function Header({ onShowForm, activeFilterCount, onClearAll, resultCount, totalCount, onExportPDF, onExportCSV, onExportExcel, theme, onToggleTheme, showFavorites, onToggleFavorites, favoritesCount, onShareURL, onShowHelp }) {
+function Header({ onShowForm, activeFilterCount, onClearFilters, hasActiveTextSearch, onClearTextSearch, resultCount, totalCount, onExportPDF, onExportCSV, onExportExcel, theme, onToggleTheme, showFavorites, onToggleFavorites, favoritesCount, onShareURL, onShowHelp }) {
   const [exportOpen, setExportOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -30,10 +30,19 @@ function Header({ onShowForm, activeFilterCount, onClearAll, resultCount, totalC
       <div className="header-right">
         <div className="header-stats">
           <span className="stat-badge">{resultCount}/{totalCount} solutions</span>
-          {activeFilterCount > 0 && (
-            <button className="clear-filters-btn" onClick={onClearAll}>
-              Clear {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''}
-            </button>
+          {(hasActiveTextSearch || activeFilterCount > 0) && (
+            <div className="header-clear-actions">
+              {hasActiveTextSearch && (
+                <button className="clear-text-search-btn" onClick={onClearTextSearch}>
+                  Clear text search
+                </button>
+              )}
+              {activeFilterCount > 0 && (
+                <button className="clear-filters-btn" onClick={onClearFilters}>
+                  Clear {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''}
+                </button>
+              )}
+            </div>
           )}
         </div>
         <button

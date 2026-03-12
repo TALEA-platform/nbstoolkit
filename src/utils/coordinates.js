@@ -93,6 +93,24 @@ export function formatCoordinateValue(value, digits = 6) {
   return value.toFixed(digits).replace(/\.?0+$/, '');
 }
 
+export function getNormalizedCoordinatePair(latitudeValue, longitudeValue) {
+  const latitude = parseCoordinateValue(latitudeValue, 'latitude');
+  const longitude = parseCoordinateValue(longitudeValue, 'longitude');
+
+  if (latitude !== null && longitude !== null) {
+    return { lat: latitude, lng: longitude, swapped: false };
+  }
+
+  const swappedLatitude = parseCoordinateValue(longitudeValue, 'latitude');
+  const swappedLongitude = parseCoordinateValue(latitudeValue, 'longitude');
+
+  if (swappedLatitude !== null && swappedLongitude !== null) {
+    return { lat: swappedLatitude, lng: swappedLongitude, swapped: true };
+  }
+
+  return null;
+}
+
 export function normalizeCoordinateInput(value, axis) {
   if (value === null || value === undefined || value === '') {
     return '';
@@ -106,12 +124,27 @@ export function normalizeCoordinateInput(value, axis) {
   return formatCoordinateValue(parsed);
 }
 
-export function getStudyCoordinates(study, fallbackCoordinates) {
-  const latitude = parseCoordinateValue(study?.latitude, 'latitude');
-  const longitude = parseCoordinateValue(study?.longitude, 'longitude');
+export function normalizeCoordinateInputs(latitudeValue, longitudeValue) {
+  const pair = getNormalizedCoordinatePair(latitudeValue, longitudeValue);
+  if (pair) {
+    return {
+      latitude: formatCoordinateValue(pair.lat),
+      longitude: formatCoordinateValue(pair.lng),
+      swapped: pair.swapped,
+    };
+  }
 
-  if (latitude !== null && longitude !== null) {
-    return { lat: latitude, lng: longitude };
+  return {
+    latitude: normalizeCoordinateInput(latitudeValue, 'latitude'),
+    longitude: normalizeCoordinateInput(longitudeValue, 'longitude'),
+    swapped: false,
+  };
+}
+
+export function getStudyCoordinates(study, fallbackCoordinates) {
+  const pair = getNormalizedCoordinatePair(study?.latitude, study?.longitude);
+  if (pair) {
+    return { lat: pair.lat, lng: pair.lng };
   }
 
   const fallback = fallbackCoordinates?.[study?.id];
