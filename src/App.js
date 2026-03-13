@@ -449,9 +449,9 @@ function App() {
   }, [activeTextRankedStudies]);
 
   const filterBaseStudies = useMemo(() => {
-    let base = activeTextRankedStudies || caseStudies;
+    let base = aiFilteredStudies || activeTextRankedStudies || caseStudies;
 
-    if (textFilteredIds) {
+    if (textFilteredIds && !aiFilteredStudies) {
       base = base.filter(study => textFilteredIds.has(study.id));
     }
 
@@ -460,7 +460,7 @@ function App() {
     }
 
     return base;
-  }, [activeTextRankedStudies, textFilteredIds, showFavorites, favorites, caseStudies]);
+  }, [aiFilteredStudies, activeTextRankedStudies, textFilteredIds, showFavorites, favorites, caseStudies]);
 
   // Filter suggestions from fuzzy search
   const filterSuggestions = useMemo(() => {
@@ -549,7 +549,13 @@ function App() {
   }, []);
 
   const sortedStudies = useMemo(() => {
-    if (sortBy === 'default') return filteredStudies;
+    if (sortBy === 'default') {
+      if (aiFilteredStudies) {
+        // Sort by AI relevance score descending
+        return [...filteredStudies].sort((a, b) => (b._aiScore || 0) - (a._aiScore || 0));
+      }
+      return filteredStudies;
+    }
     const sorted = [...filteredStudies];
     switch (sortBy) {
       case 'title-az': sorted.sort((a, b) => a.title.localeCompare(b.title)); break;
@@ -984,7 +990,7 @@ function App() {
             <div className="results-header">
               <div className="results-heading">
                 <span className="results-count">
-                  {aiFilteredStudies ? aiFilteredStudies.length : filteredStudies.length} of {caseStudies.length} solutions
+                  {filteredStudies.length} of {aiFilteredStudies ? aiFilteredStudies.length : caseStudies.length} solutions
                   {activeTextQueries.length > 0 && !aiFilteredStudies && (
                     <span className="fuzzy-label"> (local retrieval)</span>
                   )}
@@ -1036,10 +1042,10 @@ function App() {
             </div>
 
             {view === 'map' ? (
-              <MapView studies={aiFilteredStudies || sortedStudies} onSelect={setSelectedStudy} />
+              <MapView studies={sortedStudies} onSelect={setSelectedStudy} />
             ) : (
               <CaseStudyGrid
-                studies={aiFilteredStudies || sortedStudies}
+                studies={sortedStudies}
                 onSelect={setSelectedStudy}
                 view={view}
                 favorites={favorites}
@@ -1115,10 +1121,13 @@ function App() {
           onClose={() => { setShowDeepAI(false); setAiFilteredStudies(null); }}
           onSelectStudy={(study) => {
             setSelectedStudy(study);
-            if (showDeepAI === 'overlay') setShowDeepAI(false);
+          }}
+          onFilteredResults={(studies) => {
+            if (showDeepAI === 'sidebar') setAiFilteredStudies(studies);
           }}
           onShowAllResults={(studies) => {
             setAiFilteredStudies(studies);
+            setSortBy('default');
             setShowDeepAI('sidebar');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}

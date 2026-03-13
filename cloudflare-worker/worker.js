@@ -3,6 +3,7 @@
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'openai/gpt-oss-20b';
 const DAILY_LIMIT = 150;
+const THINKING_DAILY_LIMIT = 75; // separate bucket for thinking queries (2 API calls each)
 const KV_TTL = 86400; // 24 hours
 
 // ---------------------------------------------------------------------------
@@ -37,7 +38,7 @@ const CHAT_RESPONSE_SCHEMA = {
       'innovation',
       'city', 'country', 'year_min', 'year_max',
       'text_query', 'reasoning', 'summary',
-      'match_logic',
+      'match_logic', 'exclude', 'keywords',
     ],
     additionalProperties: false,
     properties: {
@@ -99,6 +100,20 @@ const CHAT_RESPONSE_SCHEMA = {
           optional: { type: 'array', items: { type: 'string' } },
         },
       },
+      exclude: {
+        type: 'object',
+        required: ['categories', 'city', 'country'],
+        additionalProperties: false,
+        properties: {
+          categories: { type: 'array', items: {
+            type: 'object', required: ['key', 'values'], additionalProperties: false,
+            properties: { key: { type: 'string' }, values: { type: 'array', items: { type: 'string' } } },
+          }},
+          city: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+          country: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+        },
+      },
+      keywords: { anyOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }] },
     },
   },
 };
@@ -176,7 +191,21 @@ OTHER FIELDS:
 - country: free text string or null
 - year_min: integer or null
 - year_max: integer or null
-- text_query: remaining free-text for fuzzy search, or null`;
+- text_query: remaining free-text for fuzzy search, or null
+
+EXCLUDE (negation):
+When the user says "not in Italy", "exclude Milan", "no green roofs", etc., use the "exclude" object:
+- exclude.country = "Italy" for "not in Italy"
+- exclude.city = "Milan" for "exclude Milan"
+- exclude.categories = [{ key: "d4_roof_facade", values: ["Extensive green roofs"] }] for "no extensive green roofs"
+Only set exclude fields when the user explicitly negates something. Leave as null / empty array otherwise.
+Examples: "projects not in Italy" → exclude: { categories: [], city: null, country: "Italy" }
+"green roofs but not in Milan" → city: null, exclude: { categories: [], city: "Milan", country: null }
+
+KEYWORDS:
+- keywords = free-text terms capturing semantic intent beyond structured filters, fuzzy-searched against title/description/city/designer/innovations. Up to 10 terms.
+- Use keywords for concepts that don't map to any filter category, e.g. "playground", "elderly", "flooding", "depaving initiative".
+- Set to null when all intent is captured by structured filters.`;
 
 const ANALYZE_SYSTEM_PROMPT = `You are the TALEA Abacus analysis assistant. You help users understand why specific nature-based solution (NBS) projects match their search query.
 
@@ -189,39 +218,104 @@ When given a user query and a list of matching projects, provide a concise, insi
 
 Keep your response focused, informative, and under 300 words. Use plain language accessible to urban planners, researchers, and students.`;
 
+const THINKING_PASS1_PROMPT = CHAT_SYSTEM_PROMPT + `
+
+IMPORTANT — THINKING MODE (softer filtering):
+You are in deep-thinking mode. Be MORE GENEROUS with filter selections:
+- Use MORE optional keys and FEWER required keys to cast a wider net.
+- If a concept is loosely related to a filter category, include it as optional.
+- Set keywords generously — capture synonyms, related concepts, and sub-themes.
+- Prefer multiple short scenarios over one strict one.
+- The goal is to return 10-20 candidate projects, not to narrow precisely.`;
+
+const THINKING_PASS2_SCHEMA = {
+  name: 'thinking_analysis',
+  strict: true,
+  schema: {
+    type: 'object',
+    required: ['top_projects', 'overall_analysis'],
+    additionalProperties: false,
+    properties: {
+      top_projects: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['id', 'title', 'relevance_score', 'explanation'],
+          additionalProperties: false,
+          properties: {
+            id: { anyOf: [{ type: 'string' }, { type: 'integer' }] },
+            title: { type: 'string' },
+            relevance_score: { type: 'number' },
+            explanation: { type: 'string' },
+          },
+        },
+      },
+      overall_analysis: { type: 'string' },
+    },
+  },
+};
+
+const THINKING_PASS2_PROMPT = `You are the TALEA Abacus Deep Scan Judge — an expert in urban planning, landscape architecture, and Nature-Based Solutions (NBS) with deep knowledge of World cities and public-space transformation projects.
+
+You will receive the USER'S EXACT QUERY and up to 10 candidate projects (as minified JSON) that passed a broad keyword filter. Your job is to critically evaluate each candidate against the user's specific intent.
+
+EVALUATION RULES:
+
+1. USE YOUR PROFESSIONAL KNOWLEDGE: Go beyond the JSON fields. Apply what you know about these cities, climates, construction methods, and NBS typologies and most. If the user asks for permanent stormwater management and a candidate is clearly a temporary tactical urbanism installation, reject it — even if the tags overlap.
+
+2. MATCH THE USER'S ACTUAL INTENT: Read the query carefully for implicit constraints. "Large-scale biodiversity corridor" is NOT satisfied by a single rooftop garden. "Projects for elderly residents" requires evidence of accessibility or intergenerational design, not just a public park. If a constraint is explicit ("not in Italy", "more than 5 hectares", "designed after 2020"), enforce it strictly.
+
+3. RETURN MAXIMUM 3 PROJECTS: Select only the candidates that genuinely and specifically match the query. If only 1 or 2 truly fit, return only those. Quality over quantity.
+
+4. ACCEPT ZERO MATCHES: If NONE of the candidates truly satisfy the user's request, return an EMPTY top_projects array []. Do not force a mediocre fit. A honest "no strong match" is more valuable than a misleading recommendation.
+
+5. SCORE WITH PURPOSE: relevance_score (0-100) reflects how well the project addresses the user's specific request, not general project quality. A world-class project scores 0 if it is irrelevant to the query.
+
+6. EXPLAIN WITH SPECIFICS: Each explanation must reference concrete details — the NBS elements used, the urban context, the design approach, or the spatial scale — not generic praise. Explain WHY this project answers this query.
+
+OUTPUT FORMAT (strict JSON schema):
+- top_projects: Array of 0 to 3 objects, sorted by relevance_score descending. Each: { id, title, relevance_score (0-100), explanation (1-2 sentences with specific architectural/planning reasoning) }.
+- overall_analysis: Markdown summary (200-300 words) with ## headings. Explain your selection logic. If you rejected candidates, briefly say why. Highlight patterns across the top matches and offer the user practical insight.`;
+
 // ---------------------------------------------------------------------------
 // CORS helpers
 // ---------------------------------------------------------------------------
 
 function corsHeaders(origin, allowedOrigin) {
-  // Allow the configured origin, or allow all in dev (when ALLOWED_ORIGIN is not set or is "*")
-  const isAllowed = !allowedOrigin || allowedOrigin === '*' || origin === allowedOrigin;
+  // Support comma-separated ALLOWED_ORIGIN list
+  let isAllowed = !allowedOrigin || allowedOrigin === '*';
+  if (!isAllowed && allowedOrigin) {
+    const origins = allowedOrigin.split(',').map(o => o.trim());
+    isAllowed = origins.includes(origin);
+  }
   return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : allowedOrigin,
+    'Access-Control-Allow-Origin': isAllowed ? origin : (allowedOrigin || '*'),
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Expose-Headers': 'X-RateLimit-Remaining',
     'Access-Control-Max-Age': '86400',
   };
 }
 
 function isOriginAllowed(origin, allowedOrigin) {
   if (!allowedOrigin || allowedOrigin === '*') return true;
-  return origin === allowedOrigin;
+  const origins = allowedOrigin.split(',').map(o => o.trim());
+  return origins.includes(origin);
 }
 
 // ---------------------------------------------------------------------------
 // Rate limiting
 // ---------------------------------------------------------------------------
 
-async function checkRateLimit(ip, kv) {
+async function checkRateLimit(ip, kv, prefix = 'rate', limit = DAILY_LIMIT) {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const key = `rate:${ip}:${today}`;
+  const key = `${prefix}:${ip}:${today}`;
   const current = parseInt(await kv.get(key) || '0', 10);
-  if (current >= DAILY_LIMIT) {
+  if (current >= limit) {
     return { allowed: false, remaining: 0 };
   }
   await kv.put(key, String(current + 1), { expirationTtl: KV_TTL });
-  return { allowed: true, remaining: DAILY_LIMIT - current - 1 };
+  return { allowed: true, remaining: limit - current - 1 };
 }
 
 // ---------------------------------------------------------------------------
@@ -285,28 +379,105 @@ async function handleChat(request, env) {
 }
 
 async function handleAnalyze(request, env) {
-  const { query, projects } = await request.json();
+  const { query, projects, scenarios } = await request.json();
 
   if (!query || typeof query !== 'string') {
     return new Response(JSON.stringify({ error: 'Missing "query" field' }), { status: 400 });
   }
 
-  if (!Array.isArray(projects) || projects.length === 0 || projects.length > 3) {
-    return new Response(JSON.stringify({ error: '"projects" must be an array of 1-3 items' }), { status: 400 });
+  if (!Array.isArray(projects) || projects.length === 0 || projects.length > 10) {
+    return new Response(JSON.stringify({ error: '"projects" must be an array of 1-10 items' }), { status: 400 });
   }
 
   const projectDescriptions = projects.map((p, i) =>
-    `Project ${i + 1}: "${p.title}" — ${p.city}, ${p.country}\n${p.description || 'No description available.'}`
+    `Project ${i + 1}: "${p.title}" — ${p.city}, ${p.country}${p.scenario ? ` [Scenario: ${p.scenario}]` : ''}\n${p.description || 'No description available.'}`
   ).join('\n\n');
 
+  let systemPrompt = ANALYZE_SYSTEM_PROMPT;
+  if (scenarios && scenarios.length > 1) {
+    systemPrompt += `\n\nIMPORTANT: The results come from ${scenarios.length} distinct search scenarios: ${scenarios.map(s => `"${s}"`).join(', ')}. Organize your analysis with a separate ## section for each scenario. Do not cross-compare projects from different scenarios.`;
+  }
+
   const messages = [
-    { role: 'system', content: ANALYZE_SYSTEM_PROMPT },
+    { role: 'system', content: systemPrompt },
     { role: 'user', content: `User query: "${query}"\n\nMatching projects:\n\n${projectDescriptions}` },
   ];
 
   const content = await callGroq(env.GROQ_API_KEY, messages, null);
 
   return new Response(JSON.stringify({ analysis: content }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+async function handleThinkPass1(request, env) {
+  const { message } = await request.json();
+
+  if (!message || typeof message !== 'string') {
+    return new Response(JSON.stringify({ error: 'Missing "message" field' }), { status: 400 });
+  }
+
+  const messages = [
+    { role: 'system', content: THINKING_PASS1_PROMPT },
+    { role: 'user', content: message },
+  ];
+
+  const content = await callGroq(env.GROQ_API_KEY, messages, {
+    type: 'json_schema',
+    json_schema: CHAT_RESPONSE_SCHEMA,
+  });
+
+  return new Response(content, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function minifyStudy(study) {
+  const result = {};
+  for (const [key, value] of Object.entries(study)) {
+    if (key.startsWith('_')) continue; // skip internal fields
+    if (value === null || value === undefined) continue;
+    if (value === '') continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+    result[key] = value;
+  }
+  return result;
+}
+
+// Stateless: pass2 receives NO context from pass1 — only the original user
+// query and the filtered candidate projects. This prevents hallucinations
+// and keeps token usage minimal.
+async function handleThinkPass2(request, env) {
+  const { query, projects } = await request.json();
+
+  if (!query || typeof query !== 'string') {
+    return new Response(JSON.stringify({ error: 'Missing "query" field' }), { status: 400 });
+  }
+
+  if (!Array.isArray(projects) || projects.length === 0 || projects.length > 20) {
+    return new Response(JSON.stringify({ error: '"projects" must be an array of 1-20 items' }), { status: 400 });
+  }
+
+  const projectData = projects.map((p, i) =>
+    `Project ${i + 1} (id: ${p.id}):\n${JSON.stringify(minifyStudy(p), null, 0)}`
+  ).join('\n\n');
+
+  // The user's original query is placed first and prominently so the judge
+  // evaluates candidates strictly against the actual user intent.
+  const messages = [
+    { role: 'system', content: THINKING_PASS2_PROMPT },
+    {
+      role: 'user',
+      content: `THE USER'S ORIGINAL REQUEST:\n"${query}"\n\n---\n\nCANDIDATE PROJECTS TO EVALUATE (${projects.length}):\n\n${projectData}`,
+    },
+  ];
+
+  const content = await callGroq(env.GROQ_API_KEY, messages, {
+    type: 'json_schema',
+    json_schema: THINKING_PASS2_SCHEMA,
+  });
+
+  return new Response(content, {
     headers: { 'Content-Type': 'application/json' },
   });
 }
@@ -342,12 +513,15 @@ export default {
       });
     }
 
-    // Rate limiting
+    // Determine rate limit bucket
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-    const rateResult = await checkRateLimit(ip, env.RATE_LIMIT);
+    const isThinking = url.pathname.startsWith('/api/think-');
+    const ratePrefix = isThinking ? 'rate:thinking' : 'rate';
+    const rateLimit = isThinking ? THINKING_DAILY_LIMIT : DAILY_LIMIT;
+    const rateResult = await checkRateLimit(ip, env.RATE_LIMIT, ratePrefix, rateLimit);
     if (!rateResult.allowed) {
       return new Response(JSON.stringify({
-        error: 'Daily rate limit exceeded. You can make up to 15 AI requests per day.',
+        error: `Daily rate limit exceeded. You can make up to ${rateLimit} ${isThinking ? 'deep search' : 'AI'} requests per day.`,
         remaining: 0,
       }), {
         status: 429,
@@ -366,6 +540,10 @@ export default {
         response = await handleChat(request, env);
       } else if (url.pathname === '/api/analyze') {
         response = await handleAnalyze(request, env);
+      } else if (url.pathname === '/api/think-pass1') {
+        response = await handleThinkPass1(request, env);
+      } else if (url.pathname === '/api/think-pass2') {
+        response = await handleThinkPass2(request, env);
       } else {
         response = new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
       }
