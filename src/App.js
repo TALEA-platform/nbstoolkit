@@ -571,7 +571,7 @@ function App() {
       default: break;
     }
     return sorted;
-  }, [filteredStudies, sortBy, extractYear]);
+  }, [filteredStudies, sortBy, extractYear, aiFilteredStudies]);
 
   const handleExportPDF = useCallback(() => {
     exportFilteredResultsPDF(filteredStudies, activeFilters);
