@@ -432,12 +432,21 @@ async function handleThinkPass1(request, env) {
   });
 }
 
+// Pass2 judge only needs core identity + narrative fields.
+// All structured filter arrays (a1-d6, b1-b6, c1-c4, etc.) are stripped —
+// pass1 already used them to select candidates; the judge evaluates intent
+// from description, innovation texts, and its own world knowledge.
+const JUDGE_KEEP = new Set([
+  'id', 'title', 'city', 'country', 'year', 'designer',
+  'description', 'size', 'climate_zone', 'talea_application',
+  'physical_innovation', 'social_innovation', 'digital_innovation',
+]);
+
 function minifyStudy(study) {
   const result = {};
-  for (const [key, value] of Object.entries(study)) {
-    if (key.startsWith('_')) continue; // skip internal fields
-    if (value === null || value === undefined) continue;
-    if (value === '') continue;
+  for (const key of JUDGE_KEEP) {
+    const value = study[key];
+    if (value === null || value === undefined || value === '') continue;
     if (Array.isArray(value) && value.length === 0) continue;
     result[key] = value;
   }
@@ -454,8 +463,8 @@ async function handleThinkPass2(request, env) {
     return new Response(JSON.stringify({ error: 'Missing "query" field' }), { status: 400 });
   }
 
-  if (!Array.isArray(projects) || projects.length === 0 || projects.length > 20) {
-    return new Response(JSON.stringify({ error: '"projects" must be an array of 1-20 items' }), { status: 400 });
+  if (!Array.isArray(projects) || projects.length === 0 || projects.length > 10) {
+    return new Response(JSON.stringify({ error: '"projects" must be an array of 1-10 items' }), { status: 400 });
   }
 
   const projectData = projects.map((p, i) =>

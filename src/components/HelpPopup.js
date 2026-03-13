@@ -11,12 +11,15 @@ const HELP_PAGES = [
     ],
   },
   {
-    title: 'Search & Chat',
+    title: 'Deep AI Search',
     icon: '🔍',
     content: [
-      { heading: 'Multi-word search', text: 'Type multiple words. Use a minus sign before a word (e.g. "-tropical") to exclude results containing that word.' },
-      { heading: 'Smart chat', text: 'When you press Enter, the assistant analyzes your query and tells you about matching results, suggested filters, and specific case studies. It also suggests common filters among your results.' },
-      { heading: 'Slash commands', text: 'Type / in the search bar to see available commands like /map, /stats, /compare, /clear, /export, /favorites, and more.' },
+      { heading: 'How it works', text: 'Click the star icon in the header to open the AI Search panel. Type a natural-language query (e.g. "green roofs in Mediterranean cities" or "community gardens not in Italy") and the AI translates it into structured filters across all 29 categories.' },
+      { heading: 'Quick mode (default)', text: 'Quick mode runs a single AI pass that generates filters, applies them locally, and shows matching projects ranked by relevance. It also provides an analysis of why the results match your query.' },
+      { heading: 'Deep Research mode', text: 'Click the "Deep" button to activate Deep Research. This runs a two-pass analysis: first a broad filter scan finds candidates, then an expert AI judge evaluates each one against your specific intent using real-world knowledge. Results are limited to the best 1-3 projects — or none if nothing truly fits.' },
+      { heading: 'Exclusion & keywords', text: 'The AI understands negations ("not in Italy", "exclude green roofs") and semantic keywords beyond the structured filters. It also supports complex queries like "projects in Milan, or ones with rain gardens and biodiversity goals".' },
+      { heading: 'Grid view', text: 'After getting results, click "See all results" or the Grid button in the header to see AI results in the main grid. Your normal filters and search still work on top of the AI results. Click the button again to return to the chat.' },
+      { heading: 'Daily limits', text: 'AI search has a daily usage limit per user. Deep Research uses a separate, smaller quota since it costs two AI calls per query. A warning appears when you are running low.' },
     ],
   },
   {
@@ -26,7 +29,7 @@ const HELP_PAGES = [
       { heading: 'How it works', text: 'The Filter Canvas is a visual query builder. Open the palette to see all filter categories organized in groups. Click or drag filters onto the canvas.' },
       { heading: 'Include / Exclude', text: 'Filters are green by default (include). You can exclude filters in two ways: (1) Click the NOT button in the canvas toolbar to activate NOT mode — while active, any palette item you click is added as an exclusion filter (red "NOT" chip). (2) After adding a filter, click the toggle button (-/+) on its chip to switch between include and exclude. Excluded filters remove matching results.' },
       { heading: 'AND / OR logic', text: 'Within a single category: when two or more filters are active, a toggle appears to switch between OR (match any — default) and AND (match all). Across different categories: filters always combine with AND, meaning a study must satisfy every category\'s condition. For example, selecting "Small" in Size AND "Tropical" in Climate shows only studies that are both small and tropical.' },
-      { heading: 'Exclusion with minus (-)', text: 'Prefix a search word with minus (e.g. "-tropical") to exclude results containing that term. On the filter canvas, click the +/- toggle on a chip to switch it to an exclusion filter (red NOT chip). Excluded filters remove any matching results.' },
+      { heading: 'Stacking with AI results', text: 'When AI search results are active, your filter canvas and search bar work on top of the AI-filtered pool. This lets you further narrow down AI results with manual filters.' },
     ],
   },
   {
@@ -49,7 +52,7 @@ const HELP_PAGES = [
       { heading: 'Compare mode', text: 'Select 2-3 studies using the compare checkbox on cards, then click Compare to see them side by side.' },
       { heading: 'Statistics', text: 'Click the bar chart icon to open the Statistics Dashboard with charts showing NBS distribution, top countries, climate zones, and size distribution.' },
       { heading: 'Similar studies', text: 'Open any case study detail view to see a "Similar Studies" section at the bottom, showing related projects based on size, climate, country, NBS elements, and goals.' },
-      { heading: 'Share', text: 'Click the share button to copy a URL with your current filters and search query encoded in it.' },
+      { heading: 'Slash commands', text: 'Type / in the search bar to see available commands like /map, /stats, /compare, /clear, /export, /favorites, and more.' },
       { heading: 'Theme', text: 'Toggle between light and dark themes using the sun/moon button.' },
     ],
   },

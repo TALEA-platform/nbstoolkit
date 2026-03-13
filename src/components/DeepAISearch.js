@@ -159,14 +159,13 @@ function TypewriterMessage({ text, speed, onDone }) {
   return <div>{renderMarkdown(displayed)}{!done && <span className="typing-cursor">|</span>}</div>;
 }
 
-function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, onFilteredResults, mode }) {
+function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, onFilteredResults, onToggleMode, mode }) {
   const isSidebar = mode === 'sidebar';
   const [messages, setMessages] = useState(() => loadChat() || [GREETING]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [rateLimitHit, setRateLimitHit] = useState(false);
   const [remainingRequests, setRemainingRequests] = useState(-1);
-  const [viewMode, setViewMode] = useState('chat'); // 'chat' | 'results'
   const [searchDepth, setSearchDepth] = useState('quick'); // 'quick' | 'deep'
   const [progressMsg, setProgressMsg] = useState('');
   const chatEndRef = useRef(null);
@@ -396,6 +395,37 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
     onShowAllResults(resolved);
   }, [lastResultStudies, onShowAllResults, resolveStudy]);
 
+  const handleToggleGridView = useCallback(() => {
+    if (isSidebar) {
+      // Already in sidebar (grid visible) → go back to overlay (chat only)
+      if (onToggleMode) onToggleMode('overlay');
+    } else {
+      // In overlay → switch to sidebar + show results in grid
+      if (lastResultStudies && lastResultStudies.length > 0) {
+        const resolved = lastResultStudies.map(s => resolveStudy(s));
+        if (onShowAllResults) onShowAllResults(resolved);
+      } else if (onToggleMode) {
+        onToggleMode('sidebar');
+      }
+    }
+  }, [isSidebar, lastResultStudies, onShowAllResults, onToggleMode, resolveStudy]);
+
+  const handleToggleDeep = useCallback(() => {
+    const newDepth = searchDepth === 'deep' ? 'quick' : 'deep';
+    setSearchDepth(newDepth);
+    if (newDepth === 'deep') {
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'bot',
+          text: '**Deep Research activated.** Your next query will run a two-pass analysis: first a broad filter scan, then an expert evaluation of the top candidates. This uses AI world-knowledge to judge relevance — not just tag matching. Results are limited to the best 1-3 projects (or none if nothing truly fits).',
+          type: 'system',
+          _new: true,
+        },
+      ]);
+    }
+  }, [searchDepth]);
+
   const showLowUsageWarning = remainingRequests >= 0 && remainingRequests < DAILY_LIMIT * 0.2;
 
   const panelContent = (
@@ -409,16 +439,24 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
           <span className="deep-ai-badge">Groq</span>
         </div>
         <div className="deep-ai-header-right">
-          <div className="deep-ai-view-toggle">
+          {lastResultStudies && lastResultStudies.length > 0 && (
             <button
-              className={`deep-ai-view-btn ${viewMode === 'chat' ? 'active' : ''}`}
-              onClick={() => setViewMode('chat')}
-            >Chat</button>
-            <button
-              className={`deep-ai-view-btn ${viewMode === 'results' ? 'active' : ''}`}
-              onClick={() => setViewMode('results')}
-            >Results</button>
-          </div>
+              className={`deep-ai-grid-toggle ${isSidebar ? 'active' : ''}`}
+              onClick={handleToggleGridView}
+              title={isSidebar ? 'Back to chat' : 'View results in grid'}
+            >
+              {isSidebar ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                </svg>
+              )}
+              <span>{isSidebar ? 'Chat' : 'Grid'}</span>
+            </button>
+          )}
           {messages.length > 1 && (
             <button className="deep-ai-clear" onClick={handleClearChat} title="Clear chat">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -434,98 +472,72 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
         </div>
       </div>
 
-      {viewMode === 'chat' ? (
-        <div className="deep-ai-messages">
-          {messages.map((msg, i) => (
-            <div key={i} className={`deep-ai-message ${msg.role}`}>
-              {msg.role === 'bot' && (
-                <div className="deep-ai-bot-avatar">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 16.4 5.7 21l2.3-7L2 9.4h7.6z"/>
-                  </svg>
-                </div>
-              )}
-              <div className={`deep-ai-bubble ${msg.role} ${msg.type === 'analysis' ? 'analysis' : ''} ${msg.type === 'error' ? 'error' : ''}`}>
-                {msg._new && msg.role === 'bot' && i === messages.length - 1 && msg.type !== 'greeting' ? (
-                  <TypewriterMessage text={msg.text} speed={12} />
-                ) : (
-                  <div>{renderMarkdown(msg.text)}</div>
-                )}
-                {msg.studies && msg.studies.length > 0 && (
-                  <div className="deep-ai-study-chips">
-                    <div className="deep-ai-study-chips-header">
-                      <span>{msg.studies.length} project{msg.studies.length !== 1 ? 's' : ''} found</span>
-                      {onShowAllResults && (
-                        <button className="deep-ai-see-all-btn" onClick={handleShowAll}>
-                          See all results
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                    <div className="deep-ai-study-chips-list">
-                      {msg.studies.map((study, j) => (
-                        <div
-                          key={j}
-                          className={`deep-ai-study-chip ${j < 3 ? 'top-match' : ''}`}
-                          onClick={() => onSelectStudy && onSelectStudy(resolveStudy(study))}
-                        >
-                          {j < 3 && <span className="deep-ai-chip-rank">#{j + 1}</span>}
-                          <div className="deep-ai-chip-info">
-                            <strong>{study.title}</strong>
-                            <span>{study.city}, {study.country}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          {loading && (
-            <div className="deep-ai-message bot">
+      <div className="deep-ai-messages">
+        {messages.map((msg, i) => (
+          <div key={i} className={`deep-ai-message ${msg.role}`}>
+            {msg.role === 'bot' && (
               <div className="deep-ai-bot-avatar">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 16.4 5.7 21l2.3-7L2 9.4h7.6z"/>
                 </svg>
               </div>
-              <div className="deep-ai-bubble bot loading">
-                {progressMsg && <span className="deep-ai-progress-text">{progressMsg}</span>}
-                <span className="deep-ai-dots">
-                  <span /><span /><span />
-                </span>
-              </div>
-            </div>
-          )}
-          <div ref={chatEndRef} />
-        </div>
-      ) : (
-        <div className="deep-ai-results-view">
-          {lastResultStudies && lastResultStudies.length > 0 ? (
-            <div className="deep-ai-results-list">
-              {lastResultStudies.map((study, j) => (
-                <div
-                  key={j}
-                  className={`deep-ai-result-card ${j < 3 ? 'top-match' : ''}`}
-                  onClick={() => onSelectStudy && onSelectStudy(resolveStudy(study))}
-                >
-                  <span className="deep-ai-result-rank">#{j + 1}</span>
-                  <div className="deep-ai-result-info">
-                    <strong>{study.title}</strong>
-                    <span>{study.city}, {study.country}</span>
+            )}
+            <div className={`deep-ai-bubble ${msg.role} ${msg.type === 'analysis' ? 'analysis' : ''} ${msg.type === 'error' ? 'error' : ''} ${msg.type === 'system' ? 'system-msg' : ''}`}>
+              {msg._new && msg.role === 'bot' && i === messages.length - 1 && msg.type !== 'greeting' ? (
+                <TypewriterMessage text={msg.text} speed={12} />
+              ) : (
+                <div>{renderMarkdown(msg.text)}</div>
+              )}
+              {msg.studies && msg.studies.length > 0 && (
+                <div className="deep-ai-study-chips">
+                  <div className="deep-ai-study-chips-header">
+                    <span>{msg.studies.length} project{msg.studies.length !== 1 ? 's' : ''} found</span>
+                    {onShowAllResults && (
+                      <button className="deep-ai-see-all-btn" onClick={handleShowAll}>
+                        See all results
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="deep-ai-study-chips-list">
+                    {msg.studies.map((study, j) => (
+                      <div
+                        key={j}
+                        className={`deep-ai-study-chip ${j < 3 ? 'top-match' : ''}`}
+                        onClick={() => onSelectStudy && onSelectStudy(resolveStudy(study))}
+                      >
+                        {j < 3 && <span className="deep-ai-chip-rank">#{j + 1}</span>}
+                        <div className="deep-ai-chip-info">
+                          <strong>{study.title}</strong>
+                          <span>{study.city}, {study.country}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
-          ) : (
-            <div className="deep-ai-results-empty">
-              <p>No results yet. Ask a question to get started.</p>
+          </div>
+        ))}
+        {loading && (
+          <div className="deep-ai-message bot">
+            <div className="deep-ai-bot-avatar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 16.4 5.7 21l2.3-7L2 9.4h7.6z"/>
+              </svg>
             </div>
-          )}
-        </div>
-      )}
+            <div className="deep-ai-bubble bot loading">
+              {progressMsg && <span className="deep-ai-progress-text">{progressMsg}</span>}
+              <span className="deep-ai-dots">
+                <span /><span /><span />
+              </span>
+            </div>
+          </div>
+        )}
+        <div ref={chatEndRef} />
+      </div>
 
       <div className="deep-ai-input-area">
         {showLowUsageWarning && (
@@ -534,18 +546,18 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
           </div>
         )}
         <div className="deep-ai-input-row">
-          <div className="deep-ai-depth-toggle" title={searchDepth === 'quick' ? 'Quick: single-pass filter search' : 'Deep: two-pass analysis with full project data'}>
-            <button
-              className={`deep-ai-depth-btn ${searchDepth === 'quick' ? 'active' : ''}`}
-              onClick={() => setSearchDepth('quick')}
-              disabled={loading}
-            >Quick</button>
-            <button
-              className={`deep-ai-depth-btn deep ${searchDepth === 'deep' ? 'active' : ''}`}
-              onClick={() => setSearchDepth('deep')}
-              disabled={loading}
-            >Deep</button>
-          </div>
+          <button
+            className={`deep-ai-deep-toggle ${searchDepth === 'deep' ? 'active' : ''}`}
+            onClick={handleToggleDeep}
+            disabled={loading}
+            title={searchDepth === 'deep' ? 'Deep Research ON — click to switch to Quick mode' : 'Activate Deep Research (two-pass expert analysis)'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              {searchDepth === 'deep' && <path d="M11 8v6M8 11h6"/>}
+            </svg>
+            <span>Deep</span>
+          </button>
           <input
             ref={inputRef}
             type="text"

@@ -1125,6 +1125,7 @@ function App() {
           onFilteredResults={(studies) => {
             if (showDeepAI === 'sidebar') setAiFilteredStudies(studies);
           }}
+          onToggleMode={(newMode) => setShowDeepAI(newMode)}
           onShowAllResults={(studies) => {
             setAiFilteredStudies(studies);
             setSortBy('default');
