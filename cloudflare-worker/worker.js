@@ -322,12 +322,12 @@ async function checkRateLimit(ip, kv, prefix = 'rate', limit = DAILY_LIMIT) {
 // Groq API call
 // ---------------------------------------------------------------------------
 
-async function callGroq(apiKey, messages, responseFormat) {
+async function callGroq(apiKey, messages, responseFormat, maxTokens = 2048) {
   const body = {
     model: MODEL,
     messages,
     temperature: 0.3,
-    max_tokens: 2048,
+    max_tokens: maxTokens,
   };
   if (responseFormat) {
     body.response_format = responseFormat;
@@ -463,8 +463,8 @@ async function handleThinkPass2(request, env) {
     return new Response(JSON.stringify({ error: 'Missing "query" field' }), { status: 400 });
   }
 
-  if (!Array.isArray(projects) || projects.length === 0 || projects.length > 10) {
-    return new Response(JSON.stringify({ error: '"projects" must be an array of 1-10 items' }), { status: 400 });
+  if (!Array.isArray(projects) || projects.length === 0 || projects.length > 5) {
+    return new Response(JSON.stringify({ error: '"projects" must be an array of 1-5 items' }), { status: 400 });
   }
 
   const projectData = projects.map((p, i) =>
@@ -481,10 +481,11 @@ async function handleThinkPass2(request, env) {
     },
   ];
 
+  // Pass2 output is small (max 3 projects + short analysis) — use 1024 tokens
   const content = await callGroq(env.GROQ_API_KEY, messages, {
     type: 'json_schema',
     json_schema: THINKING_PASS2_SCHEMA,
-  });
+  }, 1024);
 
   return new Response(content, {
     headers: { 'Content-Type': 'application/json' },

@@ -248,7 +248,7 @@ async function fetchWithErrorHandling(url, options) {
  * The two passes share NO context — only the user's original query and the
  * candidate project data travel between them via the frontend.
  */
-export async function sendThinkingQuery(userMessage, caseStudies, { topN = 10, onProgress } = {}) {
+export async function sendThinkingQuery(userMessage, caseStudies, { topN = 5, onProgress } = {}) {
   // ---- Pass 1: broad filter generation ----
   if (onProgress) onProgress('Analyzing your query...');
 
