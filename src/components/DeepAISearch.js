@@ -254,7 +254,7 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
       // RAG analysis on top results (non-blocking)
       if (filtered.length > 0) {
         const scenarios = aiResponse.match_logic?.scenarios;
-        analyzeProjects(trimmed, filtered.slice(0, 10), scenarios)
+        analyzeProjects(trimmed, filtered.slice(0, 3), scenarios)
           .then(analysis => {
             const analysisText = analysis?.analysis || analysis?.text || analysis?.message;
             if (analysisText) {
@@ -304,7 +304,7 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
     setProgressMsg('Analyzing your query...');
     try {
       const result = await sendThinkingQuery(trimmed, caseStudies, {
-        topN: 10,
+        topN: 5,
         onProgress: (msg) => setProgressMsg(msg),
       });
 

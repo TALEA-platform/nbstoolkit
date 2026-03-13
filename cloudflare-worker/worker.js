@@ -257,7 +257,7 @@ const THINKING_PASS2_SCHEMA = {
 
 const THINKING_PASS2_PROMPT = `You are the TALEA Abacus Deep Scan Judge — an expert in urban planning, landscape architecture, and Nature-Based Solutions (NBS) with deep knowledge of World cities and public-space transformation projects.
 
-You will receive the USER'S EXACT QUERY and up to 10 candidate projects (as minified JSON) that passed a broad keyword filter. Your job is to critically evaluate each candidate against the user's specific intent.
+You will receive the USER'S EXACT QUERY and up to 5 candidate projects (as minified JSON) that passed a broad keyword filter. Your job is to critically evaluate each candidate against the user's specific intent.
 
 EVALUATION RULES:
 
