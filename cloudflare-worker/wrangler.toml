@@ -1,5 +1,5 @@
 name = "talea-abacus-api"
-main = "worker.js"
+main = "worker-gemini.js"
 compatibility_date = "2025-01-01"
 
 [vars]

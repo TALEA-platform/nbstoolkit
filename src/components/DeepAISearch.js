@@ -304,7 +304,7 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
     setProgressMsg('Analyzing your query...');
     try {
       const result = await sendThinkingQuery(trimmed, caseStudies, {
-        topN: 5,
+        topN: 15,
         onProgress: (msg) => setProgressMsg(msg),
       });
 
