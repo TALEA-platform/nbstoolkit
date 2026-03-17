@@ -11,15 +11,15 @@ const HELP_PAGES = [
     ],
   },
   {
-    title: 'Deep AI Search',
+    title: 'AI Assistant',
     icon: '🔍',
     content: [
-      { heading: 'How it works', text: 'Click the star icon in the header to open the AI Search panel. Type a natural-language query (e.g. "green roofs in Mediterranean cities" or "community gardens not in Italy") and the AI translates it into structured filters across all 29 categories.' },
+      { heading: 'How it works', text: 'Click the AI Assistant button in the header to open the AI panel. Type a natural-language query (e.g. "green roofs in Mediterranean cities" or "community gardens not in Italy") and the AI translates it into structured filters across all 29 categories.' },
       { heading: 'Quick mode (default)', text: 'Quick mode runs a single AI pass that generates filters, applies them locally, and shows matching projects ranked by relevance. It also provides an analysis of why the results match your query.' },
-      { heading: 'Deep Research mode', text: 'Click the "Deep" button to activate Deep Research. This runs a two-pass analysis: first a broad filter scan finds candidates, then an expert AI judge evaluates each one against your specific intent using real-world knowledge. Results are limited to the best 1-3 projects — or none if nothing truly fits.' },
+      { heading: 'Deep Research mode', text: 'Click the "Deep" button to activate Deep Research. This mode is more precise — it uses an expert AI judge to evaluate candidates and select only the most relevant projects for your specific query. Results are limited to the best 1-3 projects.' },
       { heading: 'Exclusion & keywords', text: 'The AI understands negations ("not in Italy", "exclude green roofs") and semantic keywords beyond the structured filters. It also supports complex queries like "projects in Milan, or ones with rain gardens and biodiversity goals".' },
       { heading: 'Grid view', text: 'After getting results, click "See all results" or the Grid button in the header to see AI results in the main grid. Your normal filters and search still work on top of the AI results. Click the button again to return to the chat.' },
-      { heading: 'Daily limits', text: 'AI search has a daily usage limit per user. Deep Research uses a separate, smaller quota since it costs two AI calls per query. A warning appears when you are running low.' },
+      { heading: 'Daily limits', text: 'AI search has a daily usage limit per user. Deep Research uses a separate, smaller quota. A warning appears when you are running low.' },
     ],
   },
   {

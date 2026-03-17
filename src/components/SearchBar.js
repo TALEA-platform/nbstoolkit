@@ -260,12 +260,12 @@ function SearchBar({
           type="button"
           className="deep-ai-btn"
           onClick={() => onOpenDeepAI && onOpenDeepAI()}
-          title="Open Deep AI Search powered by Groq"
+          title="Open AI Assistant"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 16.4 5.7 21l2.3-7L2 9.4h7.6z"/>
           </svg>
-          Deep AI Search
+          AI Assistant
         </button>
       </div>
 

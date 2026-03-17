@@ -30,7 +30,7 @@ function saveChat(messages) {
   } catch { /* quota exceeded — silently ignore */ }
 }
 
-const GREETING = { role: 'bot', text: "Hi! I'm the TALEA Deep AI assistant. Ask me anything about nature-based solutions — I'll search across all 29 categories to find the best matches.", type: 'greeting' };
+const GREETING = { role: 'bot', text: "Hi! I'm the TALEA AI Assistant — an intelligent search tool built on the TALEA Abacus case study database.\n\nDescribe what you're looking for in natural language and I'll find the most relevant nature-based solution projects. For example:\n- *\"green roofs in Mediterranean cities\"*\n- *\"community gardens not in Italy\"*\n- *\"small-scale projects with biodiversity goals\"*\n\nYou can also activate **Deep Research** for a more precise, expert-level analysis of the top candidates.", type: 'greeting' };
 
 // ---------------------------------------------------------------------------
 // Lightweight inline markdown renderer (no deps)
@@ -410,19 +410,24 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
     }
   }, [isSidebar, lastResultStudies, onShowAllResults, onToggleMode, resolveStudy]);
 
+  const deepMsgShown = useRef(false);
   const handleToggleDeep = useCallback(() => {
     const newDepth = searchDepth === 'deep' ? 'quick' : 'deep';
     setSearchDepth(newDepth);
-    if (newDepth === 'deep') {
+    if (newDepth === 'deep' && !deepMsgShown.current) {
+      deepMsgShown.current = true;
       setMessages(prev => [
         ...prev,
         {
           role: 'bot',
-          text: '**Deep Research activated.** Your next query will run a two-pass analysis: first a broad filter scan, then an expert evaluation of the top candidates. This uses AI world-knowledge to judge relevance — not just tag matching. Results are limited to the best 1-3 projects (or none if nothing truly fits).',
+          text: '**Deep Research activated.** Results will be more precise — an expert AI judge will evaluate candidates and select only the most relevant projects for your query.',
           type: 'system',
           _new: true,
         },
       ]);
+    } else if (newDepth === 'quick') {
+      setMessages(prev => prev.filter(m => m.type !== 'system'));
+      deepMsgShown.current = false;
     }
   }, [searchDepth]);
 
@@ -435,8 +440,7 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 16.4 5.7 21l2.3-7L2 9.4h7.6z"/>
           </svg>
-          <span className="deep-ai-title">Deep AI Search</span>
-          <span className="deep-ai-badge">Groq</span>
+          <span className="deep-ai-title">AI Assistant</span>
         </div>
         <div className="deep-ai-header-right">
           {lastResultStudies && lastResultStudies.length > 0 && (
