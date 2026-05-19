@@ -3,7 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      // Lock layout viewport to 850 on narrow phones so the desktop
+      // layout holds together; tablets and desktops keep device-width.
+      // Written via document.write during head parse so the browser
+      // commits to the right viewport on the first layout — mutating
+      // an existing meta after parse can leave DevTools' mobile
+      // emulation stuck at the original width.
+      (function () {
+        var narrow = window.screen && window.screen.width < 850;
+        var content = narrow
+          ? "width=850"
+          : "width=device-width, initial-scale=1.0";
+        document.write('<meta name="viewport" content="' + content + '">');
+      })();
+    </script>
     <meta name="theme-color" content="#21A84A" />
     <meta
       name="description"

@@ -77,16 +77,24 @@ body {
 
 /* ---- Header ---- */
 .app-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 32px;
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 3px solid var(--talea-green);
   position: sticky;
   top: 0;
   z-index: 100;
   backdrop-filter: blur(12px);
+  min-height: 96px;
+}
+
+.header-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 96px;
 }
 
 .header-left {
@@ -102,22 +110,27 @@ body {
 }
 
 .logo-text h1 {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
-  color: var(--talea-dark-green);
-  line-height: 1.2;
+  color: var(--talea-blue);
+  line-height: 1.15;
 }
 
 .logo-img {
-  height: 44px;
+  height: 46px;
   width: auto;
 }
 
 .logo-subtitle {
-  font-size: 11px;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #17231a;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
+}
+
+[data-theme="dark"] .logo-subtitle {
+  color: var(--text-primary);
 }
 
 .header-right {
@@ -2629,7 +2642,8 @@ body {
 .list-item-nbs {
   display: flex;
   gap: 6px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
   max-width: 250px;
   overflow: hidden;
 }
@@ -3595,12 +3609,29 @@ body {
     max-height: none;
   }
 
+  .results-area {
+    width: 100%;
+  }
+
   .filter-canvas-section {
     display: block;
   }
 
   .filter-canvas-section .canvas-dropzone {
     overflow: visible;
+  }
+}
+
+@media (max-width: 900px) {
+  .header-inner {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-right {
+    justify-content: center;
+    flex-wrap: wrap;
   }
 }
 
@@ -3617,9 +3648,14 @@ body {
   }
 
   .app-header {
+    min-height: 0;
+  }
+
+  .header-inner {
     flex-direction: column;
     gap: 12px;
     padding: 12px 16px;
+    min-height: 0;
   }
 
   .header-right {
@@ -3682,11 +3718,6 @@ body {
 
   .characteristics-grid {
     grid-template-columns: 1fr;
-  }
-
-  .list-item-nbs,
-  .list-item-meta {
-    display: none;
   }
 
   .search-bar-container {
@@ -3992,6 +4023,8 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .sort-select {

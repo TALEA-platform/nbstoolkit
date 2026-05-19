@@ -18,6 +18,7 @@ function Header({ onShowForm, activeFilterCount, onClearFilters, hasActiveTextSe
 
   return (
     <header className="app-header">
+      <div className="header-inner">
       <div className="header-left">
         <div className="logo">
           <img src={`${process.env.PUBLIC_URL}/talea-logo.png`} alt="TALEA" className="logo-img" />
@@ -106,6 +107,7 @@ function Header({ onShowForm, activeFilterCount, onClearFilters, hasActiveTextSe
           </svg>
           Submit New
         </button>
+      </div>
       </div>
     </header>
   );
