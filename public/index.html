@@ -11,9 +11,9 @@
       // an existing meta after parse can leave DevTools' mobile
       // emulation stuck at the original width.
       (function () {
-        var narrow = window.screen && window.screen.width < 850;
+        var narrow = window.screen && window.screen.width < 575;
         var content = narrow
-          ? "width=850"
+          ? "width=575"
           : "width=device-width, initial-scale=1.0";
         document.write('<meta name="viewport" content="' + content + '">');
       })();
