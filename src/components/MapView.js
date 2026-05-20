@@ -265,7 +265,7 @@ function MapView({ studies, onSelect }) {
       mapRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [center, ensureStudyLayers, geojson, mapStyle, onSelect, studies]);
+  }, []);
 
   // Update data when studies change
   useEffect(() => {
