@@ -1,8 +1,12 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import maplibregl from 'maplibre-gl';
+import maplibregl from 'maplibre-gl/dist/maplibre-gl-csp';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import cityCoordinates from '../data/cityCoordinates';
 import { getStudyCoordinates } from '../utils/coordinates';
+
+maplibregl.setWorkerUrl(
+  `${process.env.PUBLIC_URL || ''}/maplibre-gl-csp-worker.js`
+);
 
 const MAP_STYLES = {
   liberty: { label: 'Liberty', url: 'https://tiles.openfreemap.org/styles/liberty' },
