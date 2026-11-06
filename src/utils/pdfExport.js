@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { NBS_CATEGORIES } from '../data/filterConfig';
 import imageMap from '../data/imageMap';
 import getTaleaTypes from './getTaleaTypes';
+import { getLabelsWithDetails } from './otherDetails';
 
 // ─── Color palette ───────────────────────────────────────────────
 const C = {
@@ -115,9 +116,17 @@ function drawTagPills(doc, y, label, items, color) {
   const padX = 3;
   let x = MARGIN + 2;
 
-  for (const item of items) {
+  const textW = s => doc.getStringUnitWidth(s) * 7 / doc.internal.scaleFactor;
+  const maxTextW = W - MARGIN * 2 - 4 - padX * 2;
+
+  for (let item of items) {
     doc.setFontSize(7);
-    const tw = doc.getStringUnitWidth(item) * 7 / doc.internal.scaleFactor;
+    // Long "Other: …" texts: cut to one line
+    if (textW(item) > maxTextW) {
+      while (item.length > 1 && textW(item + '…') > maxTextW) item = item.slice(0, -1);
+      item = item.trimEnd() + '…';
+    }
+    const tw = textW(item);
     const pw = tw + padX * 2;
 
     if (x + pw > W - MARGIN) {
@@ -245,6 +254,11 @@ export async function exportSingleStudyPDF(study) {
   doc.setFont('helvetica', 'normal');
   doc.text(`${study.city}, ${study.country}  |  ${study.year}`, MARGIN, ty + 2);
 
+  if (imgData && study.image_credits) {
+    doc.setFontSize(6);
+    doc.text(`Image credits: ${study.image_credits}`, W - MARGIN, HERO_H - 4, { align: 'right' });
+  }
+
   y = HERO_H + 5;
 
   // ── Badges row ──
@@ -305,33 +319,33 @@ export async function exportSingleStudyPDF(study) {
 
   // ── A. Physical Characteristics ──
   y = drawSectionTitle(doc, y, 'A. Physical Characteristics');
-  y = drawTagPills(doc, y, 'A1 Urban Scale', study.a1_urban_scale, hexToRgb('#21A84A'));
-  y = drawTagPills(doc, y, 'A2 Urban Area', study.a2_urban_area, hexToRgb('#d69e2e'));
-  y = drawTagPills(doc, y, 'A3.1 Buildings', study.a3_1_buildings, hexToRgb('#1272B7'));
-  y = drawTagPills(doc, y, 'A3.2 Open Spaces', study.a3_2_open_spaces, hexToRgb('#21A84A'));
-  y = drawTagPills(doc, y, 'A3.3 Infrastructures', study.a3_3_infrastructures, hexToRgb('#1272B7'));
-  y = drawTagPills(doc, y, 'A4 Ownership', study.a4_ownership, hexToRgb('#004d19'));
-  y = drawTagPills(doc, y, 'A5 Management', study.a5_management, hexToRgb('#1272B7'));
-  y = drawTagPills(doc, y, 'A6 Uses', study.a6_uses, hexToRgb('#21A84A'));
-  y = drawTagPills(doc, y, 'A7 Other', study.a7_other, hexToRgb('#004d19'));
+  y = drawTagPills(doc, y, 'A1 Urban Scale', getLabelsWithDetails(study, 'a1_urban_scale'), hexToRgb('#21A84A'));
+  y = drawTagPills(doc, y, 'A2 Urban Area', getLabelsWithDetails(study, 'a2_urban_area'), hexToRgb('#d69e2e'));
+  y = drawTagPills(doc, y, 'A3.1 Buildings', getLabelsWithDetails(study, 'a3_1_buildings'), hexToRgb('#1272B7'));
+  y = drawTagPills(doc, y, 'A3.2 Open Spaces', getLabelsWithDetails(study, 'a3_2_open_spaces'), hexToRgb('#21A84A'));
+  y = drawTagPills(doc, y, 'A3.3 Infrastructures', getLabelsWithDetails(study, 'a3_3_infrastructures'), hexToRgb('#1272B7'));
+  y = drawTagPills(doc, y, 'A4 Ownership', getLabelsWithDetails(study, 'a4_ownership'), hexToRgb('#004d19'));
+  y = drawTagPills(doc, y, 'A5 Management', getLabelsWithDetails(study, 'a5_management'), hexToRgb('#1272B7'));
+  y = drawTagPills(doc, y, 'A6 Uses', getLabelsWithDetails(study, 'a6_uses'), hexToRgb('#21A84A'));
+  y = drawTagPills(doc, y, 'A7 Other', getLabelsWithDetails(study, 'a7_other'), hexToRgb('#004d19'));
 
   // ── B. Constraints & Opportunities ──
   y = drawSectionTitle(doc, y, 'B. Constraints & Opportunities');
-  y = drawTagPills(doc, y, 'B1 Physical', study.b1_physical, hexToRgb('#c53030'));
-  y = drawTagPills(doc, y, 'B2 Regulations', study.b2_regulations, hexToRgb('#d69e2e'));
-  y = drawTagPills(doc, y, 'B3 Uses & Management', study.b3_uses_management, hexToRgb('#21A84A'));
-  y = drawTagPills(doc, y, 'B4 Public Opinion', study.b4_public_opinion, hexToRgb('#1272B7'));
-  y = drawTagPills(doc, y, 'B5 Synergy', study.b5_synergy, hexToRgb('#004d19'));
-  y = drawTagPills(doc, y, 'B6 Social Opportunities', study.b6_social_opportunities, hexToRgb('#21A84A'));
+  y = drawTagPills(doc, y, 'B1 Physical', getLabelsWithDetails(study, 'b1_physical'), hexToRgb('#c53030'));
+  y = drawTagPills(doc, y, 'B2 Regulations', getLabelsWithDetails(study, 'b2_regulations'), hexToRgb('#d69e2e'));
+  y = drawTagPills(doc, y, 'B3 Uses & Management', getLabelsWithDetails(study, 'b3_uses_management'), hexToRgb('#21A84A'));
+  y = drawTagPills(doc, y, 'B4 Public Opinion', getLabelsWithDetails(study, 'b4_public_opinion'), hexToRgb('#1272B7'));
+  y = drawTagPills(doc, y, 'B5 Synergy', getLabelsWithDetails(study, 'b5_synergy'), hexToRgb('#004d19'));
+  y = drawTagPills(doc, y, 'B6 Social Opportunities', getLabelsWithDetails(study, 'b6_social_opportunities'), hexToRgb('#21A84A'));
 
   // ── C. Design Process & Results ──
   y = drawSectionTitle(doc, y, 'C. Design Process & Results');
-  y = drawTagPills(doc, y, 'C1.1 Design', study.c1_1_design, hexToRgb('#1272B7'));
-  y = drawTagPills(doc, y, 'C1.2 Funding', study.c1_2_funding, hexToRgb('#21A84A'));
-  y = drawTagPills(doc, y, 'C1.3 Management', study.c1_3_management, hexToRgb('#d69e2e'));
-  y = drawTagPills(doc, y, 'C2 Actors', study.c2_actors, hexToRgb('#1272B7'));
-  y = drawTagPills(doc, y, 'C3 Goals & Results', study.c3_goals, hexToRgb('#004d19'));
-  y = drawTagPills(doc, y, 'C4 Services', study.c4_services, hexToRgb('#21A84A'));
+  y = drawTagPills(doc, y, 'C1.1 Design', getLabelsWithDetails(study, 'c1_1_design'), hexToRgb('#1272B7'));
+  y = drawTagPills(doc, y, 'C1.2 Funding', getLabelsWithDetails(study, 'c1_2_funding'), hexToRgb('#21A84A'));
+  y = drawTagPills(doc, y, 'C1.3 Management', getLabelsWithDetails(study, 'c1_3_management'), hexToRgb('#d69e2e'));
+  y = drawTagPills(doc, y, 'C2 Actors', getLabelsWithDetails(study, 'c2_actors'), hexToRgb('#1272B7'));
+  y = drawTagPills(doc, y, 'C3 Goals & Results', getLabelsWithDetails(study, 'c3_goals'), hexToRgb('#004d19'));
+  y = drawTagPills(doc, y, 'C4 Services', getLabelsWithDetails(study, 'c4_services'), hexToRgb('#21A84A'));
 
   // ── C5 Impacts (structured) ──
   if (study.c5_impacts) {

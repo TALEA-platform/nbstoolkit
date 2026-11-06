@@ -3043,6 +3043,12 @@ a, button, [role="button"], .case-card, .case-list-item {
   border-radius: 12px;
 }
 
+/* Text written next to the option in the factsheet ("Other: Industrial area") */
+.modal-tag-detail {
+  color: var(--text-secondary, var(--text-muted));
+  font-style: italic;
+}
+
 .tag-empty {
   font-size: 12px;
   color: var(--text-muted);
@@ -3435,6 +3441,62 @@ a, button, [role="button"], .case-card, .case-list-item {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.form-field input.multi-other-input {
+  margin-top: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+.form-field-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Anti-spam field: off screen, people never see or reach it */
+.form-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.form-draft-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: rgba(33, 168, 74, 0.08);
+  border: 1px solid rgba(33, 168, 74, 0.25);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.form-draft-notice span {
+  flex: 1 1 200px;
+}
+
+.form-draft-notice button {
+  padding: 4px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.form-draft-notice button:hover {
+  border-color: var(--talea-green);
+  color: var(--talea-green);
 }
 
 .multi-option {
@@ -4410,6 +4472,19 @@ a, button, [role="button"], .case-card, .case-list-item {
   right: 0;
   height: 70%;
   background: linear-gradient(transparent, rgba(0, 77, 25, 0.85));
+}
+
+.modal-hero-credit {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  z-index: 1;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 [data-theme="dark"] .modal-hero-overlay {

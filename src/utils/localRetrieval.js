@@ -1,6 +1,7 @@
 import Fuse from 'fuse.js';
 import { FILTER_CATEGORIES, FILTER_GROUPS } from '../data/filterConfig';
 import { hasTaleaType } from './getTaleaTypes';
+import { getOtherDetailsText } from './otherDetails';
 
 const STOP_WORDS = new Set([
   'a', 'an', 'the', 'and', 'or', 'in', 'on', 'for', 'with', 'by', 'to',
@@ -261,6 +262,8 @@ const TEXT_FIELD_CONFIG = [
   { key: 'social_innovation', weight: 3.8, bucket: 'narrative' },
   { key: 'digital_innovation', weight: 3.4, bucket: 'narrative' },
   { key: 'c5_impacts', weight: 4.2, bucket: 'narrative' },
+  // "Other (specify)" texts, e.g. "Industrial area" (see utils/otherDetails.js)
+  { key: 'other_details', weight: 3.4, bucket: 'taxonomy', getText: getOtherDetailsText },
 ];
 
 const PHRASE_BUCKET_WEIGHTS = {
@@ -906,7 +909,7 @@ function buildStudyDoc(study) {
   };
 
   for (const field of TEXT_FIELD_CONFIG) {
-    const value = study[field.key];
+    const value = field.getText ? field.getText(study) : study[field.key];
     if (!value) continue;
 
     const text = Array.isArray(value) ? value.join(' ') : String(value);

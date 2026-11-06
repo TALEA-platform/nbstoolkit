@@ -1,6 +1,7 @@
 import Fuse from 'fuse.js';
 import { FILTER_CATEGORIES } from '../data/filterConfig';
 import { studyMatchesCategory } from './filterMatcher';
+import { getOtherDetailsText } from './otherDetails';
 
 const WORKER_URL = process.env.REACT_APP_WORKER_URL || 'https://talea-abacus-api.your-worker.workers.dev';
 
@@ -184,7 +185,7 @@ export function applyAIFilters(aiFilters, caseStudies) {
   if (keywords && keywords.length > 0) {
     const textFields = ['title', 'description', 'city', 'designer', 'physical_innovation', 'social_innovation', 'digital_innovation'];
     const docs = unionResults.map(study => {
-      const text = textFields.map(f => study[f] || '').join(' ');
+      const text = textFields.map(f => study[f] || '').concat(getOtherDetailsText(study)).join(' ');
       return { id: study.id || study.title, text };
     });
     const fuse = new Fuse(docs, { keys: ['text'], threshold: 0.4, includeScore: true });

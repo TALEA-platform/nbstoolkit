@@ -47,8 +47,7 @@ The app is fully client-side with no traditional backend. It relies on the follo
 | **GitHub Pages**       | Hosts the production build. Deployed from the `gh-pages` branch automatically on push and nightly sync.                                                                                                                                          |
 | **GitHub Actions**     | Two workflows: one deploys on push to `main`, the other runs a nightly cron job to sync new data from the Google Sheet.                                                                                                                          |
 | **Google Sheets**      | Act as the primary database where all case study data is managed. New submissions land here for supervisor review.                                                                                                                               |
-| **Google Apps Script** | Receives form submissions from the website, writes them to the Google Sheet, and emails the supervisor for review.                                                                                                                               |
-| **imgbb**              | Free image hosting. Case study images are uploaded here during submission and referenced by URL in the dataset.                                                                                                                                  |
+| **Google Apps Script** | Receives form submissions from the website, writes them to the Google Sheet, saves the images in a Drive folder and emails the supervisor for review.                                                                                            |
 | **Cloudflare Worker**  | Serverless proxy between the frontend and the AI model API. Handles CORS, rate limiting (KV store), and keeps the API key secret.                                                                                                                |
 | **Google Gemini**      | AI model used for natural-language search and deep research analysis. Currently using `gemini-3.1-flash-lite` on the free tier. The system uses a **provider-agnostic architecture**, allowing for easy switching between model and providers.   |
 
@@ -58,7 +57,7 @@ The production site is served via **GitHub Pages** from the `gh-pages` branch. T
 
 This setup is designed with a **modular, future-proof approach:** while Gemini is the primary provider at the moment, the architecture is not static and allows for seamlessly switching AI models or providers based on future needs.
 
-Images are hosted on **imgbb**.
+Images are stored in the repository (`public/images/`) and published with the site. Images of new submissions are saved in the Google Drive folder of the Sheet; the nightly sync copies them into the repository when the case is approved.
 
 ## Setup and Administration
 
@@ -117,8 +116,7 @@ L'applicazione è interamente lato client e non ha un backend tradizionale. Si a
 | **GitHub Pages**       | Ospita la build di produzione. Il deploy avviene automaticamente dal branch `gh-pages` ad ogni push e tramite sincronizzazione notturna.                                                                                                                   |
 | **GitHub Actions**     | Due flussi di lavoro: uno effettua il deploy su `main`, l'altro esegue un cron job notturno per sincronizzare i nuovi dati dal Google Sheet.                                                                                                               |
 | **Google Sheets**      | Funge da database principale dove vengono gestiti tutti i dati dei casi studio. Le nuove proposte arrivano qui per la revisione del supervisore.                                                                                                           |
-| **Google Apps Script** | Riceve i dati inviati dal modulo web, li scrive nel Google Sheet e invia un'email al supervisore per la revisione.                                                                                                                                         |
-| **imgbb**              | Hosting gratuito di immagini. Le immagini dei casi studio vengono caricate qui durante l'invio e referenziate tramite URL nel dataset.                                                                                                                     |
+| **Google Apps Script** | Riceve i dati inviati dal modulo web, li scrive nel Google Sheet, salva le immagini in una cartella Drive e invia un'email al supervisore per la revisione.                                                                                                |
 | **Cloudflare Worker**  | Proxy serverless tra il frontend e l'API del modello IA. Gestisce i CORS, il rate limiting (KV store) e mantiene segreta la chiave API.                                                                                                                    |
 | **Google Gemini**      | Modello IA utilizzato per la ricerca in linguaggio naturale e l'analisi deep research. Attualmente usa `gemini-3.1-flash-lite` (piano gratuito). Il sistema adotta un'**architettura agnostica**, che permette di cambiare facilmente modello e fornitore. |
 
@@ -128,7 +126,7 @@ Il sito in produzione è ospitato via **GitHub Pages** dal branch `gh-pages`. Il
 
 Questo setup è stato progettato con un **approccio modulare e orientato al futuro:** sebbene Gemini sia attualmente il fornitore principale, l'architettura non è statica e permette di passare senza problemi ad altri modelli o fornitori IA in base alle esigenze future.
 
-Le immagini sono ospitate su **imgbb**.
+Le immagini sono nella repository (`public/images/`) e vengono pubblicate con il sito. Le immagini delle nuove proposte vengono salvate nella cartella Google Drive dello Sheet; la sincronizzazione notturna le copia nella repository quando il caso viene approvato.
 
 ## Setup e Amministrazione
 

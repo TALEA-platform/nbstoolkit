@@ -44,12 +44,25 @@ const EXPORT_COLUMNS = [
   { key: 'd4_roof_facade', label: 'D4 Roof & Facade', array: true },
   { key: 'd5_furnishings', label: 'D5 Furnishings', array: true },
   { key: 'd6_urban_spaces', label: 'D6 Urban Spaces', array: true },
+  { key: 'other_details', label: 'Other (specify) Texts', details: true },
   { key: 'sources', label: 'Sources' },
+  { key: 'image_credits', label: 'Image Credits' },
 ];
+
+// other_details → one line per text: "A2 Urban Area – Other: Industrial area"
+function formatOtherDetails(details) {
+  return Object.entries(details)
+    .flatMap(([field, byOption]) => {
+      const label = (EXPORT_COLUMNS.find(c => c.key === field) || { label: field }).label;
+      return Object.entries(byOption).map(([option, text]) => `${label} – ${option}: ${text}`);
+    })
+    .join('\n');
+}
 
 function getCellValue(study, col) {
   const val = study[col.key];
   if (val == null) return '';
+  if (col.details) return formatOtherDetails(val);
   if (col.nested && typeof val === 'object' && !Array.isArray(val)) {
     // e.g. talea_application: { nodal: true, linear: false }
     return Object.entries(val).filter(([, v]) => v).map(([k]) => k).join(', ');

@@ -29,7 +29,6 @@ jobs:
       - name: Build
         env:
           REACT_APP_GOOGLE_SHEET_URL: ${{ secrets.REACT_APP_GOOGLE_SHEET_URL }}
-          REACT_APP_IMGBB_API_KEY: ${{ secrets.REACT_APP_IMGBB_API_KEY }}
           REACT_APP_WORKER_URL: ${{ secrets.REACT_APP_WORKER_URL }}
         run: npm run build
 

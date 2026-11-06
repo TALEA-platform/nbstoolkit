@@ -51,7 +51,7 @@ export const FILTER_CATEGORIES = {
     label: 'A3.2 Open Spaces',
     icon: '🌳',
     color: '#21A84A',
-    options: ['Courtyard', 'Entrance area', 'Green area (park / garden)', 'Open paved space', 'Parking area', 'Residual space or widening', 'Service yard or technical area', 'Square', 'Waterfront'],
+    options: ['Courtyard', 'Entrance area', 'Game field', 'Green area (park / garden)', 'Open paved space', 'Parking area', 'Residual space or widening', 'Service yard or technical area', 'Square', 'Waterfront'],
     dataKey: 'a3_2_open_spaces',
     type: 'array',
   },
@@ -59,7 +59,7 @@ export const FILTER_CATEGORIES = {
     label: 'A3.3 Infrastructures',
     icon: '🛤️',
     color: '#1272B7',
-    options: ['Carriageway', 'Cycle lane (dedicated)', 'Cycle lane with sidewalk', 'Disused railway or similar', 'Drainage channel / urban ditch', 'Footpath', 'Overpass or viaduct', 'Pedestrian street', 'Sidewalk', 'Sidewalk on commercial axis', 'Traffic island', 'Tramway trackbed'],
+    options: ['Carriageway', 'Cycle lane (dedicated)', 'Cycle lane with sidewalk', 'Disused railway or similar', 'Drainage channel / urban ditch', 'Footpath', 'Overpass or viaduct', 'Pedestrian street', 'Road interchange or ramp', 'Sidewalk', 'Sidewalk on commercial axis', 'Traffic island', 'Tramway trackbed', 'Underpass'],
     dataKey: 'a3_3_infrastructures',
     type: 'array',
   },
@@ -155,7 +155,7 @@ export const FILTER_CATEGORIES = {
     label: 'C1.2 Funding',
     icon: '💰',
     color: '#21A84A',
-    options: ['Crowdfunding', 'Partnership', 'Private funding', 'Public funding'],
+    options: ['Crowdfunding', 'Participatory budget', 'Partnership', 'Private funding', 'Public funding'],
     dataKey: 'c1_2_funding',
     type: 'array',
   },
@@ -171,7 +171,7 @@ export const FILTER_CATEGORIES = {
     label: 'C2 Actors',
     icon: '👥',
     color: '#1272B7',
-    options: ['Age groups', 'Artists', 'Associations', 'Citizens', 'Committees', 'Cultural centres', 'Designers', 'Facilitators', 'Foundations', 'Groups of citizens', 'Local Association', 'Neighbourhood councils', 'Non-profit organizations', 'Public institutions', 'Research centres', 'Residents', 'Shopkeepers', 'Students', 'Universities', 'Volunteers', 'Vulnerable individuals'],
+    options: ['Age groups', 'Artists', 'Associations', 'Citizens', 'Committees', 'Cultural centres', 'Designers', 'Entrepreneurs', 'Facilitators', 'Foundations', 'Groups of citizens', 'Local Association', 'Neighbourhood councils', 'Non-profit organizations', 'Public institutions', 'Research centres', 'Residents', 'Shopkeepers', 'Students', 'Universities', 'Volunteers', 'Vulnerable individuals'],
     dataKey: 'c2_actors',
     type: 'array',
   },
@@ -187,7 +187,7 @@ export const FILTER_CATEGORIES = {
     label: 'C4 Services',
     icon: '🛎️',
     color: '#21A84A',
-    options: ['Access free to water', 'Areas for meeting residents', 'Areas with shade/cool spots', 'Benches/rest areas', 'Care and maintenance services', 'Educational - leisure and cultural uses', 'Monitoring and warning systems', 'Online maps / informative materials'],
+    options: ['Access free to water', 'Areas for meeting residents', 'Areas with shade/cool spots', 'Benches/rest areas', 'Care and maintenance services', 'Educational - leisure and cultural uses', 'Monitoring and warning systems', 'Online maps / informative materials', 'Wi-fi connection'],
     dataKey: 'c4_services',
     type: 'array',
   },
@@ -276,6 +276,18 @@ export const FILTER_GROUPS = {
     categories: ['d1_plants', 'd2_paving', 'd3_water', 'd4_roof_facade', 'd5_furnishings', 'd6_urban_spaces'],
   },
 };
+
+// Questions that have an "Other (specify)" answer in the TALEA factsheet
+// template. "Other" is not a filter option: the free text goes to
+// other_details. Also used by the submit form and the Google Sheet lists
+// (scripts/build-apps-script-lists.js).
+export const FIELDS_WITH_OTHER = [
+  'a1_urban_scale', 'a2_urban_area', 'a3_1_buildings', 'a3_2_open_spaces', 'a3_3_infrastructures',
+  'a4_ownership', 'a5_management', 'a6_uses', 'a7_other',
+  'b1_physical', 'b2_regulations', 'b3_uses_management', 'b4_public_opinion', 'b5_synergy',
+  'b6_social_opportunities',
+  'c1_1_design', 'c1_2_funding', 'c1_3_management', 'c2_actors', 'c3_goals',
+];
 
 export const NBS_CATEGORIES = {
   'd1_plants': { label: 'D1 Plants', icon: '🌿', color: '#21A84A' },

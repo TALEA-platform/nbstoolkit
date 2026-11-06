@@ -2,7 +2,7 @@
 // To use: rename to worker.js or update wrangler.toml main = "worker-gemini.js"
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
-const MODEL = 'gemini-3.1-flash-lite-preview';
+const MODEL = 'gemini-3.1-flash-lite';
 const DAILY_LIMIT = 150;
 const THINKING_DAILY_LIMIT = 75;
 const KV_TTL = 86400; // 24 hours
@@ -44,8 +44,8 @@ const CHAT_RESPONSE_SCHEMA = {
     a1_urban_scale: filterSchema(['Territorial', 'Metropolitan', 'Urban', 'District', 'Urban block', 'Single space or building']),
     a2_urban_area: filterSchema(['Historical centre', 'Consolidated city', 'Peripheral area', 'Rural area']),
     a3_1_buildings: filterSchema(['Building / pavilion', 'Building complex', 'Building façade', 'Rooftop']),
-    a3_2_open_spaces: filterSchema(['Courtyard', 'Entrance area', 'Green area (park / garden)', 'Open paved space', 'Parking area', 'Residual space or widening', 'Service yard or technical area', 'Square', 'Waterfront']),
-    a3_3_infrastructures: filterSchema(['Carriageway', 'Cycle lane (dedicated)', 'Cycle lane with sidewalk', 'Disused railway or similar', 'Drainage channel / urban ditch', 'Footpath', 'Overpass or viaduct', 'Pedestrian street', 'Sidewalk', 'Sidewalk on commercial axis', 'Traffic island', 'Tramway trackbed']),
+    a3_2_open_spaces: filterSchema(['Courtyard', 'Entrance area', 'Game field', 'Green area (park / garden)', 'Open paved space', 'Parking area', 'Residual space or widening', 'Service yard or technical area', 'Square', 'Waterfront']),
+    a3_3_infrastructures: filterSchema(['Carriageway', 'Cycle lane (dedicated)', 'Cycle lane with sidewalk', 'Disused railway or similar', 'Drainage channel / urban ditch', 'Footpath', 'Overpass or viaduct', 'Pedestrian street', 'Road interchange or ramp', 'Sidewalk', 'Sidewalk on commercial axis', 'Traffic island', 'Tramway trackbed', 'Underpass']),
     a4_ownership: filterSchema(['Public', 'Private', 'Mixed (public/private)']),
     a5_management: filterSchema(['Association', "Citizens' committee", 'Mixed (public/private)', 'Neighbourhood', 'Private', 'Public']),
     a6_uses: filterSchema(['Commercial', 'Cultural', 'Educational', 'Events', 'Multifunctional', 'Outdoor activities', 'Performance', 'Recreational', 'Refreshment point', 'Residential', 'Slow mobility (walking / bike / bus)', 'Social', 'Sports', 'Temporary use', 'Unconventional use', 'Vegetable garden']),
@@ -57,11 +57,11 @@ const CHAT_RESPONSE_SCHEMA = {
     b5_synergy: filterSchema(['Existing regeneration projects', 'Municipal or metropolitan plans', 'Ongoing public or private investments']),
     b6_social_opportunities: filterSchema(['Civic participation', 'Community building / social cohesion', 'Cultural and intercultural exchange', 'Educational opportunities', 'Health promotion / active lifestyles', 'Inclusion', 'Intergenerational exchange', 'Safety and perception of security', 'Universal accessibility', 'Volunteering and active citizenship', 'Well-being']),
     c1_1_design: filterSchema(['Co-design', 'Community engagement', 'Cultural promotion', 'Open call/ competition', 'Public consultation', 'Research project', 'Self-build', 'Social innovation', 'Spontaneous intervention', 'Workshop']),
-    c1_2_funding: filterSchema(['Crowdfunding', 'Partnership', 'Private funding', 'Public funding']),
+    c1_2_funding: filterSchema(['Crowdfunding', 'Participatory budget', 'Partnership', 'Private funding', 'Public funding']),
     c1_3_management: filterSchema(['Collaboration agreement', 'Private', 'Public']),
-    c2_actors: filterSchema(['Age groups', 'Artists', 'Associations', 'Citizens', 'Committees', 'Cultural centres', 'Designers', 'Facilitators', 'Foundations', 'Groups of citizens', 'Local Association', 'Neighbourhood councils', 'Non-profit organizations', 'Public institutions', 'Research centres', 'Residents', 'Shopkeepers', 'Students', 'Universities', 'Volunteers', 'Vulnerable individuals']),
+    c2_actors: filterSchema(['Age groups', 'Artists', 'Associations', 'Citizens', 'Committees', 'Cultural centres', 'Designers', 'Entrepreneurs', 'Facilitators', 'Foundations', 'Groups of citizens', 'Local Association', 'Neighbourhood councils', 'Non-profit organizations', 'Public institutions', 'Research centres', 'Residents', 'Shopkeepers', 'Students', 'Universities', 'Volunteers', 'Vulnerable individuals']),
     c3_goals: filterSchema(['Accessibility', 'Biodiversity', 'Care', 'Climate change mitigation', 'Environmental sustainability', 'Intergenerational collaboration', 'Knowledge', 'Liveability', 'New connections', 'New perception', 'New production', 'Re-activation', 'Re-appropriation', 'Resilience', 'Safety', 'Sense of community', 'Social inclusion', 'Transformation', 'Urban regeneration', 'Valorisation']),
-    c4_services: filterSchema(['Access free to water', 'Areas for meeting residents', 'Areas with shade/cool spots', 'Benches/rest areas', 'Care and maintenance services', 'Educational - leisure and cultural uses', 'Monitoring and warning systems', 'Online maps / informative materials']),
+    c4_services: filterSchema(['Access free to water', 'Areas for meeting residents', 'Areas with shade/cool spots', 'Benches/rest areas', 'Care and maintenance services', 'Educational - leisure and cultural uses', 'Monitoring and warning systems', 'Online maps / informative materials', 'Wi-fi connection']),
     d1_plants: filterSchema(['Dense hedges', 'Ecological corridors - Pollinator-friendly gardens', 'Flower beds', 'Linear hedges', 'Row of trees', 'Rows / tree lines', 'Shading tree groups / tree clusters', 'Shrub patches', 'Single tree']),
     d2_paving: filterSchema(['Depaving', 'Permeable paving']),
     d3_water: filterSchema(['Artificial wetlands', 'Bioretention areas', 'Detention basins', 'Filter trenches / strips / drains', 'Floodable park', 'Fountains', 'Ground-level fountain', 'Green channels', 'Mist sprayers', 'Rain garden', 'Rain plaza', 'Reopened canals', 'Urban wetlands', 'Vegetated ditches', 'Water blades', 'Water mirror']),
@@ -114,7 +114,7 @@ const CHAT_RESPONSE_SCHEMA = {
 // System prompts
 // ---------------------------------------------------------------------------
 
-const CHAT_SYSTEM_PROMPT = `You are the TALEA Abacus search assistant. You help users find nature-based solution (NBS) case studies from a database of 50 projects across cities worldwide. TALEA is an urban research project studying how nature-based solutions can transform public spaces.
+const CHAT_SYSTEM_PROMPT = `You are the TALEA Abacus search assistant. You help users find nature-based solution (NBS) case studies from a database of projects across cities worldwide. TALEA is an urban research project studying how nature-based solutions can transform public spaces.
 
 Your job: parse the user's natural-language query into structured filters that match the database schema. Return ONLY the JSON — no extra text.
 
@@ -193,8 +193,8 @@ A - PHYSICAL CONTEXT:
 - a1_urban_scale: ["Territorial", "Metropolitan", "Urban", "District", "Urban block", "Single space or building"]
 - a2_urban_area: ["Historical centre", "Consolidated city", "Peripheral area", "Rural area"]
 - a3_1_buildings: ["Building / pavilion", "Building complex", "Building façade", "Rooftop"]
-- a3_2_open_spaces: ["Courtyard", "Entrance area", "Green area (park / garden)", "Open paved space", "Parking area", "Residual space or widening", "Service yard or technical area", "Square", "Waterfront"]
-- a3_3_infrastructures: ["Carriageway", "Cycle lane (dedicated)", "Cycle lane with sidewalk", "Disused railway or similar", "Drainage channel / urban ditch", "Footpath", "Overpass or viaduct", "Pedestrian street", "Sidewalk", "Sidewalk on commercial axis", "Traffic island", "Tramway trackbed"]
+- a3_2_open_spaces: ["Courtyard", "Entrance area", "Game field", "Green area (park / garden)", "Open paved space", "Parking area", "Residual space or widening", "Service yard or technical area", "Square", "Waterfront"]
+- a3_3_infrastructures: ["Carriageway", "Cycle lane (dedicated)", "Cycle lane with sidewalk", "Disused railway or similar", "Drainage channel / urban ditch", "Footpath", "Overpass or viaduct", "Pedestrian street", "Road interchange or ramp", "Sidewalk", "Sidewalk on commercial axis", "Traffic island", "Tramway trackbed", "Underpass"]
 - a4_ownership: ["Public", "Private", "Mixed (public/private)"]
 - a5_management: ["Association", "Citizens' committee", "Mixed (public/private)", "Neighbourhood", "Private", "Public"]
 - a6_uses: ["Commercial", "Cultural", "Educational", "Events", "Multifunctional", "Outdoor activities", "Performance", "Recreational", "Refreshment point", "Residential", "Slow mobility (walking / bike / bus)", "Social", "Sports", "Temporary use", "Unconventional use", "Vegetable garden"]
@@ -210,11 +210,11 @@ B - CONSTRAINTS & OPPORTUNITIES:
 
 C - DESIGN PROCESS:
 - c1_1_design: ["Co-design", "Community engagement", "Cultural promotion", "Open call/ competition", "Public consultation", "Research project", "Self-build", "Social innovation", "Spontaneous intervention", "Workshop"]
-- c1_2_funding: ["Crowdfunding", "Partnership", "Private funding", "Public funding"]
+- c1_2_funding: ["Crowdfunding", "Participatory budget", "Partnership", "Private funding", "Public funding"]
 - c1_3_management: ["Collaboration agreement", "Private", "Public"]
-- c2_actors: ["Age groups", "Artists", "Associations", "Citizens", "Committees", "Cultural centres", "Designers", "Facilitators", "Foundations", "Groups of citizens", "Local Association", "Neighbourhood councils", "Non-profit organizations", "Public institutions", "Research centres", "Residents", "Shopkeepers", "Students", "Universities", "Volunteers", "Vulnerable individuals"]
+- c2_actors: ["Age groups", "Artists", "Associations", "Citizens", "Committees", "Cultural centres", "Designers", "Entrepreneurs", "Facilitators", "Foundations", "Groups of citizens", "Local Association", "Neighbourhood councils", "Non-profit organizations", "Public institutions", "Research centres", "Residents", "Shopkeepers", "Students", "Universities", "Volunteers", "Vulnerable individuals"]
 - c3_goals: ["Accessibility", "Biodiversity", "Care", "Climate change mitigation", "Environmental sustainability", "Intergenerational collaboration", "Knowledge", "Liveability", "New connections", "New perception", "New production", "Re-activation", "Re-appropriation", "Resilience", "Safety", "Sense of community", "Social inclusion", "Transformation", "Urban regeneration", "Valorisation"]
-- c4_services: ["Access free to water", "Areas for meeting residents", "Areas with shade/cool spots", "Benches/rest areas", "Care and maintenance services", "Educational - leisure and cultural uses", "Monitoring and warning systems", "Online maps / informative materials"]
+- c4_services: ["Access free to water", "Areas for meeting residents", "Areas with shade/cool spots", "Benches/rest areas", "Care and maintenance services", "Educational - leisure and cultural uses", "Monitoring and warning systems", "Online maps / informative materials", "Wi-fi connection"]
 
 D - NBS ELEMENTS:
 - d1_plants: ["Dense hedges", "Ecological corridors - Pollinator-friendly gardens", "Flower beds", "Linear hedges", "Row of trees", "Rows / tree lines", "Shading tree groups / tree clusters", "Shrub patches", "Single tree"]

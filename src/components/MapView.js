@@ -1,7 +1,6 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import maplibregl from 'maplibre-gl/dist/maplibre-gl-csp';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import cityCoordinates from '../data/cityCoordinates';
 import { getStudyCoordinates } from '../utils/coordinates';
 
 maplibregl.setWorkerUrl(
@@ -14,9 +13,9 @@ const MAP_STYLES = {
   positron: { label: 'Positron', url: 'https://tiles.openfreemap.org/styles/positron' },
 };
 
-// Get coordinates for a study: prefer study-level coords, fall back to cityCoordinates lookup
+// Coordinates of a study (latitude / longitude from the Sheet); none → not on the map
 function getCoords(study) {
-  const coords = getStudyCoordinates(study, cityCoordinates);
+  const coords = getStudyCoordinates(study);
   return coords ? [coords.lng, coords.lat] : null; // [lng, lat]
 }
 

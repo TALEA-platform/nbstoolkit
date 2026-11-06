@@ -2,8 +2,8 @@ import React, { useEffect } from 'react';
 import { NBS_CATEGORIES } from '../data/filterConfig';
 import imageMap from '../data/imageMap';
 import getTaleaTypes from '../utils/getTaleaTypes';
-import cityCoordinates from '../data/cityCoordinates';
 import { getStudyCoordinates } from '../utils/coordinates';
+import { getLabelsWithDetails } from '../utils/otherDetails';
 
 const NBS_FIELDS = Object.entries(NBS_CATEGORIES).map(([key, meta]) => ({
   label: meta.label,
@@ -82,7 +82,7 @@ const COMPARE_SECTIONS = [
 ];
 
 function getCoords(study) {
-  const coords = getStudyCoordinates(study, cityCoordinates);
+  const coords = getStudyCoordinates(study);
   if (coords) {
     return `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
   }
@@ -114,7 +114,7 @@ function renderCellValue(field, study) {
   const val = study[field.key];
 
   if (field.isArray) {
-    const arr = val || [];
+    const arr = getLabelsWithDetails(study, field.key);
     return arr.length > 0 ? arr.join(', ') : <span className="compare-none">None</span>;
   }
 

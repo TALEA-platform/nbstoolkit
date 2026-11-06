@@ -5,8 +5,8 @@ import imageMap from '../data/imageMap';
 import { exportSingleStudyPDF } from '../utils/pdfExport';
 import getTaleaTypes from '../utils/getTaleaTypes';
 import findSimilarStudies from '../utils/findSimilarStudies';
-import cityCoordinates from '../data/cityCoordinates';
 import { getStudyCoordinates } from '../utils/coordinates';
+import { getItemsWithDetails } from '../utils/otherDetails';
 
 const IMPACT_BULLET_REGEX = /^([-*\u2022]|\d+[.)])\s+(.*)$/;
 const SOURCE_URL_REGEX = /https?:\/\/[^\s|]+/g;
@@ -36,13 +36,16 @@ function Section({ title, children, icon }) {
   );
 }
 
+// items: [{ value, detail }] from getItemsWithDetails(); detail = text written
+// next to the option in the factsheet (e.g. "Other: Industrial area")
 function TagList({ items, color }) {
   if (!items || items.length === 0) return <span className="tag-empty">None</span>;
   return (
     <div className="tag-list">
-      {items.map((item, i) => (
+      {items.map(({ value, detail }, i) => (
         <span key={i} className="modal-tag" style={{ borderColor: color + '80', color: color }}>
-          {item}
+          {value}
+          {detail && <span className="modal-tag-detail">: {detail}</span>}
         </span>
       ))}
     </div>
@@ -123,9 +126,9 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
   const taleaTypes = getTaleaTypes(study);
   const imgSrc = imageMap[study.id];
 
-  // Get coordinates: prefer study-level, fall back to cityCoordinates
+  // Coordinates from the data (latitude / longitude)
   const studyCoords = useMemo(() => {
-    return getStudyCoordinates(study, cityCoordinates);
+    return getStudyCoordinates(study);
   }, [study]);
 
   const similarStudies = useMemo(() => {
@@ -183,6 +186,9 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
               onError={() => setImgError(true)}
             />
             <div className="modal-hero-overlay" />
+            {study.image_credits && (
+              <span className="modal-hero-credit">Image credits: {study.image_credits}</span>
+            )}
             <div className="modal-hero-content">
               <span className="modal-id">Case Study #{study.id}</span>
               <h2 className="modal-title">{study.title}</h2>
@@ -259,51 +265,58 @@ function CaseStudyModal({ study, onClose, isFavorite, onToggleFavorite, isCompar
             </div>
           </div>
 
-          <Section title="Physical Innovation" icon={SECTION_ICONS.physicalInnovation}>
-            <p>{study.physical_innovation}</p>
-          </Section>
+          {/* Innovation sections are shown only when the factsheet has a text */}
+          {study.physical_innovation && (
+            <Section title="Physical Innovation" icon={SECTION_ICONS.physicalInnovation}>
+              <p>{study.physical_innovation}</p>
+            </Section>
+          )}
 
-          <Section title="Social Innovation" icon={SECTION_ICONS.socialInnovation}>
-            <p>{study.social_innovation}</p>
-          </Section>
+          {study.social_innovation && (
+            <Section title="Social Innovation" icon={SECTION_ICONS.socialInnovation}>
+              <p>{study.social_innovation}</p>
+            </Section>
+          )}
 
-          <Section title="Digital Innovation" icon={SECTION_ICONS.digitalInnovation}>
-            <p>{study.digital_innovation}</p>
-          </Section>
+          {study.digital_innovation && (
+            <Section title="Digital Innovation" icon={SECTION_ICONS.digitalInnovation}>
+              <p>{study.digital_innovation}</p>
+            </Section>
+          )}
 
           <Section title="A. Physical Characteristics" icon={SECTION_ICONS.physicalCharacteristics}>
             <div className="characteristics-grid">
-              <div><h4>A1 Urban Scale</h4><TagList items={study.a1_urban_scale} color="#21A84A" /></div>
-              <div><h4>A2 Urban Area</h4><TagList items={study.a2_urban_area} color="#d69e2e" /></div>
-              <div><h4>A3.1 Buildings</h4><TagList items={study.a3_1_buildings} color="#1272B7" /></div>
-              <div><h4>A3.2 Open Spaces</h4><TagList items={study.a3_2_open_spaces} color="#21A84A" /></div>
-              <div><h4>A3.3 Infrastructures</h4><TagList items={study.a3_3_infrastructures} color="#1272B7" /></div>
-              <div><h4>A4 Ownership</h4><TagList items={study.a4_ownership} color="#004d19" /></div>
-              <div><h4>A5 Management</h4><TagList items={study.a5_management} color="#1272B7" /></div>
-              <div><h4>A6 Uses</h4><TagList items={study.a6_uses} color="#21A84A" /></div>
-              <div><h4>A7 Other</h4><TagList items={study.a7_other} color="#004d19" /></div>
+              <div><h4>A1 Urban Scale</h4><TagList items={getItemsWithDetails(study, 'a1_urban_scale')} color="#21A84A" /></div>
+              <div><h4>A2 Urban Area</h4><TagList items={getItemsWithDetails(study, 'a2_urban_area')} color="#d69e2e" /></div>
+              <div><h4>A3.1 Buildings</h4><TagList items={getItemsWithDetails(study, 'a3_1_buildings')} color="#1272B7" /></div>
+              <div><h4>A3.2 Open Spaces</h4><TagList items={getItemsWithDetails(study, 'a3_2_open_spaces')} color="#21A84A" /></div>
+              <div><h4>A3.3 Infrastructures</h4><TagList items={getItemsWithDetails(study, 'a3_3_infrastructures')} color="#1272B7" /></div>
+              <div><h4>A4 Ownership</h4><TagList items={getItemsWithDetails(study, 'a4_ownership')} color="#004d19" /></div>
+              <div><h4>A5 Management</h4><TagList items={getItemsWithDetails(study, 'a5_management')} color="#1272B7" /></div>
+              <div><h4>A6 Uses</h4><TagList items={getItemsWithDetails(study, 'a6_uses')} color="#21A84A" /></div>
+              <div><h4>A7 Other</h4><TagList items={getItemsWithDetails(study, 'a7_other')} color="#004d19" /></div>
             </div>
           </Section>
 
           <Section title="B. Constraints & Opportunities" icon={SECTION_ICONS.constraints}>
             <div className="characteristics-grid">
-              <div><h4>B1 Physical</h4><TagList items={study.b1_physical} color="#c53030" /></div>
-              <div><h4>B2 Regulations</h4><TagList items={study.b2_regulations} color="#d69e2e" /></div>
-              <div><h4>B3 Uses & Management</h4><TagList items={study.b3_uses_management} color="#21A84A" /></div>
-              <div><h4>B4 Public Opinion</h4><TagList items={study.b4_public_opinion} color="#1272B7" /></div>
-              <div><h4>B5 Synergy</h4><TagList items={study.b5_synergy} color="#004d19" /></div>
-              <div><h4>B6 Social Opportunities</h4><TagList items={study.b6_social_opportunities} color="#21A84A" /></div>
+              <div><h4>B1 Physical</h4><TagList items={getItemsWithDetails(study, 'b1_physical')} color="#c53030" /></div>
+              <div><h4>B2 Regulations</h4><TagList items={getItemsWithDetails(study, 'b2_regulations')} color="#d69e2e" /></div>
+              <div><h4>B3 Uses & Management</h4><TagList items={getItemsWithDetails(study, 'b3_uses_management')} color="#21A84A" /></div>
+              <div><h4>B4 Public Opinion</h4><TagList items={getItemsWithDetails(study, 'b4_public_opinion')} color="#1272B7" /></div>
+              <div><h4>B5 Synergy</h4><TagList items={getItemsWithDetails(study, 'b5_synergy')} color="#004d19" /></div>
+              <div><h4>B6 Social Opportunities</h4><TagList items={getItemsWithDetails(study, 'b6_social_opportunities')} color="#21A84A" /></div>
             </div>
           </Section>
 
           <Section title="C. Design Process & Results" icon={SECTION_ICONS.design}>
             <div className="characteristics-grid">
-              <div><h4>C1.1 Design</h4><TagList items={study.c1_1_design} color="#1272B7" /></div>
-              <div><h4>C1.2 Funding</h4><TagList items={study.c1_2_funding} color="#21A84A" /></div>
-              <div><h4>C1.3 Management</h4><TagList items={study.c1_3_management} color="#d69e2e" /></div>
-              <div><h4>C2 Actors</h4><TagList items={study.c2_actors} color="#1272B7" /></div>
-              <div><h4>C3 Goals & Results</h4><TagList items={study.c3_goals} color="#004d19" /></div>
-              <div><h4>C4 Services</h4><TagList items={study.c4_services} color="#21A84A" /></div>
+              <div><h4>C1.1 Design</h4><TagList items={getItemsWithDetails(study, 'c1_1_design')} color="#1272B7" /></div>
+              <div><h4>C1.2 Funding</h4><TagList items={getItemsWithDetails(study, 'c1_2_funding')} color="#21A84A" /></div>
+              <div><h4>C1.3 Management</h4><TagList items={getItemsWithDetails(study, 'c1_3_management')} color="#d69e2e" /></div>
+              <div><h4>C2 Actors</h4><TagList items={getItemsWithDetails(study, 'c2_actors')} color="#1272B7" /></div>
+              <div><h4>C3 Goals & Results</h4><TagList items={getItemsWithDetails(study, 'c3_goals')} color="#004d19" /></div>
+              <div><h4>C4 Services</h4><TagList items={getItemsWithDetails(study, 'c4_services')} color="#21A84A" /></div>
             </div>
           </Section>
 
