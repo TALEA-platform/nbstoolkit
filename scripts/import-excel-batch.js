@@ -169,7 +169,8 @@ function cell(ws, r, c) {
 function text(ws, r, c) {
   const v = cell(ws, r, c);
   if (v === null || typeof v === 'boolean') return '';
-  const s = String(v);
+  // Line breaks as "\n": the Google Sheet stores them so, and the sync gives them back so
+  const s = String(v).replace(/\r\n?/g, '\n');
   return /^\s*xx\s*$/i.test(s) ? '' : s; // "xx" = untouched template placeholder
 }
 
