@@ -33,7 +33,13 @@ async function postJson(path, body) {
     data: await response.json(),
     remaining: parseInt(response.headers.get('X-RateLimit-Remaining') || '-1', 10),
     backup: response.headers.get('X-AI-Backup') === '1',
+    // why the backup model answered (e.g. "503", "main-paused-daily-quota"), for the console only
+    backupReason: response.headers.get('X-AI-Backup-Reason'),
   };
+}
+
+function logBackup(step, res) {
+  if (res.backup) console.info(`[AI search] ${step}: backup model used (${res.backupReason || 'reason not given'})`);
 }
 
 // Step 4: keeps only valid picks of candidates that were really sent.
@@ -81,7 +87,8 @@ export function verifyPicks(judgeData, candidates, plan) {
       alternatives: matchedAlternatives(c.study, plan).map(i => plan.alternatives[i].label),
     });
   }
-  return picks;
+  // Highest score first (the judge does not always order them); equal scores keep its order
+  return picks.sort((a, b) => (b.relevance ?? -1) - (a.relevance ?? -1));
 }
 
 /**
@@ -98,6 +105,7 @@ export async function runAISearch(query, caseStudies, { onProgress, candidates =
   if (onProgress) onProgress('understanding');
   const embeddings = loadCaseEmbeddings(); // in parallel with step 1
   const understood = await postJson('/api/understand', { message: query });
+  logBackup('understand', understood);
   const plan = sanitizeUnderstanding(understood.data, query);
   const base = {
     plan, intent: plan.intent, summary: plan.summary, picks: [], alsoRelevant: [], ranked: [],
@@ -163,6 +171,7 @@ export async function runAISearch(query, caseStudies, { onProgress, candidates =
       understanding,
       projects: toJudge.map(r => r.study),
     });
+    logBackup('judge', judge);
     result.picks = verifyPicks(judge.data, toJudge, plan);
     result.alsoRelevant = verifyAlsoRelevant(judge.data, toJudge, plan, result.picks);
     result.judged = true;

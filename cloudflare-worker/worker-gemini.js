@@ -340,7 +340,7 @@ function corsHeaders(origin, allowedOrigin) {
     'Access-Control-Allow-Origin': isAllowed ? origin : (allowedOrigin || '*'),
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Expose-Headers': 'X-RateLimit-Remaining, X-AI-Backup',
+    'Access-Control-Expose-Headers': 'X-RateLimit-Remaining, X-AI-Backup, X-AI-Backup-Reason',
     'Access-Control-Max-Age': '86400',
   };
 }
@@ -432,6 +432,7 @@ const GEMINI_TIMEOUT_MS = 25000;
 
 async function callGemini(env, systemPrompt, userMessage, responseSchema = null, maxTokens = 2048, temperature = 0.3) {
   const models = Date.now() < mainModelPausedUntil ? [BACKUP_MODEL] : [MODEL, BACKUP_MODEL];
+  if (models[0] !== MODEL && env.aiState) env.aiState.backupReason = 'main-paused-daily-quota';
   // Overload (5xx) and empty answers are often momentary: after both models fail,
   // wait a moment and try them once more. A used-up quota (429) is not retried.
   const attempts = [...models];
@@ -917,7 +918,7 @@ const UNDERSTAND_SCHEMA = {
 const UNDERSTAND_PROMPT = `You read a question about nature-based solutions (NBS) in public spaces and turn it into a search plan for a catalogue of case studies. The case texts and tags are in ENGLISH; the question may be in any language.
 
 Return:
-- language: ISO code of the question's language (e.g. "it", "en").
+- language: ISO code of the language the question is WRITTEN in (e.g. "it", "en"), never of a country or city it names (a question written in Italian about projects in France is "it").
 - cost_interest: true when the user shows ANY interest in money, cost or budget, in any words ("costs", "low budget", "senza spendere un capitale", "con pochi soldi", "economico", "risparmiare", "the municipality has no money", "pas cher"); false otherwise.
 - intent: what kind of question it is.
   - "find_cases": the user looks for examples, ideas or solutions (most questions, even vague or badly written ones: "qualcosa di verde vicino casa", "progetti con i bambini").
@@ -1002,7 +1003,7 @@ Rules:
 - cost_note: only when cost_interest is true: one short sentence in the user's language reporting what THIS factsheet's TEXT says about costs, in your own words and with its figures if any (a budget amount, a description of the works as low-cost…; a high budget must be reported as such); null when the text says nothing about costs. Never deduce costs from the kind of project (volunteers, light structures, self-building do not make a case "cheap").
 - not_in_card: in the user's language, only things the user EXPLICITLY asked about (e.g. costs, if they asked) that the factsheet does not say; null otherwise. Do not mention costs or areas unless the user asked (for costs: cost_interest in the interpretation). If the same thing is missing from ALL your picks, leave not_in_card null and say it once in overall_analysis.
 - Never attribute to a case numbers, costs, areas, results or users that its factsheet does not report. General knowledge may explain how a solution works, but not facts about the case.
-- overall_analysis: 1-3 sentences in the user's language: what you found overall and, if relevant, which part of the request the cases examined do not cover (the per-case reasons are shown separately). No generic praise ("excellent examples", "all these projects show…") and no statement about all the cases that you have not checked in each factsheet.
+- overall_analysis: 1-3 sentences in the user's language: what you found overall and, if relevant, which part of the request the cases examined do not cover (the per-case reasons are shown separately). Only facts: never praise or rate the cases, and never state something about all the picks together (that they are all compatible, all suitable, all low-cost…) unless the factsheet of each one says it.
 - You see only the cases closest to the question, not the whole catalogue: never say that the catalogue (or database) has no case of a kind; say "among the cases examined" / "tra i casi esaminati" (in the user's language).
 - COSTS: never write about costs, prices, budgets or their absence from the catalogue, unless the user's question explicitly asks about cost or budget.`;
 
@@ -1267,7 +1268,7 @@ export default {
       headers.set('X-RateLimit-Remaining', String(rateResult.remaining));
       if (env.aiState.usedBackup) headers.set('X-AI-Backup', '1');
       // why the main model was skipped (HTTP status or finish reason; no content)
-      if (env.aiState.backupReason) headers.set('X-AI-Backup-Reason', env.aiState.backupReason);
+      if (env.aiState.usedBackup && env.aiState.backupReason) headers.set('X-AI-Backup-Reason', env.aiState.backupReason);
 
       return new Response(response.body, {
         status: response.status,
