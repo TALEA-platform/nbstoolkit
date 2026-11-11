@@ -1,0 +1,111 @@
+{
+  "_readme": [
+    "Meaning of the filter categories and of the values that need it, for the AI search (step 'understand': the AI maps the user's words to the tags).",
+    "They describe what a category or value means, not what a single project achieved.",
+    "Values of D1-D6 are described in nbsDefinitions.json (the same texts shown in the case card): not repeated here.",
+    "Values not listed have no description: their name is clear enough, or their meaning is not certain (see 'not_described').",
+    "source: authors_excel = section headings of the authors' Excel template; data_thresholds = thresholds measured on the cases (data-source/REPORT-DATI.md 3.5); draft = written for the AI search and checked against the cases that have the tag.",
+    "status: approved = confirmed by the TALEA team; draft = to be reviewed by the TALEA team. Change status to approved after review, and the version date after any change."
+  ],
+  "version": "2026-11-11",
+  "categories": {
+    "talea_application": { "text": "TALEA green cells application: how the intervention is laid out in space; several can apply", "source": "authors_excel+draft", "status": "draft" },
+    "size": { "text": "area of the project: Small < ~0.2 ha; Medium ~0.2-5 ha; Large >= 5 ha, or a corridor >= 1 km, or a city-wide programme", "source": "data_thresholds", "status": "approved" },
+    "climate_zone": { "text": "climate of the project's location (main climate groups; Mediterranean = mild wet winters and hot dry summers, listed apart from Temperate)", "source": "draft", "status": "draft" },
+    "a1_urban_scale": { "text": "A Physical characteristics. Urban scale (relevance): the scale at which the project matters, i.e. its area of influence, not its physical size; from Territorial (beyond the city) and Metropolitan, to Urban (the whole city), District, Urban block and Single space or building; several can apply", "source": "authors_excel+draft", "status": "draft" },
+    "a2_urban_area": { "text": "Urban area (location): where the project is in the city", "source": "authors_excel", "status": "draft" },
+    "a3_1_buildings": { "text": "Type of space transformed: buildings or parts of buildings", "source": "authors_excel", "status": "draft" },
+    "a3_2_open_spaces": { "text": "Type of space transformed: open spaces", "source": "authors_excel", "status": "draft" },
+    "a3_3_infrastructures": { "text": "Type of space transformed: mobility and water infrastructures", "source": "authors_excel+draft", "status": "draft" },
+    "a4_ownership": { "text": "who owns the site", "source": "authors_excel", "status": "draft" },
+    "a5_management": { "text": "who manages the site", "source": "authors_excel", "status": "draft" },
+    "a6_uses": { "text": "activities and uses the space hosts", "source": "authors_excel+draft", "status": "draft" },
+    "a7_other": { "text": "other characteristics of the place", "source": "authors_excel", "status": "draft" },
+    "b1_physical": { "text": "B Constraints and opportunities: conditions of the site and its context that the project had to deal with or could build on (a B tag documents a condition, not a result). Physical constraints of the site", "source": "authors_excel+draft", "status": "draft" },
+    "b2_regulations": { "text": "Constraints: rules and legal limits the project had to respect", "source": "authors_excel+draft", "status": "draft" },
+    "b3_uses_management": { "text": "Constraints and opportunities from uses, management, signage and equipment already on or around the site", "source": "authors_excel+draft", "status": "draft" },
+    "b4_public_opinion": { "text": "Constraints and opportunities from public opinion: attitudes of residents and users towards the place", "source": "authors_excel+draft", "status": "draft" },
+    "b5_synergy": { "text": "Opportunities: synergy with other projects or programmes in the area (plans, regeneration projects, investments)", "source": "authors_excel", "status": "draft" },
+    "b6_social_opportunities": { "text": "Social opportunities the project could build on or develop (a potential, not a measured result)", "source": "authors_excel+draft", "status": "draft" },
+    "c1_1_design": { "text": "C Design process, stakeholders, integrated services and outcomes. Design process: how the project was designed and with whom", "source": "authors_excel+draft", "status": "draft" },
+    "c1_2_funding": { "text": "Process: sources of funding", "source": "authors_excel", "status": "draft" },
+    "c1_3_management": { "text": "Process: how the space is managed after the works", "source": "authors_excel+draft", "status": "draft" },
+    "c2_actors": { "text": "Actors involved: people and organisations that took part in the project", "source": "authors_excel", "status": "draft" },
+    "c3_goals": { "text": "Goals and results: aims stated by the project. A goal does not prove that the benefit was achieved or measured (measured effects, if any, are in the C5 impacts text of the card)", "source": "authors_excel+draft", "status": "draft" },
+    "c4_services": { "text": "Other integrated services offered to the users of the space", "source": "authors_excel", "status": "draft" },
+    "d1_plants": { "text": "D Nature-based solutions built in the project: plants", "source": "draft", "status": "draft" },
+    "d2_paving": { "text": "Nature-based solutions: paving and soil", "source": "draft", "status": "draft" },
+    "d3_water": { "text": "Nature-based solutions: water and stormwater management", "source": "draft", "status": "draft" },
+    "d4_roof_facade": { "text": "Nature-based solutions: green roofs and facades", "source": "draft", "status": "draft" },
+    "d5_furnishings": { "text": "Nature-based solutions: furnishings and structures", "source": "draft", "status": "draft" },
+    "d6_urban_spaces": { "text": "Nature-based solutions: types of green urban space", "source": "draft", "status": "draft" },
+    "innovation": { "text": "what is new in the project: Physical (spaces, materials, techniques), Social (participation, management, new uses), Digital (sensors, apps, data)", "source": "draft", "status": "draft" }
+  },
+  "values": {
+    "talea_application": {
+      "Nodal": { "text": "a single place: a square, courtyard, building or park", "source": "draft", "status": "draft" },
+      "Linear": { "text": "along a line: a street, corridor, canal, riverbank or barrier", "source": "draft", "status": "draft" },
+      "Fragmented": { "text": "several separate small interventions spread over an area (called Diffuse in the authors' template)", "source": "authors_excel+draft", "status": "draft" }
+    },
+    "a2_urban_area": {
+      "Consolidated city": { "text": "the established built-up fabric, outside the historical centre", "source": "draft", "status": "draft" },
+      "Peripheral area": { "text": "the outskirts of the city", "source": "draft", "status": "draft" }
+    },
+    "a3_2_open_spaces": {
+      "Residual space or widening": { "text": "leftover space without a defined function, or a small widening along a street", "source": "draft", "status": "draft" },
+      "Service yard or technical area": { "text": "yard for services, deliveries or technical equipment", "source": "draft", "status": "draft" }
+    },
+    "a6_uses": {
+      "Temporary use": { "text": "uses for a limited time, e.g. interim or tactical uses", "source": "draft", "status": "draft" }
+    },
+    "a7_other": {
+      "In-between space": { "text": "space between buildings, blocks or functions, often without a clear role", "source": "draft", "status": "draft" },
+      "Neighbourhood space": { "text": "everyday space of a neighbourhood, used mainly by local residents", "source": "draft", "status": "draft" }
+    },
+    "b3_uses_management": {
+      "Consolidated use / uses": { "text": "established uses of the space that had to be kept or taken into account", "source": "draft", "status": "draft" },
+      "Green/blue infrastructure": { "text": "existing green or water elements on or near the site", "source": "draft", "status": "draft" },
+      "Maintenance assigned to third parties": { "text": "maintenance entrusted to someone other than the owner (a company, association or residents)", "source": "draft", "status": "draft" },
+      "Use conflicts": { "text": "competing uses of the same space, e.g. traffic, parking, play, events", "source": "draft", "status": "draft" },
+      "Vulnerable or sensitive users": { "text": "users needing special attention, e.g. children, older people, people with disabilities", "source": "draft", "status": "draft" }
+    },
+    "b4_public_opinion": {
+      "Perception of the space as \"private\"": { "text": "people felt the space was not open to them", "source": "draft", "status": "draft" }
+    },
+    "c1_1_design": {
+      "Co-design": { "text": "designed together with residents or users", "source": "draft", "status": "draft" },
+      "Public consultation": { "text": "residents asked for their opinion on a proposal", "source": "draft", "status": "draft" },
+      "Community engagement": { "text": "the community involved in activities around the project", "source": "draft", "status": "draft" },
+      "Research project": { "text": "designed or tested within a research project, e.g. an EU-funded programme", "source": "draft", "status": "draft" },
+      "Spontaneous intervention": { "text": "started by citizens on their own initiative, without a formal plan", "source": "draft", "status": "draft" },
+      "Self-build": { "text": "built by users or volunteers themselves", "source": "draft", "status": "draft" }
+    },
+    "c1_2_funding": {
+      "Partnership": { "text": "funded jointly by several partners, e.g. public and private", "source": "draft", "status": "draft" }
+    },
+    "c1_3_management": {
+      "Collaboration agreement": { "text": "managed through a formal agreement between the administration and citizens, associations or private actors (e.g. collaboration pacts)", "source": "draft", "status": "draft" }
+    },
+    "c2_actors": {
+      "Age groups": { "text": "specific age groups, e.g. children or older people", "source": "draft", "status": "draft" },
+      "Facilitators": { "text": "professionals who run the participation activities", "source": "draft", "status": "draft" }
+    },
+    "c3_goals": {
+      "Re-activation": { "text": "bringing an unused or underused space back into use", "source": "draft", "status": "draft" },
+      "Re-appropriation": { "text": "residents taking back a space as their own", "source": "draft", "status": "draft" },
+      "Valorisation": { "text": "enhancing the value of a place, its landscape or its heritage", "source": "draft", "status": "draft" },
+      "New perception": { "text": "changing how people see and experience the place", "source": "draft", "status": "draft" }
+    },
+    "c4_services": {
+      "Monitoring and warning systems": { "text": "systems that measure conditions (e.g. temperature, air, water) or warn of risks", "source": "draft", "status": "draft" }
+    }
+  },
+  "not_described": {
+    "_why": "Meaning not certain from the name or from the cases that have the tag: to be described by the TALEA team.",
+    "a6_uses": ["Refreshment point", "Performance", "Unconventional use"],
+    "b3_uses_management": ["Sensitive signage", "Functional equipment"],
+    "c1_1_design": ["Social innovation", "Cultural promotion"],
+    "c3_goals": ["Care", "Knowledge", "New connections", "New production"],
+    "c4_services": ["Access free to water"]
+  }
+}

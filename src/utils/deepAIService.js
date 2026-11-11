@@ -2,8 +2,18 @@ import Fuse from 'fuse.js';
 import { FILTER_CATEGORIES } from '../data/filterConfig';
 import { studyMatchesCategory } from './filterMatcher';
 import { getOtherDetailsText } from './otherDetails';
+import { yearRangeOverlaps } from './yearRange';
 
 const WORKER_URL = process.env.REACT_APP_WORKER_URL || 'https://talea-abacus-api.your-worker.workers.dev';
+
+// Builds an error carrying the worker's short, visitor-friendly message (if any).
+async function workerError(response, fallbackText) {
+  const data = await response.json().catch(() => ({}));
+  return Object.assign(new Error(fallbackText), { status: response.status, data, userMessage: data.error });
+}
+
+// The worker sets X-AI-Backup when its backup AI model answered (main daily quota used up).
+const usedBackup = response => response.headers.get('X-AI-Backup') === '1';
 
 export async function sendDeepAIQuery(userMessage) {
   const response = await fetch(`${WORKER_URL}/api/chat`, {
@@ -12,18 +22,13 @@ export async function sendDeepAIQuery(userMessage) {
     body: JSON.stringify({ message: userMessage }),
   });
 
-  if (response.status === 429) {
-    const data = await response.json().catch(() => ({}));
-    throw Object.assign(new Error('Rate limit reached'), { status: 429, data });
-  }
-
-  if (!response.ok) {
-    throw Object.assign(new Error(`Worker returned ${response.status}`), { status: response.status });
-  }
+  if (response.status === 429) throw await workerError(response, 'Rate limit reached');
+  if (!response.ok) throw await workerError(response, `Worker returned ${response.status}`);
 
   const remaining = parseInt(response.headers.get('X-RateLimit-Remaining') || '-1', 10);
   const data = await response.json();
   data._remaining = remaining;
+  data._backup = usedBackup(response);
   return data;
 }
 
@@ -142,22 +147,15 @@ export function applyAIFilters(aiFilters, caseStudies) {
       const uid = study.id || study.title;
       if (!seen.has(uid)) {
         seen.add(uid);
-        study._scenarioLabel = scenario.label;
-        unionResults.push(study);
+        // Work on a copy: the shared case objects must not keep scores/labels of a past search
+        unionResults.push({ ...study, _scenarioLabel: scenario.label });
       }
     }
   }
 
   // ---- Year filters always strict, applied globally ----
   if (aiFilters.year_min != null || aiFilters.year_max != null) {
-    unionResults = unionResults.filter(study => {
-      const yearMatch = String(study.year || '').match(/\d{4}/);
-      if (!yearMatch) return false;
-      const year = parseInt(yearMatch[0], 10);
-      if (aiFilters.year_min != null && year < aiFilters.year_min) return false;
-      if (aiFilters.year_max != null && year > aiFilters.year_max) return false;
-      return true;
-    });
+    unionResults = unionResults.filter(study => yearRangeOverlaps(study.year, aiFilters.year_min, aiFilters.year_max));
   }
 
   // ---- Exclude filtering (NOT logic) ----
@@ -213,7 +211,7 @@ export function applyAIFilters(aiFilters, caseStudies) {
     if (keywordScores) {
       score += (keywordScores.get(study.id || study.title) || 0);
     }
-    study._aiScore = score;
+    study._aiScore = score; // study is this search's own copy (see above)
     return { study, score };
   });
 
@@ -228,14 +226,8 @@ export function applyAIFilters(aiFilters, caseStudies) {
 async function fetchWithErrorHandling(url, options) {
   const response = await fetch(url, options);
 
-  if (response.status === 429) {
-    const data = await response.json().catch(() => ({}));
-    throw Object.assign(new Error('Rate limit reached'), { status: 429, data });
-  }
-
-  if (!response.ok) {
-    throw Object.assign(new Error(`Worker returned ${response.status}`), { status: response.status });
-  }
+  if (response.status === 429) throw await workerError(response, 'Rate limit reached');
+  if (!response.ok) throw await workerError(response, `Worker returned ${response.status}`);
 
   return response;
 }
@@ -272,6 +264,7 @@ export async function sendThinkingQuery(userMessage, caseStudies, { topN = 15, o
       topStudies: [],
       pass2: null,
       _remaining: remaining,
+      _backup: usedBackup(pass1Response),
       summary: aiFilters.summary || 'No matching projects found for deep analysis.',
     };
   }
@@ -292,15 +285,15 @@ export async function sendThinkingQuery(userMessage, caseStudies, { topN = 15, o
   const pass2Data = await pass2Response.json();
 
   // ---- Map pass2 results back to full study objects ----
-  // Pass2 returns max 3 (or 0) top_projects with { id, title, relevance_score }.
-  // We resolve each back to the full React state object by matching id or title.
+  // Pass2 returns max 3 (or 0) top_projects. The worker resolves the judge's
+  // candidate numbers to the ids of the projects it was sent; here we accept only
+  // ids of those candidates (no title fallback, which could show the wrong case).
+  const candidateById = new Map(candidates.map(s => [String(s.id), s]));
   const topStudies = [];
   if (pass2Data.top_projects && pass2Data.top_projects.length > 0) {
     for (const p of pass2Data.top_projects) {
-      const fullStudy = caseStudies.find(
-        s => String(s.id) === String(p.id) || s.title === p.title
-      );
-      if (fullStudy) {
+      const fullStudy = candidateById.get(String(p.id));
+      if (fullStudy && !topStudies.includes(fullStudy)) {
         fullStudy._aiScore = p.relevance_score;
         fullStudy._aiExplanation = p.explanation;
         topStudies.push(fullStudy);
@@ -310,6 +303,7 @@ export async function sendThinkingQuery(userMessage, caseStudies, { topN = 15, o
 
   // Score the broader pool: studies approved by the judge get their score,
   // everything else sinks to 0 so the grid shows judge picks first.
+  // (filtered holds copies made by applyAIFilters, so changing them is safe.)
   const approvedIds = new Set(topStudies.map(s => s.id || s.title));
   for (const study of filtered) {
     if (!approvedIds.has(study.id) && !approvedIds.has(study.title)) {
@@ -324,6 +318,7 @@ export async function sendThinkingQuery(userMessage, caseStudies, { topN = 15, o
     topStudies,
     pass2: pass2Data,
     _remaining: remaining,
+    _backup: usedBackup(pass1Response) || usedBackup(pass2Response),
     summary: aiFilters.summary,
   };
 }

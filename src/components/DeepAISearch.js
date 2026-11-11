@@ -1,5 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { sendDeepAIQuery, analyzeProjects, applyAIFilters, sendThinkingQuery } from '../utils/deepAIService';
+import { runAISearch } from '../utils/aiSearchV2';
+
+// Switch between the new single-mode AI search (v2, default) and the old Quick/Deep one.
+// Set REACT_APP_AI_SEARCH=v1 at build time to go back to the old search.
+const AI_V2 = process.env.REACT_APP_AI_SEARCH !== 'v1';
+
+const V2_PROGRESS = {
+  understanding: 'Understanding your question...',
+  retrieving: 'Searching the catalogue...',
+  judging: 'An AI expert is reviewing the best matches...',
+};
+
+const SITE_FIT_NOTE = {
+  partly: 'Only partly compatible with the limits of your site.',
+  not_compatible: 'May not be compatible with the limits of your site.',
+};
 
 const STORAGE_KEY = 'talea_deep_ai_chat';
 const DAILY_LIMIT = 150;
@@ -30,7 +46,9 @@ function saveChat(messages) {
   } catch { /* quota exceeded — silently ignore */ }
 }
 
-const GREETING = { role: 'bot', text: "Hi! I'm the TALEA AI Assistant — an intelligent search tool built on the TALEA Abacus case study database.\n\nDescribe what you're looking for in natural language and I'll find the most relevant nature-based solution projects. For example:\n- *\"green roofs in Mediterranean cities\"*\n- *\"community gardens not in Italy\"*\n- *\"small-scale projects with biodiversity goals\"*\n\nYou can also activate **Deep Research** for a more precise, expert-level analysis of the top candidates.", type: 'greeting' };
+const GREETING = { role: 'bot', text: "Hi! I'm the TALEA AI Assistant — an intelligent search tool built on the TALEA Abacus case study database.\n\nDescribe what you're looking for in natural language and I'll find the most relevant nature-based solution projects. For example:\n- *\"green roofs in Mediterranean cities\"*\n- *\"community gardens not in Italy\"*\n- *\"small-scale projects with biodiversity goals\"*" + (AI_V2
+  ? "\n\nYou can describe your site, its problems and limits: an AI expert reviews the best matches and explains why they fit."
+  : "\n\nYou can also activate **Deep Research** for a more precise, expert-level analysis of the top candidates."), type: 'greeting' };
 
 // ---------------------------------------------------------------------------
 // Lightweight inline markdown renderer (no deps)
@@ -159,11 +177,13 @@ function TypewriterMessage({ text, speed, onDone }) {
   return <div>{renderMarkdown(displayed)}{!done && <span className="typing-cursor">|</span>}</div>;
 }
 
-function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, onFilteredResults, onToggleMode, mode }) {
+function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, onFilteredResults, onToggleMode, mode, hidden = false, onBackgroundStatus }) {
   const isSidebar = mode === 'sidebar';
   const [messages, setMessages] = useState(() => loadChat() || [GREETING]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  // "Why" row open under a selected project ("message-pick" index), one at a time
+  const [openReason, setOpenReason] = useState(null);
   const [rateLimitHit, setRateLimitHit] = useState(false);
   const [remainingRequests, setRemainingRequests] = useState(-1);
   const [searchDepth, setSearchDepth] = useState('quick'); // 'quick' | 'deep'
@@ -171,26 +191,56 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Shown once per visit when the worker answered with its backup AI model
+  // (main daily quota used up). Plain words, no model names.
+  const backupNoticeShown = useRef(false);
+  const showBackupNotice = useCallback(() => {
+    if (backupNoticeShown.current) return;
+    backupNoticeShown.current = true;
+    setMessages(prev => [...prev, {
+      role: 'bot',
+      text: 'Many people are using the AI search today, so it switched to a backup version: results may be a little less precise.',
+      type: 'system',
+      _new: true,
+    }]);
+  }, []);
+
   // Persist chat to localStorage on every change
   useEffect(() => {
     saveChat(messages);
   }, [messages]);
 
-  // Lock background scroll only in overlay mode
+  // Lock background scroll only in overlay mode (and not while closed)
   useEffect(() => {
-    if (!isSidebar) {
+    if (!isSidebar && !hidden) {
       document.body.style.overflow = 'hidden';
       return () => { document.body.style.overflow = ''; };
     }
-  }, [isSidebar]);
+  }, [isSidebar, hidden]);
+
+  // Closed while answering: the search goes on; tell the page when it is working / ready
+  const workedInBackground = useRef(false);
+  useEffect(() => {
+    if (!onBackgroundStatus) return;
+    if (!hidden) {
+      workedInBackground.current = false;
+      onBackgroundStatus(null);
+    } else if (loading) {
+      workedInBackground.current = true;
+      onBackgroundStatus('working');
+    } else if (workedInBackground.current) {
+      onBackgroundStatus('ready');
+    }
+  }, [hidden, loading, onBackgroundStatus]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+    // while closed the panel is not laid out: scroll when it is shown again
+    if (!hidden) chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading, hidden]);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (!hidden) inputRef.current?.focus();
+  }, [hidden]);
 
   const handleClearChat = useCallback(() => {
     setMessages([GREETING]);
@@ -210,6 +260,8 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
   // Find the most recent response message with studies (for "See all results")
   const lastResultStudies = (() => {
     for (let i = messages.length - 1; i >= 0; i--) {
+      // v2: the whole ranking, stored as ids (resolved to full cases below)
+      if (messages[i].rankedIds) return messages[i].rankedIds.length > 0 ? messages[i].rankedIds.map(id => ({ id })) : null;
       if (messages[i].studies && messages[i].studies.length > 0) return messages[i].studies;
     }
     return null;
@@ -229,6 +281,8 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
       if (aiResponse._remaining >= 0) {
         setRemainingRequests(aiResponse._remaining);
       }
+
+      if (aiResponse._backup) showBackupNotice();
 
       // Apply AI filters to local data
       const filtered = applyAIFilters(aiResponse, caseStudies);
@@ -271,17 +325,17 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
         setRateLimitHit(true);
         setMessages(prev => [
           ...prev,
-          { role: 'bot', text: 'Daily limit reached. Try again tomorrow, or use the regular search.', type: 'error', _new: true },
+          { role: 'bot', text: err.userMessage || 'Daily limit reached. Try again tomorrow, or use the regular search.', type: 'error', _new: true },
         ]);
       } else if ((err.message && err.message.includes('NetworkError')) || err.name === 'TypeError') {
         setMessages(prev => [
           ...prev,
           { role: 'bot', text: 'Connection error — please check your internet and try again.', type: 'error', _new: true },
         ]);
-      } else if (err.status === 500) {
+      } else if (err.userMessage || err.status === 500) {
         setMessages(prev => [
           ...prev,
-          { role: 'bot', text: 'The AI service is temporarily unavailable. Please try again later.', type: 'error', _new: true },
+          { role: 'bot', text: err.userMessage || 'The AI service is temporarily unavailable. Please try again later.', type: 'error', _new: true },
         ]);
       } else {
         setMessages(prev => [
@@ -292,7 +346,7 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
     } finally {
       setLoading(false);
     }
-  }, [input, loading, caseStudies, onFilteredResults]);
+  }, [input, loading, caseStudies, onFilteredResults, showBackupNotice]);
 
   const handleDeepSend = useCallback(async () => {
     const trimmed = input.trim();
@@ -311,6 +365,8 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
       if (result._remaining >= 0) {
         setRemainingRequests(result._remaining);
       }
+
+      if (result._backup) showBackupNotice();
 
       // Push the full filtered pool to the grid (judge picks float to top via _aiScore)
       if (onFilteredResults) onFilteredResults(result.filtered);
@@ -367,8 +423,10 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
         setRateLimitHit(true);
         setMessages(prev => [
           ...prev,
-          { role: 'bot', text: 'Daily deep search limit reached. Try Quick mode, or try again tomorrow.', type: 'error', _new: true },
+          { role: 'bot', text: err.userMessage || 'Daily deep search limit reached. Try Quick mode, or try again tomorrow.', type: 'error', _new: true },
         ]);
+      } else if (err.userMessage) {
+        setMessages(prev => [...prev, { role: 'bot', text: err.userMessage, type: 'error', _new: true }]);
       } else {
         setMessages(prev => [
           ...prev,
@@ -379,15 +437,123 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
       setLoading(false);
       setProgressMsg('');
     }
-  }, [input, loading, caseStudies, onFilteredResults]);
+  }, [input, loading, caseStudies, onFilteredResults, showBackupNotice]);
+
+  // text: a suggested question clicked by the user; otherwise the input field
+  const handleV2Send = useCallback(async (text) => {
+    const trimmed = (typeof text === 'string' ? text : input).trim();
+    if (!trimmed || loading) return;
+
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: trimmed }]);
+    setLoading(true);
+    setProgressMsg(V2_PROGRESS.understanding);
+    try {
+      const result = await runAISearch(trimmed, caseStudies, {
+        onProgress: step => setProgressMsg(V2_PROGRESS[step] || ''),
+      });
+      if (result.remaining >= 0) setRemainingRequests(result.remaining);
+      if (result.backup) showBackupNotice();
+
+      // Grid: AI picks first, then the rest of the ranking (copies carry the order)
+      if (onFilteredResults && result.intent !== 'out_of_scope' && !result.keepGrid) {
+        const n = result.ranked.length;
+        onFilteredResults(result.ranked.map((s, i) => ({ ...s, _aiScore: n - i })));
+      }
+
+      // Not a search for cases: answer from the data (catalogue), or a short reply with
+      // better questions (subjective, off-topic)
+      if (result.intent && result.intent !== 'find_cases') {
+        const reply = result.intent === 'catalogue_question' ? result.catalogue : result.reply;
+        setMessages(prev => [...prev, {
+          role: 'bot',
+          text: reply || result.summary || '',
+          type: 'response',
+          // shown as buttons that ask the question
+          suggestions: result.suggestions && result.suggestions.length ? result.suggestions : undefined,
+          studies: result.ranked.length > 0 ? result.ranked.slice(0, 10) : undefined,
+          allStudies: result.ranked.length,
+          rankedIds: result.ranked.map(s => s.id),
+          _new: true,
+        }]);
+        return;
+      }
+
+      const picks = result.picks.map(p => ({
+        id: p.study.id,
+        title: p.study.title,
+        city: p.study.city,
+        country: p.study.country,
+        explanation: p.explanation,
+        needsCovered: p.needsCovered,
+        notInCard: p.notInCard,
+        siteFitNote: SITE_FIT_NOTE[p.siteFit] || null,
+        alternatives: p.alternatives && p.alternatives.length ? p.alternatives : undefined,
+      }));
+
+      let text = result.summary || '';
+      if (result.judged && picks.length === 0) {
+        text += result.ranked.length > 0
+          ? `\n\nAmong the projects closest to your request, the AI expert found **none that really fits**. ${result.ranked.length === 1 ? 'This one is' : `These ${result.ranked.length} are`} only partly related.`
+          : '\n\nAmong the projects closest to your request, the AI expert found **none that really fits**.';
+      } else if (result.ranked.length === 0) {
+        text += '\n\nNo project in the catalogue matches this request. Try rephrasing it or removing some limits (places, years, exclusions).';
+      } else if (result.judgeError) {
+        text += `\n\nThe AI expert could not review the results right now, so these are the **closest matches found by the search, without AI evaluation** (${result.ranked.length} in total).`;
+      } else {
+        const others = result.ranked.length - picks.length;
+        text += `\n\n**${picks.length}** project${picks.length !== 1 ? 's' : ''} selected by the AI expert` +
+          (others > 0 ? `, plus ${others} partly related.` : '.');
+      }
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'bot',
+          text,
+          type: 'response',
+          picks: picks.length > 0 ? picks : undefined,
+          studies: picks.length > 0 ? undefined : result.ranked.slice(0, 10),
+          allStudies: result.ranked.length > picks.length ? result.ranked.length : 0,
+          rankedIds: result.ranked.map(s => s.id),
+          _new: true,
+        },
+      ]);
+
+      // Final message: what was found, then why the top selected cases can help
+      if (result.analysis || picks.length > 0) {
+        // reasons only for the top 3; picks 4-5 stay in the list above
+        // warnings stay next to the reason: site limits, and what was asked but is not in the case study
+        const reasons = picks.slice(0, 3).map((p, i) =>
+          `- **#${i + 1} ${p.title}** (${p.city}): ${p.explanation}` +
+          (p.siteFitNote ? ` *${p.siteFitNote}*` : '') +
+          (p.notInCard ? ` *Not in the case study: ${p.notInCard}*` : ''));
+        const analysisText = [result.analysis, reasons.join('\n')].filter(Boolean).join('\n\n');
+        setMessages(prev => [...prev, { role: 'bot', text: analysisText, type: 'analysis', _new: true }]);
+      }
+    } catch (err) {
+      let text;
+      if (err.userMessage) text = err.userMessage;
+      else if (err.status === 429) text = 'Daily limit reached. Try again tomorrow, or use the regular search.';
+      else if ((err.message && err.message.includes('NetworkError')) || err.name === 'TypeError') text = 'Connection error — please check your internet and try again.';
+      else text = 'The AI service is temporarily unavailable. Please try again later, or use the regular search.';
+      if (err.status === 429) setRateLimitHit(true);
+      setMessages(prev => [...prev, { role: 'bot', text, type: 'error', _new: true }]);
+    } finally {
+      setLoading(false);
+      setProgressMsg('');
+    }
+  }, [input, loading, caseStudies, onFilteredResults, showBackupNotice]);
 
   const handleSubmit = useCallback(() => {
-    if (searchDepth === 'deep') {
+    if (AI_V2) {
+      handleV2Send();
+    } else if (searchDepth === 'deep') {
       handleDeepSend();
     } else {
       handleSend();
     }
-  }, [searchDepth, handleDeepSend, handleSend]);
+  }, [searchDepth, handleDeepSend, handleSend, handleV2Send]);
 
   const handleShowAll = useCallback(() => {
     if (!lastResultStudies || !onShowAllResults) return;
@@ -492,6 +658,77 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
               ) : (
                 <div>{renderMarkdown(msg.text)}</div>
               )}
+              {msg.picks && msg.picks.length > 0 && (
+                <div className="deep-ai-study-chips">
+                  <div className="deep-ai-study-chips-header">
+                    <span>Selected by the AI expert</span>
+                    {onShowAllResults && msg.allStudies > 0 && (
+                      <button className="deep-ai-see-all-btn" onClick={handleShowAll}>
+                        See all {msg.allStudies} matches
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="deep-ai-study-chips-list picks">
+                    {msg.picks.map((pick, j) => {
+                      const reasonKey = `${i}-${j}`;
+                      const open = openReason === reasonKey;
+                      const warned = pick.siteFitNote || pick.notInCard;
+                      return (
+                        <div key={j} className="deep-ai-pick-row">
+                          <div
+                            className="deep-ai-study-chip top-match"
+                            onClick={() => onSelectStudy && onSelectStudy(resolveStudy(pick))}
+                            title="Open the case study"
+                          >
+                            <span className="deep-ai-chip-rank">#{j + 1}</span>
+                            <div className="deep-ai-chip-info">
+                              <strong>{pick.title}</strong>
+                              <span>{pick.city}, {pick.country}</span>
+                              {pick.alternatives && <span className="deep-ai-pick-group">→ {pick.alternatives.join(' · ')}</span>}
+                            </div>
+                            {pick.explanation && (
+                              <button
+                                className={`deep-ai-pick-why ${warned ? 'warn' : ''}`}
+                                aria-expanded={open}
+                                title={warned ? 'Why this project, with a warning' : 'Why this project'}
+                                onClick={e => { e.stopPropagation(); setOpenReason(open ? null : reasonKey); }}
+                              >
+                                {warned ? '⚠ ' : ''}Why {open ? '▴' : '▾'}
+                              </button>
+                            )}
+                          </div>
+                          {open && (
+                            <div className="deep-ai-pick-reason">
+                              <p className="deep-ai-pick-explanation">{pick.explanation}</p>
+                              {pick.siteFitNote && <p className="deep-ai-pick-meta warn">{pick.siteFitNote}</p>}
+                              {pick.notInCard && <p className="deep-ai-pick-meta warn">Not in the case study: {pick.notInCard}</p>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {msg.suggestions && msg.suggestions.length > 0 && (
+                <div className="deep-ai-suggestions">
+                  <span className="deep-ai-suggestions-title">You could ask, for example:</span>
+                  {msg.suggestions.map((s, j) => (
+                    <button
+                      key={j}
+                      className="deep-ai-suggestion"
+                      disabled={loading || rateLimitHit}
+                      onClick={() => handleV2Send(s)}
+                      title="Ask this question"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
               {msg.studies && msg.studies.length > 0 && (
                 <div className="deep-ai-study-chips">
                   <div className="deep-ai-study-chips-header">
@@ -549,8 +786,13 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
             {remainingRequests} request{remainingRequests !== 1 ? 's' : ''} remaining today
           </div>
         )}
+        {AI_V2 && (
+          <div className="deep-ai-privacy-note">
+            Questions are processed by Google Gemini and Cloudflare and saved anonymously to improve the search. Please don't include personal data.
+          </div>
+        )}
         <div className="deep-ai-input-row">
-          <button
+          {!AI_V2 && <button
             className={`deep-ai-deep-toggle ${searchDepth === 'deep' ? 'active' : ''}`}
             onClick={handleToggleDeep}
             disabled={loading}
@@ -561,12 +803,12 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
               {searchDepth === 'deep' && <path d="M11 8v6M8 11h6"/>}
             </svg>
             <span>Deep</span>
-          </button>
+          </button>}
           <input
             ref={inputRef}
             type="text"
             className="deep-ai-input"
-            placeholder={rateLimitHit ? 'Daily limit reached' : searchDepth === 'deep' ? 'Deep analysis query...' : 'Ask about NBS projects...'}
+            placeholder={rateLimitHit ? 'Daily limit reached' : AI_V2 ? 'Describe your site or what you are looking for...' : searchDepth === 'deep' ? 'Deep analysis query...' : 'Ask about NBS projects...'}
             value={input}
             disabled={rateLimitHit || loading}
             onChange={e => setInput(e.target.value)}
@@ -591,6 +833,11 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
       </div>
     </div>
   );
+
+  if (hidden) {
+    // kept mounted (not shown) so a running search can finish
+    return <div style={{ display: 'none' }}>{panelContent}</div>;
+  }
 
   if (isSidebar) {
     return <div className="deep-ai-sidebar-wrapper">{panelContent}</div>;

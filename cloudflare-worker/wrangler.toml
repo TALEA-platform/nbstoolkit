@@ -5,9 +5,19 @@ compatibility_date = "2025-01-01"
 [vars]
 ALLOWED_ORIGIN = "https://talea.comune.bologna.it"
 
-# Set these as secrets via `wrangler secret put`:
-# GROQ_API_KEY
+# Secrets (set with `wrangler secret put <NAME>`, never written here):
+# GEMINI_API_KEY  Google AI Studio key
+# EMBED_SYNC_KEY  shared with the GitHub secret of the same name; lets the nightly
+#                 sync compute the vectors of the cases (/api/embed-cases)
 
-[[kv_namespaces]]
-binding = "RATE_LIMIT"
-id = "5ce150ccc75a4d359627942ae74750e1"
+# Workers AI: bge-m3 vectors of questions and cases
+[ai]
+binding = "AI"
+
+# AI database: daily counters per visitor (checkRateLimit) and anonymous log of the
+# AI questions (logQuestion), both without IP. See worker-gemini.js.
+# (The KV namespace RATE_LIMIT used before is no longer needed.)
+[[d1_databases]]
+binding = "AI_DB"
+database_name = "talea-ai-log"
+database_id = "8cc969f3-78ec-4b11-aba8-f3c2fb93841e"

@@ -48,10 +48,18 @@ jobs:
           ALLOW_MASS_REMOVAL: ${{ inputs.allow_mass_removal }}
         run: node scripts/sync-approved.js
 
+      # Vectors for the AI search: only new or changed cases are computed, through the
+      # worker (Workers AI). Never fails the sync: without the secret it only warns.
+      - name: Update AI search vectors
+        env:
+          EMBED_WORKER_URL: ${{ secrets.REACT_APP_WORKER_URL }}
+          EMBED_SYNC_KEY: ${{ secrets.EMBED_SYNC_KEY }}
+        run: node scripts/build-embeddings.js
+
       - name: Check for changes
         id: changes
         run: |
-          if [ -n "$(git status --porcelain -- src/data/caseStudies.json public/images)" ]; then
+          if [ -n "$(git status --porcelain -- src/data/caseStudies.json public/images public/data)" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -62,7 +70,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/data/caseStudies.json public/images
+          git add src/data/caseStudies.json public/images public/data
           git commit -m "chore: sync approved case studies from Google Sheet"
           git pull --rebase
           git push

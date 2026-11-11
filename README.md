@@ -28,7 +28,7 @@ This script read every sheet from the workbook generating `src/data/caseStudies.
 ## Features
 
 - **Search** - Fuzzy text search with automatic filter chip suggestions and slash commands
-- **AI Assistant** - Natural-language search powered by Google Gemini (**interchangeable AI backend**), with **Deep Research** mode that uses expert-level analysis.
+- **AI Assistant** - Describe your site, its problems and limits in any language: the search finds the closest case studies (tags, words and meaning) and an AI expert selects up to 5 and explains why they fit. Keeps working in the background if the panel is closed.
 - **Filter Canvas** - Visual query builder with drag-and-drop filters, AND/OR logic, and include/exclude (NOT) support
 - **Grid / List / Map** - Card grid, compact table, or interactive map with Street View link, Geo URI and OpenStreetMap link
 - **Compare** - Side-by-side comparison of 2-3 selected studies
@@ -48,12 +48,16 @@ The app is fully client-side with no traditional backend. It relies on the follo
 | **GitHub Actions**     | Two workflows: one deploys on push to `main`, the other runs a nightly cron job to sync new data from the Google Sheet.                                                                                                                          |
 | **Google Sheets**      | Act as the primary database where all case study data is managed. New submissions land here for supervisor review.                                                                                                                               |
 | **Google Apps Script** | Receives form submissions from the website, writes them to the Google Sheet, saves the images in a Drive folder and emails the supervisor for review.                                                                                            |
-| **Cloudflare Worker**  | Serverless proxy between the frontend and the AI model API. Handles CORS, rate limiting (KV store), and keeps the API key secret.                                                                                                                |
-| **Google Gemini**      | AI model used for natural-language search and deep research analysis. Currently using `gemini-3.1-flash-lite` on the free tier. The system uses a **provider-agnostic architecture**, allowing for easy switching between model and providers.   |
+| **Cloudflare Worker**  | Serverless proxy between the frontend and the AI services. Handles CORS, the daily limit per visitor (D1, keyed by a daily hash of the IP; the IP is not stored), and keeps the API keys secret. |
+| **Google Gemini**      | AI model that understands the question and judges the candidate cases: `gemini-3.5-flash-lite` on the free tier, with `gemini-3.1-flash-lite` as backup when the daily quota is used up. |
+| **Cloudflare Workers AI** | `bge-m3` vectors (multilingual) of the questions and of the case studies, used to compare their meaning. Case vectors are in `public/data/case-embeddings.json`, updated by the nightly sync. |
+| **Cloudflare D1**      | Daily counters per visitor and anonymous log of the AI questions (`talea-ai-log`: day, question, selected cases; no IP), kept 180 days, to improve the search. |
 
 ## Current Deploy
 
-The production site is served via **GitHub Pages** from the `gh-pages` branch. The active AI proxy is the **Cloudflare Worker** running `worker-gemini.js` with the **Google Gemini** API.
+The production site is served via **GitHub Pages** from the `gh-pages` branch. The active AI proxy is the **Cloudflare Worker** running `worker-gemini.js` with the **Google Gemini** API and Workers AI.
+
+AI search, in short: the worker asks Gemini to turn the question into a search plan (`/api/understand`); the browser ranks the cases with the plan (`src/utils/aiRetrieval.js`: explicit constraints, rarity-weighted tags, BM25 on the English texts, vector similarity, rank fusion); the worker asks Gemini to judge the 15 closest cases (`/api/judge`); the browser checks the answer (`src/utils/aiSearchV2.js`). Setting `REACT_APP_AI_SEARCH=v1` at build time brings back the previous Quick/Deep search.
 
 This setup is designed with a **modular, future-proof approach:** while Gemini is the primary provider at the moment, the architecture is not static and allows for seamlessly switching AI models or providers based on future needs.
 
@@ -97,7 +101,7 @@ Questo script legge ogni foglio dell' Excel `src/data/caseStudies.json`. Lo scri
 ## Funzionalità
 
 - **Ricerca** - Ricerca testuale fuzzy con suggerimenti automatici per i filtri e compandi slash.
-- **Assistente AI** - Ricerca in linguaggio naturale basato su Google Gemini ( **backend AI intercambiabile**), con modalità **Deep Research** basata su un'analisi più approfondita dei casi di studio.
+- **Assistente AI** - Descrivi in qualsiasi lingua il tuo luogo, i problemi e i limiti: la ricerca trova i casi studio più vicini (tag, parole e significato) e un esperto AI ne sceglie fino a 5 spiegando perché sono adatti. Continua a lavorare anche se il pannello viene chiuso.
 - **Filter Canvas** - Costruttuore visivo di query con filtri drag-and-drop, logica AND/OR e supporto per inclusione/esclusione (NOT).
 - **Griglia / Lista / Mappa** - Segli tra griglia a scheda, tabella compatta o mappa interattiva con link a Street View, Geo URI e OpenStreetMap.
 - **Confronto** - Comparazione fianco a fianco di 2-3 casi studio selezionati.
@@ -117,12 +121,16 @@ L'applicazione è interamente lato client e non ha un backend tradizionale. Si a
 | **GitHub Actions**     | Due flussi di lavoro: uno effettua il deploy su `main`, l'altro esegue un cron job notturno per sincronizzare i nuovi dati dal Google Sheet.                                                                                                               |
 | **Google Sheets**      | Funge da database principale dove vengono gestiti tutti i dati dei casi studio. Le nuove proposte arrivano qui per la revisione del supervisore.                                                                                                           |
 | **Google Apps Script** | Riceve i dati inviati dal modulo web, li scrive nel Google Sheet, salva le immagini in una cartella Drive e invia un'email al supervisore per la revisione.                                                                                                |
-| **Cloudflare Worker**  | Proxy serverless tra il frontend e l'API del modello IA. Gestisce i CORS, il rate limiting (KV store) e mantiene segreta la chiave API.                                                                                                                    |
-| **Google Gemini**      | Modello IA utilizzato per la ricerca in linguaggio naturale e l'analisi deep research. Attualmente usa `gemini-3.1-flash-lite` (piano gratuito). Il sistema adotta un'**architettura agnostica**, che permette di cambiare facilmente modello e fornitore. |
+| **Cloudflare Worker**  | Proxy serverless tra il frontend e i servizi IA. Gestisce i CORS, il limite giornaliero per visitatore (D1, con un hash giornaliero dell'IP; l'IP non viene salvato) e mantiene segrete le chiavi API. |
+| **Google Gemini**      | Modello IA che interpreta la domanda e valuta i casi candidati: `gemini-3.5-flash-lite` (piano gratuito), con `gemini-3.1-flash-lite` di riserva quando finisce la quota del giorno. |
+| **Cloudflare Workers AI** | Vettori `bge-m3` (multilingue) delle domande e dei casi studio, per confrontarne il significato. I vettori dei casi sono in `public/data/case-embeddings.json`, aggiornati dalla sincronizzazione notturna. |
+| **Cloudflare D1**      | Contatori giornalieri per visitatore e registro anonimo delle domande all'AI (`talea-ai-log`: giorno, domanda, casi scelti; nessun IP), conservato 180 giorni, per migliorare la ricerca. |
 
 ## Deplyment Attuale
 
-Il sito in produzione è ospitato via **GitHub Pages** dal branch `gh-pages`. Il proxy IA attivo è il **Cloudflare Woeker** che esegue `worker-gemini.js` tramite l'API di **Google Gemini**.
+Il sito in produzione è ospitato via **GitHub Pages** dal branch `gh-pages`. Il proxy IA attivo è il **Cloudflare Worker** che esegue `worker-gemini.js` tramite l'API di **Google Gemini** e Workers AI.
+
+La ricerca AI, in breve: il worker chiede a Gemini di trasformare la domanda in un piano di ricerca (`/api/understand`); il browser ordina i casi con il piano (`src/utils/aiRetrieval.js`: vincoli espliciti, tag pesati per rarità, BM25 sui testi inglesi, somiglianza dei vettori, fusione delle classifiche); il worker chiede a Gemini di valutare i 15 casi più vicini (`/api/judge`); il browser controlla la risposta (`src/utils/aiSearchV2.js`). Con `REACT_APP_AI_SEARCH=v1` nella build si torna alla ricerca precedente Quick/Deep.
 
 Questo setup è stato progettato con un **approccio modulare e orientato al futuro:** sebbene Gemini sia attualmente il fornitore principale, l'architettura non è statica e permette di passare senza problemi ad altri modelli o fornitori IA in base alle esigenze future.
 

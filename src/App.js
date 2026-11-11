@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect, useDeferredValue } f
 import staticCaseStudies from './data/caseStudies.json';
 import { FILTER_CATEGORIES } from './data/filterConfig';
 import { generateChatResponse, findCommonFilters } from './utils/fuzzySearch';
+import { parseYearRange } from './utils/yearRange';
 import { createLocalSearchIndex, runLocalRetrieval, getLocalFilterSuggestions, parseMultiWordQuery } from './utils/localRetrieval';
 import { studyMatchesAllFilters } from './utils/filterMatcher';
 import { exportFilteredResultsPDF } from './utils/pdfExport';
@@ -122,6 +123,13 @@ function App() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [showRefineSearch, setShowRefineSearch] = useState(false);
   const [showDeepAI, setShowDeepAI] = useState(false); // false | 'overlay' | 'sidebar'
+  // Current panel state for callbacks that finish later (a search ending in the background
+  // must not bring the AI results back into the grid after the panel was closed).
+  const showDeepAIRef = useRef(showDeepAI);
+  showDeepAIRef.current = showDeepAI;
+  // The assistant stays mounted after the first open, so a search keeps running when it is closed.
+  const [aiMounted, setAiMounted] = useState(false);
+  const [aiBackgroundStatus, setAiBackgroundStatus] = useState(null); // null | 'working' | 'ready'
   const [aiFilteredStudies, setAiFilteredStudies] = useState(null);
   const [chatMessages, setChatMessages] = useState([
     { role: 'bot', text: "Welcome to the NBS Toolkit! I'm your TALEA Abacus assistant. Search for hardware solutions by typing anything \u2014 city names, NBS types, or even misspelled words. I'll find the best matches!", type: 'greeting' },
@@ -521,32 +529,8 @@ function App() {
     return results;
   }, [filterBaseStudies, activeFilters, excludedFilters, filterModes]);
 
-  // Extract a numeric year from a string like "2017–2019", "21st century", "completed 2022", etc.
-  // Returns the most recent year found, or 0 if none.
-  const extractYear = useCallback((yearStr) => {
-    if (!yearStr) return 0;
-    const s = String(yearStr);
-
-    // Find all 4-digit years
-    const fourDigit = s.match(/\b(\d{4})\b/g);
-    if (fourDigit && fourDigit.length > 0) {
-      return Math.max(...fourDigit.map(Number));
-    }
-
-    // Handle century references: "12th century" → 1100, "21st century" → 2000
-    const centuryMatch = s.match(/(\d{1,2})(?:st|nd|rd|th)\s*(?:century|cent\.?)/i);
-    if (centuryMatch) {
-      return (parseInt(centuryMatch[1], 10) - 1) * 100;
-    }
-
-    // Handle "1990s" style
-    const decadeMatch = s.match(/(\d{4})s/);
-    if (decadeMatch) {
-      return parseInt(decadeMatch[1], 10) + 5; // midpoint of decade
-    }
-
-    return 0;
-  }, []);
+  // Most recent year of a case ("2017–2019" → 2019, "late 1990s" → 1999), or 0 if none.
+  const extractYear = useCallback((yearStr) => parseYearRange(yearStr)?.end || 0, []);
 
   const sortedStudies = useMemo(() => {
     if (sortBy === 'default') {
@@ -937,7 +921,8 @@ function App() {
           onSearchSubmit={handleSearchSubmit}
           onSearchModeChange={setSearchMode}
           onSearchLogicChange={setSearchLogic}
-          onOpenDeepAI={() => setShowDeepAI('overlay')}
+          onOpenDeepAI={() => { setShowDeepAI('overlay'); setAiMounted(true); setAiBackgroundStatus(null); }}
+          aiBackgroundStatus={aiBackgroundStatus}
           onClearSearchContext={clearSearchContext}
           onEditSearchContext={editSearchContext}
           onAddCanvasFilter={addCanvasFilter}
@@ -1114,16 +1099,18 @@ function App() {
         initialPage={helpPage}
       />
 
-      {showDeepAI && (
+      {aiMounted && (
         <DeepAISearch
           caseStudies={caseStudies}
-          mode={showDeepAI}
+          mode={showDeepAI || 'overlay'}
+          hidden={!showDeepAI}
+          onBackgroundStatus={setAiBackgroundStatus}
           onClose={() => { setShowDeepAI(false); setAiFilteredStudies(null); }}
           onSelectStudy={(study) => {
             setSelectedStudy(study);
           }}
           onFilteredResults={(studies) => {
-            if (showDeepAI === 'sidebar') setAiFilteredStudies(studies);
+            if (showDeepAIRef.current === 'sidebar') setAiFilteredStudies(studies);
           }}
           onToggleMode={(newMode) => setShowDeepAI(newMode)}
           onShowAllResults={(studies) => {
@@ -1158,8 +1145,9 @@ function App() {
               <circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/>
             </svg>
             <p>
-              This app uses <strong>local storage</strong> to save your preferences and favorites.
+              This app uses <strong>local storage</strong> to save your preferences, favorites and AI chat.
               No tracking cookies or third-party analytics are used. Map tiles are served by <strong>OpenFreeMap</strong> without tracking.
+              Questions to the <strong>AI Assistant</strong> are processed by Google Gemini and Cloudflare, and saved anonymously (no IP or other identifiers) to improve the search.
             </p>
             <button className="cookie-accept-btn" onClick={acceptCookies}>Got it</button>
           </div>

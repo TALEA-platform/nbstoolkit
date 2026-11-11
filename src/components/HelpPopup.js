@@ -14,12 +14,12 @@ const HELP_PAGES = [
     title: 'AI Assistant',
     icon: '🔍',
     content: [
-      { heading: 'How it works', text: 'Click the AI Assistant button in the header to open the AI panel. Type a natural-language query (e.g. "green roofs in Mediterranean cities" or "community gardens not in Italy") and the AI translates it into structured filters across all 29 categories.' },
-      { heading: 'Quick mode (default)', text: 'Quick mode runs a single AI pass that generates filters, applies them locally, and shows matching projects ranked by relevance. It also provides an analysis of why the results match your query.' },
-      { heading: 'Deep Research mode', text: 'Click the "Deep" button to activate Deep Research. This mode is more precise — it uses an expert AI judge to evaluate candidates and select only the most relevant projects for your specific query. Results are limited to the best 1-3 projects.' },
-      { heading: 'Exclusion & keywords', text: 'The AI understands negations ("not in Italy", "exclude green roofs") and semantic keywords beyond the structured filters. It also supports complex queries like "projects in Milan, or ones with rain gardens and biodiversity goals".' },
-      { heading: 'Grid view', text: 'After getting results, click "See all results" or the Grid button in the header to see AI results in the main grid. Your normal filters and search still work on top of the AI results. Click the button again to return to the chat.' },
-      { heading: 'Daily limits', text: 'AI search has a daily usage limit per user. Deep Research uses a separate, smaller quota. A warning appears when you are running low.' },
+      { heading: 'How it works', text: 'Click the AI Assistant button to open the AI panel and describe, in any language, your site, its problems and limits, or what you are looking for (e.g. "a small square in northern Italy that floods and gets very hot in summer", "green roofs in Mediterranean cities but not in Spain"). The AI understands the request, the search finds the closest case studies (by tags, words and meaning), and an AI expert reads them and selects up to 5, explaining why the best ones fit.' },
+      { heading: 'Your site vs. limits', text: 'A place you describe as your site ("a square in Bologna") is used to find similar contexts anywhere in the world, not as a filter. Explicit limits are applied strictly: "only in France", "not in Paris", "since 2016", "exclude green roofs".' },
+      { heading: 'Results', text: 'The answer lists the selected projects; click one to open its case study. If the AI expert also found projects that are only partly related, "See all matches" shows them after the selected ones in the main grid, where your filters still work. If none of the closest projects really fits, the AI says so instead of suggesting weak matches. If the AI expert is not available, you still get the closest matches, marked as not evaluated by the AI.' },
+      { heading: 'In the background', text: 'You can close the panel while the AI is working: a dot on the AI Assistant button turns green when the answer is ready.' },
+      { heading: 'Privacy', text: 'Questions are processed by Google Gemini and Cloudflare and saved anonymously (no IP or other identifiers) to improve the search. Please do not include personal data.' },
+      { heading: 'Daily limits', text: 'AI search has a daily usage limit per user. A warning appears when you are running low. On very busy days a backup AI version may answer, with slightly less precise results.' },
     ],
   },
   {

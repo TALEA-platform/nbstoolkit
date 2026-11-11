@@ -727,6 +727,161 @@ a, button, [role="button"], .case-card, .case-list-item {
   font-size: 11px;
 }
 
+/* AI button: a search is running / an answer is ready while the assistant is closed */
+.deep-ai-btn {
+  position: relative;
+}
+
+.deep-ai-btn-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-primary, #fff);
+}
+
+.deep-ai-btn.bg-working .deep-ai-btn-badge {
+  background: #e07c3a;
+  animation: deep-ai-badge-pulse 1.2s ease-in-out infinite;
+}
+
+.deep-ai-btn.bg-ready .deep-ai-btn-badge {
+  background: #21a84a;
+}
+
+@keyframes deep-ai-badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deep-ai-btn.bg-working .deep-ai-btn-badge { animation: none; }
+}
+
+.deep-ai-privacy-note {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* AI search v2: picks with explanations */
+/* explanations are the answer: show them all, no inner scroll */
+.deep-ai-study-chips-list.picks {
+  max-height: none;
+  overflow-y: visible;
+  gap: 8px;
+}
+
+.deep-ai-study-chip.deep-ai-pick {
+  align-items: flex-start;
+}
+
+.deep-ai-pick .deep-ai-chip-info strong {
+  white-space: normal;
+}
+
+.deep-ai-pick-explanation {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.deep-ai-pick-meta {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.deep-ai-pick-meta.warn {
+  color: #b7791f;
+}
+
+/* Suggested questions (subjective or off-topic questions): click to ask */
+.deep-ai-suggestions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.deep-ai-suggestions-title {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.deep-ai-suggestion {
+  padding: 6px 12px;
+  border: 1px solid rgba(224, 124, 58, 0.35);
+  border-radius: 999px;
+  background: rgba(224, 124, 58, 0.06);
+  color: var(--text-primary);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.deep-ai-suggestion:hover:not(:disabled) {
+  background: rgba(224, 124, 58, 0.14);
+  border-color: rgba(224, 124, 58, 0.6);
+}
+
+.deep-ai-suggestion:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* OR group a selected project answers ("→ Projects in France") */
+.deep-ai-chip-info .deep-ai-pick-group {
+  color: #b5652a;
+  font-size: 10.5px;
+}
+
+/* "Why" row under each selected project */
+.deep-ai-pick-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.deep-ai-pick-row .deep-ai-chip-info {
+  flex: 1;
+}
+
+.deep-ai-pick-why {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.deep-ai-pick-why:hover,
+.deep-ai-pick-why[aria-expanded="true"] {
+  color: var(--text-primary);
+  border-color: rgba(224, 124, 58, 0.5);
+}
+
+.deep-ai-pick-why.warn {
+  color: #b7791f;
+}
+
+.deep-ai-pick-reason {
+  margin: 0 4px;
+  padding: 6px 10px 8px 40px;
+  border: 1px solid rgba(224, 124, 58, 0.2);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
 /* Input area */
 .deep-ai-input-area {
   display: flex;
