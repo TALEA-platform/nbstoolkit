@@ -59,6 +59,20 @@ function narrativeText(study) {
   return parts.filter(t => typeof t === 'string' && t.trim() && !EMPTY_TEXT.test(t)).join(' ');
 }
 
+// The judge's evidence for a site compatibility: a passage copied from the case's TEXTS (not
+// its tags). Accepted only when the same words, in the same order, are in the texts: every
+// word counts, "no" and "not" too, so "No deep excavation" never matches "required deep
+// excavation". Only capitals, accents, punctuation, hyphens and spaces are ignored.
+const passageWords = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .match(/[a-z0-9]+/g) || [];
+
+export function evidenceInCard(evidence, study) {
+  if (typeof evidence !== 'string') return false;
+  const said = passageWords(evidence);
+  if (said.length < 4) return false;
+  return ` ${passageWords(narrativeText(study)).join(' ')} `.includes(` ${said.join(' ')} `);
+}
+
 // ---------------------------------------------------------------------------
 // Index (built once per dataset)
 // ---------------------------------------------------------------------------
@@ -165,6 +179,7 @@ function validTags(list, seen, unknown = null) {
 // as before: tags of the same category are alternatives, different categories all required.
 // unknown: collects the values of groups with no catalogue category at all;
 // partial: the unknown values of groups that also have known tags (those are kept)
+// Each group keeps, as group.because, the words the AI quoted to justify it (see sanitizeUnderstanding).
 function validTagGroups(list, unknown, partial) {
   const groups = [];
   const flat = [];
@@ -173,6 +188,8 @@ function validTagGroups(list, unknown, partial) {
       const missing = [];
       const group = validTags(item.any_of, new Set(), missing);
       if (group.length) {
+        if (typeof item.because === 'string') group.because = item.because.slice(0, 200);
+        if (typeof item.named_as === 'string') group.namedAs = item.named_as.slice(0, 120);
         groups.push(group);
         partial.push(...missing);
       } else unknown.push(...missing);
@@ -243,18 +260,63 @@ export function selectCandidates(ranked, plan, k) {
   return ranked.filter(r => chosen.has(r)); // keep the ranking order
 }
 
-// Words that make an element a requirement ("only", "both", "sia… sia"…), in the languages
-// visitors are likely to use. Without them, in a search for cases, an element the AI marked
-// as required is only a preference: the AI sometimes requires what the user just named,
-// which can leave no case at all. Size and climate stay conditions, like country and years.
+// In a search for cases, an element the AI marked as required stays required only when the
+// question really requires it: the AI sometimes requires what the user just named, which can
+// leave no case at all. Each group is checked on its own (requirementStays):
+//  - a quote (group.because) that expresses a preference ("preferibilmente rain garden") never
+//    makes it required, whatever else the question says ("Solo progetti in Francia, …");
+//  - a quote really in the question that says more than the name ("è indispensabile") does;
+//  - only when the AI gave no quote: words that make an element a requirement ("only", "both",
+//    "sia… sia"…) somewhere in the question.
+// Otherwise the element becomes a preference. Size and climate stay conditions, like country and years.
 const RESTRICTION_WORDS = new RegExp([
-  '\\b(solo|soltanto|solamente|esclusivamente|unicamente|necessariamente|obbligatori[oaie]?|per forza|devono|deve avere|entramb[ie]|almeno)\\b',
-  '\\b(only|exclusively|necessarily|must|required?|both|at least)\\b',
-  '\\b(seulement|uniquement|obligatoirement|necesariamente|ambos|ambas|nur|ausschliesslich|unbedingt|beide)\\b',
+  '\\b(solo|soltanto|solamente|esclusivamente|unicamente|necessariamente|obbligatori[oaie]?|per forza|devono|deve avere|entramb[ie]|almeno|indispensabil[ei]|imprescindibil[ei]|essenzial[ei])\\b',
+  '\\b(only|exclusively|necessarily|must|required?|both|at least|essential|indispensable|mandatory|compulsory)\\b',
+  '\\b(seulement|uniquement|obligatoire(ment)?|necesariamente|imprescindibles?|obligatori[oa]s?|ambos|ambas|nur|ausschliesslich|unbedingt|zwingend|erforderlich|beide)\\b',
   '\\bsia\\b.*\\bsia\\b', '\\btanto\\b.*\\bcomo\\b', '\\bsowohl\\b.*\\bals auch\\b', '\\ba la fois\\b',
 ].join('|'), 'i');
 const ALWAYS_CONDITIONS = new Set(['size', 'climate_zone']);
 const plain = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
+const words = s => plain(s).match(/[a-z0-9]+/g) || [];
+
+// Words of a preference: a quote with one of them never justifies a requirement.
+const PREFERENCE_WORDS = new RegExp([
+  '\\b(preferibil\\w*|preferenz\\w*|preferire\\w*|meglio|magari|idealmente|possibilmente|se possibile|piacerebbe|sarebbe bello|ideale)\\b',
+  '\\b(prefer\\w*|ideally|if possible|would be nice|nice to have|would like|optionally|maybe|perhaps)\\b',
+  '\\b(de preference|idealement|si possible|preferiblemente|preferentemente|si es posible|vorzugsweise|idealerweise|am liebsten|moglichst|wenn moglich)\\b',
+].join('|'), 'i');
+
+// The quote is in the question (same words in the same order, 2-10 words) and has a word that
+// is not part of the element's name. One word ("Solo", "only") does not tie the requirement to
+// this element: in "Solo progetti in Francia, preferibilmente rain garden" it is about France.
+function quotedRequirement(group, question) {
+  const quote = words(group.because);
+  if (quote.length < 2 || quote.length > 10) return false;
+  if (!` ${words(question).join(' ')} `.includes(` ${quote.join(' ')} `)) return false;
+  const named = new Set(group.flatMap(t => words(t.value).map(w => w.replace(/s$/, ''))));
+  return quote.some(w => w.length > 2 && !named.has(w.replace(/s$/, '')));
+}
+
+// named_as (the words naming the element, when the AI gives them and they are in the question):
+// a preference just before them ("preferibilmente rain garden", "meglio se con rain garden")
+// makes the element a preference, and the quote must contain them ("Solo progetti in Francia"
+// does not justify rain garden).
+const PREFERENCE_BEFORE = 4; // words before the element where a preference counts
+function requirementStays(group, question) {
+  if (group.every(t => ALWAYS_CONDITIONS.has(t.key))) return true;
+  const q = ` ${words(question).join(' ')} `;
+  const named = words(group.namedAs).join(' ');
+  const namedAt = named ? q.indexOf(` ${named} `) : -1;
+  if (namedAt >= 0) {
+    const before = q.slice(0, namedAt).trim().split(' ').slice(-PREFERENCE_BEFORE).join(' ');
+    if (PREFERENCE_WORDS.test(before)) return false;
+  }
+  const quote = words(group.because).join(' ');
+  if (quote && PREFERENCE_WORDS.test(quote)) return false;
+  if (quote && namedAt >= 0 && !` ${quote} `.includes(` ${named} `)) return false;
+  if (quote) return quotedRequirement(group, question);
+  return RESTRICTION_WORDS.test(plain(question));
+}
 
 // Keeps only well-formed parts of the AI plan (tags must exist in the filter config).
 // question (optional): the user's text, to check that required elements were really required.
@@ -284,8 +346,8 @@ export function sanitizeUnderstanding(u, question = null) {
   // required elements the user did not really require → preferences (see RESTRICTION_WORDS)
   let required = requireGroups;
   const softened = [];
-  if (intent === 'find_cases' && typeof question === 'string' && !RESTRICTION_WORDS.test(plain(question))) {
-    required = requireGroups.filter(g => g.every(t => ALWAYS_CONDITIONS.has(t.key)));
+  if (intent === 'find_cases' && typeof question === 'string') {
+    required = requireGroups.filter(g => requirementStays(g, question));
     for (const g of requireGroups.filter(x => !required.includes(x))) {
       for (const t of g) {
         softened.push(t);

@@ -646,8 +646,10 @@ const TAG_LABELS = {
   a1_urban_scale: 'A1 Urban scale', a2_urban_area: 'A2 Urban area', a3_1_buildings: 'A3.1 Buildings',
   a3_2_open_spaces: 'A3.2 Open spaces', a3_3_infrastructures: 'A3.3 Infrastructures', a4_ownership: 'A4 Ownership',
   a5_management: 'A5 Management', a6_uses: 'A6 Uses', a7_other: 'A7 Other context',
-  b1_physical: 'B1 Physical constraints', b2_regulations: 'B2 Regulations', b3_uses_management: 'B3 Uses & management constraints',
-  b4_public_opinion: 'B4 Public opinion', b5_synergy: 'B5 Synergies', b6_social_opportunities: 'B6 Social opportunities',
+  // B: conditions found at the start, not how the project handled them
+  b1_physical: 'B1 Physical constraints (at the start)', b2_regulations: 'B2 Regulations (at the start)',
+  b3_uses_management: 'B3 Uses & management constraints (at the start)', b4_public_opinion: 'B4 Public opinion (at the start)',
+  b5_synergy: 'B5 Synergies (at the start)', b6_social_opportunities: 'B6 Social opportunities (at the start)',
   c1_1_design: 'C1.1 Design process', c1_2_funding: 'C1.2 Funding', c1_3_management: 'C1.3 Management',
   c2_actors: 'C2 Actors', c3_goals: 'C3 Goals (stated aims)', c4_services: 'C4 Services',
   d1_plants: 'D1 Plants', d2_paving: 'D2 Paving', d3_water: 'D3 Water', d4_roof_facade: 'D4 Roof & facade',
@@ -734,26 +736,72 @@ function resolveCandidates(result, projects, maxPicks = 3) {
 }
 
 // Costs are written about only when the user asks: the judge sometimes adds "no case gives
-// costs" anyway. Without cost words in the question, the sentences about costs are removed
-// (a text made only of such sentences is kept as it is, to never leave it empty).
-const COST_WORDS = /\b(costs?|costly|cost[oi]|costos?|coûts?|kosten|prices?|prezz[oi]|precios?|prix|budgets?|spes[ae]|gastos?|cheap|expensive|euro|eur)\b|€/i;
+// costs" anyway. When the user shows no interest in money, the sentences about costs are removed.
+// Interest in money: cost_interest from step 1 (any language, any wording: "senza spendere
+// un capitale", "pochi soldi"), or, if missing, the words of QUESTION_COST_WORDS.
+// Verb forms too: "costa poco", "cuesta", "coûte", "kostet". "costa" alone is not counted: it is also
+// the coast ("lungo la costa"); only "costa poco / molto / di più…".
+const COST_WORDS = /\b(costs?|costly|cost[oi]|costa(no)? (poco|pochissimo|molto|meno|tanto|troppo|cara?|cari|care|di pi[uù])|cuestan?|co[uû]te(nt)?|kostet|kosten|costos?|coûts?|prices?|prezz[oi]|precios?|prix|budgets?|spes[ae]|gastos?|cheap|expensive|euro|eur)\b|€/i;
+const QUESTION_COST_WORDS = /\b(costs?|costly|cost[oi]|costa(no)? (poco|pochissimo|molto|meno|tanto|troppo|cara?|cari|care|di pi[uù])|cuestan?|co[uû]te(nt)?|kostet|kosten|costos[oa]?|costos?|coûts?|co[uû]teux|g[uü]nstig|billig|prices?|prezz[oi]|precios?|prix|budgets?|spes[ae]|spend\w*|gastos?|gastar|money|soldi|denaro|quattrini|argent|dinero|geld|cheap\w*|inexpensive|affordabl\w*|expensive|econom\w*|risparmi\w*|ahorr\w*|[ée]conomi\w*|low[- ]?cost|euro|eur|capitale)\b|€/i;
 const sentences = text => String(text).split(/(?<=[.!?])\s+/);
+// Text without the sentences that match re; when that would leave nothing, without the parts
+// after a comma or semicolon that match ("Builds school gardens, at a low budget." → "Builds
+// school gardens."). null when no part without a match is left: the claim is never put back.
+function withoutParts(text, re) {
+  if (typeof text !== 'string') return text;
+  const kept = sentences(text).filter(s => !re.test(s));
+  if (kept.length) return kept.join(' ');
+  const cut = sentences(text).map(s => {
+    const [first, ...rest] = s.split(/[,;]\s+/);
+    if (re.test(first)) return null;
+    const end = /[.!?]$/.test(s) ? s.slice(-1) : '';
+    return [first, ...rest.filter(part => !re.test(part))].join(', ').replace(/[.!?]$/, '') + end;
+  });
+  return cut.every(Boolean) ? cut.join(' ') : null;
+}
+// When the user cares about money, the judge sometimes calls a case cheap although its card
+// says nothing about costs. Claims about costs in a case's explanation (any language) are
+// kept only when the card's own text talks about costs (CARD_COST_WORDS, English).
+const COST_CLAIM_WORDS = /\b(costs?|costly|cost[oi]|costa(no)? (poco|pochissimo|molto|meno|tanto|troppo|cara?|cari|care|di pi[uù])|cuestan?|co[uû]te(nt)?|kostet|kosten|costos?|coûts?|co[uû]teux|g[uü]nstig|billig|prices?|prezz[oi]|precios?|prix|budgets?|spes[ae]|spend\w*|gastos?|cheap\w*|inexpensive|affordabl\w*|expensive|econom\w*|[ée]conomi\w*|low[- ]?cost|euros?|eur)\b|€/i;
+const CARD_COST_WORDS = /\b(costs?|costly|low[- ]cost|cheap\w*|budgets?|inexpensive|affordab\w*|prices?|expensive|euros?|eur|economical)\b|€|£|\$/i;
 
-function withoutCostTalk(result, question) {
-  if (COST_WORDS.test(question)) return result;
-  const strip = text => {
-    if (typeof text !== 'string') return text;
-    const kept = sentences(text).filter(s => !COST_WORDS.test(s));
-    return kept.length ? kept.join(' ') : text;
+// Only the texts of the card (not names such as the designer "Friche & Cheap")
+function cardTalksAboutCosts(project) {
+  const p = project || {};
+  const texts = [p.description, p.physical_innovation, p.social_innovation, p.digital_innovation, p.c5_impacts, p.other_details];
+  return CARD_COST_WORDS.test(JSON.stringify(texts));
+}
+
+// The judge writes what a card says about costs in cost_note, apart from the explanation:
+// the note is added to the explanation only when the card's text talks about costs.
+// A pick whose whole explanation was a removed cost claim becomes "partly relevant" (shown,
+// without a reason); an analysis made only of removed sentences is dropped (null).
+function withoutCostTalk(result, question, costInterest, projects = []) {
+  const interested = costInterest === true || QUESTION_COST_WORDS.test(question);
+  const clean = ({ cost_note: note, ...p }) => {
+    if (typeof p.explanation !== 'string') return p;
+    if (!interested) {
+      return {
+        ...p,
+        explanation: withoutParts(p.explanation, COST_WORDS),
+        not_in_card: typeof p.not_in_card === 'string' && COST_WORDS.test(p.not_in_card) ? null : p.not_in_card,
+      };
+    }
+    if (cardTalksAboutCosts(projects[p.candidate - 1])) {
+      if (typeof note !== 'string' || !note.trim()) return p;
+      const sentence = note.trim().replace(/^./, c => c.toUpperCase()).replace(/([^.!?])$/, '$1.');
+      return { ...p, explanation: `${p.explanation.trim()} ${sentence}` };
+    }
+    // card silent on costs: no cost claim in the explanation
+    return { ...p, explanation: withoutParts(p.explanation, COST_CLAIM_WORDS) };
   };
+  const cleaned = (result.top_projects || []).map(clean);
+  const moved = cleaned.filter(p => p.explanation === null).map(p => p.id);
   return {
     ...result,
-    overall_analysis: strip(result.overall_analysis),
-    top_projects: (result.top_projects || []).map(p => ({
-      ...p,
-      explanation: strip(p.explanation),
-      not_in_card: typeof p.not_in_card === 'string' && COST_WORDS.test(p.not_in_card) ? null : p.not_in_card,
-    })),
+    overall_analysis: interested ? result.overall_analysis : withoutParts(result.overall_analysis, COST_WORDS),
+    top_projects: cleaned.filter(p => p.explanation !== null),
+    also_relevant_ids: [...new Set([...(result.also_relevant_ids || []), ...moved])],
   };
 }
 
@@ -799,17 +847,28 @@ const TAG_REF_SCHEMA = {
   },
 };
 const STRING_LIST = { type: 'array', items: { type: 'string' } };
-// Required elements as groups: a case needs at least one tag of EVERY group
+// Required elements as groups: a case needs at least one tag of EVERY group.
+// because: the words of the question that make the group required; named_as: the words of the
+// question that name the element (both checked in the browser, see requirementStays).
 const REQUIRE_GROUPS_SCHEMA = {
   type: 'array',
-  items: { type: 'object', required: ['any_of'], properties: { any_of: { type: 'array', items: TAG_REF_SCHEMA } } },
+  items: {
+    type: 'object',
+    required: ['any_of', 'named_as', 'because'],
+    properties: {
+      any_of: { type: 'array', items: TAG_REF_SCHEMA },
+      named_as: { type: 'string' },
+      because: { type: 'string' },
+    },
+  },
 };
 
 const UNDERSTAND_SCHEMA = {
   type: 'object',
-  required: ['language', 'intent', 'catalogue_ops', 'reply', 'suggestions', 'summary', 'hard_constraints', 'alternatives', 'site', 'site_constraints', 'needs', 'tags_named', 'tags_inferred', 'search_terms_en'],
+  required: ['language', 'intent', 'catalogue_ops', 'reply', 'suggestions', 'summary', 'hard_constraints', 'alternatives', 'site', 'site_constraints', 'needs', 'tags_named', 'tags_inferred', 'search_terms_en', 'cost_interest'],
   properties: {
     language: { type: 'string' },
+    cost_interest: { type: 'boolean' },
     intent: { type: 'string', enum: ['find_cases', 'catalogue_question', 'subjective', 'out_of_scope'] },
     catalogue_ops: { type: 'array', items: { type: 'string', enum: ['count', 'list', 'largest', 'smallest', 'newest', 'oldest'] } },
     reply: { type: 'string', nullable: true },
@@ -859,6 +918,7 @@ const UNDERSTAND_PROMPT = `You read a question about nature-based solutions (NBS
 
 Return:
 - language: ISO code of the question's language (e.g. "it", "en").
+- cost_interest: true when the user shows ANY interest in money, cost or budget, in any words ("costs", "low budget", "senza spendere un capitale", "con pochi soldi", "economico", "risparmiare", "the municipality has no money", "pas cher"); false otherwise.
 - intent: what kind of question it is.
   - "find_cases": the user looks for examples, ideas or solutions (most questions, even vague or badly written ones: "qualcosa di verde vicino casa", "progetti con i bambini").
   - "catalogue_question": a question about the catalogue itself, answered by counting or sorting the data: "how many projects in France?", "list the projects in Italy", "the largest and the smallest?", "the most recent ones". Put its conditions in hard_constraints (or alternatives), elements included as require_tags ("how many projects with green roofs" → require_tags: one group with d4_roof_facade: Extensive green roofs and Intensive green roofs).
@@ -873,7 +933,7 @@ Return:
   - A place the user describes as THEIR site ("a small square in northern Italy", "my street in Bologna") is NOT a constraint: it goes in "site". We want transferable examples from anywhere.
   - year_mode: "start" if the user says started/begun, "end" if completed/finished, otherwise "overlap".
   - year_min and year_max are included in the range: "after 2018" / "dopo il 2018" → year_min 2019; "since 2018" / "from 2018" / "dal 2018" → 2018; "before 2018" / "prima del 2018" → year_max 2017; "until 2018" / "by 2018" / "entro il 2018" → 2018.
-  - require_tags only when the user restricts the CATALOGUE to cases with a property: "in Mediterranean cities" → climate_zone: Mediterranean, "only large projects" → size: Large, and an element they REQUIRE with words like "only", "solo", "esclusivamente", "necessariamente", "must have", "both" ("only projects with rain gardens" → d3_water: Rain garden). require_tags is a list of groups (any_of): a case must have at least one tag of EVERY group. Tags that are alternatives for the same need go in ONE group ("green roofs", "extensive or intensive green roofs" → one group with both); elements the user wants together go in SEPARATE groups ("both rain gardens and detention basins", "sia rain garden sia bacini di detenzione" → two groups). A preference ("preferably", "meglio se", "ideally", or simply naming what they look for: "rain gardens in squares") is NOT a requirement: it goes in tags_named. Never for the user's own site ("my small square" is site, not a restriction; "solutions suited to the climate of Bologna" / "adatte al clima locale" describes the site: put it in site, never climate_zone in require_tags).
+  - require_tags only when the user restricts the CATALOGUE to cases with a property: "in Mediterranean cities" → climate_zone: Mediterranean, "only large projects" → size: Large, and an element they REQUIRE with words like "only", "solo", "esclusivamente", "necessariamente", "must have", "both" ("only projects with rain gardens" → d3_water: Rain garden). require_tags is a list of groups (any_of): a case must have at least one tag of EVERY group. Tags that are alternatives for the same need go in ONE group ("green roofs", "extensive or intensive green roofs" → one group with both); elements the user wants together go in SEPARATE groups ("both rain gardens and detention basins", "sia rain garden sia bacini di detenzione" → two groups). A preference ("preferably", "meglio se", "ideally", or simply naming what they look for: "rain gardens in squares") is NOT a requirement: it goes in tags_named. Every group has "named_as": the words of the question, copied exactly, that name the element ("rain garden", "giardini della pioggia", "tetti verdi"), and "because": the words of the question, copied exactly, that make THIS element required, together with the element (e.g. "solo progetti con rain garden", "la presenza di rain garden è indispensabile", "must have green roofs", "in Mediterranean cities"); naming the element alone ("rain garden") is not a reason. A word that restricts something else does not count: "Solo progetti in Francia, preferibilmente rain garden" → only France is required (country_include); rain garden is a preference (tags_named), not in require_tags. If no such words exist, the element is not required: put it in tags_named, not in require_tags. Never for the user's own site ("my small square" is site, not a restriction; "solutions suited to the climate of Bologna" / "adatte al clima locale" describes the site: put it in site, never climate_zone in require_tags).
 - alternatives: OR groups. hard_constraints apply to EVERY result; when the user asks for A OR B with different conditions ("projects in France or projects with green roofs", "squares in Italy, or car parks turned into gardens anywhere"), write one alternative per option, each with a short label IN THE QUESTION'S LANGUAGE and ONLY its own conditions (country_include, city_include, years, require_tags); conditions shared by all options stay in hard_constraints. A result must satisfy at least one alternative. Use 2-4 alternatives, or none (empty list) when the question has no OR between different conditions. Alternatives inside the same condition are not OR groups: "in France or Spain" → hard_constraints country_include: France, Spain. Also put the elements of every alternative in tags_named and search_terms_en, so the search finds them.
   - exclude_tags only for explicit exclusions of a feature, with EVERY value of that feature ("no green roofs" → d4_roof_facade: Extensive green roofs AND d4_roof_facade: Intensive green roofs). A limit of the user's site ("no space for trees", "pipes underground") is NOT an exclusion: put it in site_constraints.
 - site: short English description of the user's site if they describe one (type of space, size, climate, context), else null. You may add what you deduce from a named place with your world knowledge, but mark it as an assumption, not a fact the user gave (e.g. "a square in Bologna (probably temperate climate, dense historic fabric)").
@@ -900,14 +960,18 @@ const JUDGE_SCHEMA = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['candidate', 'relevance_score', 'needs_covered', 'explanation', 'not_in_card', 'site_fit'],
+        required: ['candidate', 'relevance_score', 'needs_covered', 'explanation', 'cost_note', 'not_in_card', 'site_fit', 'site_fit_evidence'],
         properties: {
           candidate: { type: 'integer' },
           relevance_score: { type: 'integer' },
           needs_covered: STRING_LIST,
           explanation: { type: 'string' },
+          // what the card says about costs; added to the explanation by the worker (withoutCostTalk)
+          cost_note: { type: 'string', nullable: true },
           not_in_card: { type: 'string', nullable: true },
           site_fit: { type: 'string', enum: ['compatible', 'partly', 'not_compatible', 'unknown'] },
+          // words of the card's text behind "compatible"/"partly" (checked in the browser)
+          site_fit_evidence: { type: 'string', nullable: true },
         },
       },
     },
@@ -929,13 +993,14 @@ Rules:
 - Identify each pick ONLY by its candidate number N ("Candidate N"). Write about THAT candidate's own factsheet: never mix details from different candidates.
 - Use your professional knowledge of NBS, not only matching words: check that the case fits the KIND of intervention asked (a temporary or tactical installation is not a permanent stormwater solution; a single rooftop garden is not a large ecological corridor; "for elderly people" needs evidence of accessibility or design for them), and its scale.
 - ALTERNATIVES (OR groups in the interpretation): every candidate satisfies at least one of them. Choose the best cases overall, but cover each alternative that has good candidates (do not fill all picks with one alternative if another has strong cases).
-- Respect the hard constraints, including required elements (require_tags, a list of groups: the case must have at least one tag of every group): a case without a required element must not be chosen. Distance does not matter: a case far from the user's site is a good precedent if its context and approach are transferable. When the user describes their site, prefer cases whose context is similar and say how the case could be adapted to it (e.g. keeping an existing tree). A site constraint (e.g. "no space for trees") does not exclude a case, but say whether the case is compatible with it (site_fit). site_fit is "compatible" or "partly" only when the factsheet shows how the case dealt with the same constraint (e.g. a B1 tag "Subsurface utilities", or a text saying the planting avoided the pipes); "not_compatible" only when the factsheet shows a conflict (e.g. the case relies on new trees and the user has no space for trees). Otherwise site_fit is "unknown": do not guess, and never claim something about the case (no deep digging, no underground works…) that the factsheet does not say or contradicts. Site details marked as assumptions in the interpretation (e.g. "probably temperate climate") are not facts: do not reject a case because of them.
+- Respect the hard constraints, including required elements (require_tags, a list of groups: the case must have at least one tag of every group): a case without a required element must not be chosen. Distance does not matter: a case far from the user's site is a good precedent if its context and approach are transferable. When the user describes their site, prefer cases whose context is similar and say how the case could be adapted to it (e.g. keeping an existing tree). A site constraint (e.g. "no space for trees") does not exclude a case, but say whether the case is compatible with it (site_fit). A B tag (e.g. B1 "Subsurface utilities") only says the case had the same condition: it shows a similar context, which you may mention, not how the case dealt with it. site_fit is "compatible" or "partly" only when the TEXT of the factsheet explains how the case dealt with the same constraint (e.g. a text saying the planting avoided the pipes, or "low-cost interventions" for a low budget): copy those words of the text in site_fit_evidence exactly as written in the factsheet, in ENGLISH, never translated (max 30 words; never a tag). Without such words, site_fit is "unknown", site_fit_evidence is null, and the explanation must not say that the case dealt with the constraint or was cheap (you may say it had a similar condition, e.g. "also here there were subsurface utilities"); "not_compatible" only when the factsheet shows a conflict (e.g. the case relies on new trees and the user has no space for trees). Otherwise site_fit is "unknown": do not guess, and never claim something about the case (no deep digging, no underground works…) that the factsheet does not say or contradicts. Site details marked as assumptions in the interpretation (e.g. "probably temperate climate") are not facts: do not reject a case because of them.
 - relevance_score 0-100: how well the case answers the MAIN request (90+ = same kind of intervention and context; 70 = same intervention, different context; below ${JUDGE_MIN_SCORE} = only a generic theme in common). 80 or more only if the texts of the factsheet (not only its tags) show that the case deals with the main need. A temporary installation or pilot is at most ${JUDGE_MIN_SCORE} for a permanent need (e.g. flooding), unless the user asks for temporary or tactical solutions. Being in the same city as the user's site does not raise the score.
 - needs_covered: which of the user's needs (copied from the interpretation) the case addresses.
 - also_relevant: candidate numbers NOT chosen as picks that are still partly useful (same kind of place or intervention, or a key need covered, but weaker than the picks or beyond the ${JUDGE_MAX_PICKS} picks), best first. Empty if none. Not cases that share only a generic theme. They are shown as "other related cases".
 - The visitor never sees the candidate numbers: in explanation and overall_analysis never write "Candidate N", "case 4" or lists of numbers; if you need to name a case, use its title.
-- explanation: 1-2 short sentences IN THE USER'S LANGUAGE (see "language"): why this case is useful for the user, citing what the factsheet says. If it is only partly compatible with the site constraints, say so briefly. No repetition of the case title or city.
-- not_in_card: in the user's language, only things the user EXPLICITLY asked about (e.g. costs, if they asked) that the factsheet does not say; null otherwise. Do not mention costs or areas unless the user asked. If the same thing is missing from ALL your picks, leave not_in_card null and say it once in overall_analysis.
+- explanation: 1-2 short sentences IN THE USER'S LANGUAGE (see "language"): why this case is useful for the user, citing what the factsheet says. If it is only partly compatible with the site constraints, say so briefly. No repetition of the case title or city. Nothing about costs or cheapness here (see cost_note).
+- cost_note: only when cost_interest is true: one short sentence in the user's language reporting what THIS factsheet's TEXT says about costs, in your own words and with its figures if any (a budget amount, a description of the works as low-cost…; a high budget must be reported as such); null when the text says nothing about costs. Never deduce costs from the kind of project (volunteers, light structures, self-building do not make a case "cheap").
+- not_in_card: in the user's language, only things the user EXPLICITLY asked about (e.g. costs, if they asked) that the factsheet does not say; null otherwise. Do not mention costs or areas unless the user asked (for costs: cost_interest in the interpretation). If the same thing is missing from ALL your picks, leave not_in_card null and say it once in overall_analysis.
 - Never attribute to a case numbers, costs, areas, results or users that its factsheet does not report. General knowledge may explain how a solution works, but not facts about the case.
 - overall_analysis: 1-3 sentences in the user's language: what you found overall and, if relevant, which part of the request the cases examined do not cover (the per-case reasons are shown separately). No generic praise ("excellent examples", "all these projects show…") and no statement about all the cases that you have not checked in each factsheet.
 - You see only the cases closest to the question, not the whole catalogue: never say that the catalogue (or database) has no case of a kind; say "among the cases examined" / "tra i casi esaminati" (in the user's language).
@@ -1074,7 +1139,8 @@ async function handleJudge(request, env) {
   const hard = JSON.stringify(u.hard_constraints ?? null);
   const alternatives = JSON.stringify(Array.isArray(u.alternatives) ? u.alternatives.slice(0, 4) : []);
   const interpretation = JSON.stringify({
-    language: text(u.language, 20), site: text(u.site, 500), site_constraints: list(u.site_constraints, 10, 200),
+    language: text(u.language, 20), cost_interest: u.cost_interest === true,
+    site: text(u.site, 500), site_constraints: list(u.site_constraints, 10, 200),
     needs: list(u.needs, 10, 200), hard_constraints: hard.length <= 3000 ? JSON.parse(hard) : null,
     alternatives: alternatives.length <= 3000 ? JSON.parse(alternatives) : null,
   });
@@ -1107,7 +1173,7 @@ async function handleJudge(request, env) {
     JUDGE_TEMPERATURE,
   );
 
-  const result = withoutCostTalk(resolveCandidates(JSON.parse(content), sent, JUDGE_MAX_PICKS), query);
+  const result = withoutCostTalk(resolveCandidates(JSON.parse(content), sent, JUDGE_MAX_PICKS), query, u.cost_interest, sent);
   result.candidates_sent = sent.length;
   const logRow = {
     question: query, language: u.language, picks: result.top_projects.map(p => p.id).join(','),

@@ -4,7 +4,7 @@
 //   3. judge      (worker, Gemini)  → up to 5 picks with explanations
 //   4. verify     (browser)         → only candidates actually sent, no duplicates, hard constraints re-checked
 // If the judge fails, the ranking of step 2 is still shown, saying it was not evaluated by the AI.
-import { sanitizeUnderstanding, rankCases, passesPlan, matchedAlternatives, selectCandidates, RETRIEVAL_WEIGHTS } from './aiRetrieval';
+import { sanitizeUnderstanding, rankCases, passesPlan, matchedAlternatives, selectCandidates, evidenceInCard, RETRIEVAL_WEIGHTS } from './aiRetrieval';
 import { loadCaseEmbeddings } from './caseEmbeddings';
 import { answerCatalogueQuestion } from './catalogueAnswer';
 
@@ -72,8 +72,11 @@ export function verifyPicks(judgeData, candidates, plan) {
       explanation: p.explanation.trim(),
       needsCovered: Array.isArray(p.needs_covered) ? p.needs_covered.filter(n => typeof n === 'string') : [],
       notInCard: typeof p.not_in_card === 'string' && p.not_in_card.trim() ? p.not_in_card.trim() : null,
-      // site compatibility only when the user gave site constraints (otherwise nothing to compare)
-      siteFit: (plan.siteConstraints || []).length && ['compatible', 'partly', 'not_compatible'].includes(p.site_fit) ? p.site_fit : null,
+      // site compatibility only when the user gave site constraints (otherwise nothing to compare);
+      // "compatible"/"partly" only with words of the case's texts behind it (a tag is no evidence)
+      siteFit: (plan.siteConstraints || []).length && (p.site_fit === 'not_compatible'
+        || (['compatible', 'partly'].includes(p.site_fit) && evidenceInCard(p.site_fit_evidence, c.study)))
+        ? p.site_fit : null,
       // OR groups this case answers (computed here, not taken from the AI)
       alternatives: matchedAlternatives(c.study, plan).map(i => plan.alternatives[i].label),
     });
