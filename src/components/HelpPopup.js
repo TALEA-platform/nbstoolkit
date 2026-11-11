@@ -14,7 +14,7 @@ const HELP_PAGES = [
     title: 'AI Assistant',
     icon: '🔍',
     content: [
-      { heading: 'How it works', text: 'Click the AI Assistant button to open the AI panel and describe, in any language, your site, its problems and limits, or what you are looking for (e.g. "a small square in northern Italy that floods and gets very hot in summer", "green roofs in Mediterranean cities but not in Spain"). The AI understands the request, the search finds the closest case studies (by tags, words and meaning), and an AI expert reads them and selects up to 5, explaining why the best ones fit.' },
+      { heading: 'How it works', text: 'Choose "AI Assistant" above the search bar (on phones, tap "AI Assistant") to write your question and describe, in any language, your site, its problems and limits, or what you are looking for (e.g. "a small square in northern Italy that floods and gets very hot in summer", "green roofs in Mediterranean cities but not in Spain"). The AI understands the request, the search finds the closest case studies (by tags, words and meaning), and an AI expert reads them and selects up to 5, explaining why the best ones fit.' },
       { heading: 'Your site vs. limits', text: 'A place you describe as your site ("a square in Bologna") is used to find similar contexts anywhere in the world, not as a filter. Explicit limits are applied strictly: "only in France", "not in Paris", "since 2016", "exclude green roofs".' },
       { heading: 'Results', text: 'The answer lists the selected projects; click one to open its case study. If the AI expert also found projects that are only partly related, "See all matches" shows them after the selected ones in the main grid, where your filters still work. If none of the closest projects really fits, the AI says so instead of suggesting weak matches. If the AI expert is not available, you still get the closest matches, marked as not evaluated by the AI.' },
       { heading: 'In the background', text: 'You can close the panel while the AI is working: a dot on the AI Assistant button turns green when the answer is ready.' },
@@ -52,7 +52,7 @@ const HELP_PAGES = [
       { heading: 'Compare mode', text: 'Select 2-3 studies using the compare checkbox on cards, then click Compare to see them side by side.' },
       { heading: 'Statistics', text: 'Click the bar chart icon to open the Statistics Dashboard with charts showing NBS distribution, top countries, climate zones, and size distribution.' },
       { heading: 'Similar studies', text: 'Open any case study detail view to see a "Similar Studies" section at the bottom, showing related projects based on size, climate, country, NBS elements, and goals.' },
-      { heading: 'Slash commands', text: 'Type / in the search bar to see available commands like /map, /stats, /compare, /clear, /export, /favorites, and more.' },
+      { heading: 'Slash commands', text: 'Type / in the search bar, or click the / button next to Filters, to see available commands like /map, /stats, /compare, /clear, /export, /favorites, and more.' },
       { heading: 'Theme', text: 'Toggle between light and dark themes using the sun/moon button.' },
     ],
   },

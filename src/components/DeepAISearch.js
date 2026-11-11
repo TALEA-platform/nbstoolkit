@@ -177,7 +177,7 @@ function TypewriterMessage({ text, speed, onDone }) {
   return <div>{renderMarkdown(displayed)}{!done && <span className="typing-cursor">|</span>}</div>;
 }
 
-function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, onFilteredResults, onToggleMode, mode, hidden = false, onBackgroundStatus }) {
+function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, onFilteredResults, onToggleMode, mode, hidden = false, onBackgroundStatus, prefill = null }) {
   const isSidebar = mode === 'sidebar';
   const [messages, setMessages] = useState(() => loadChat() || [GREETING]);
   const [input, setInput] = useState('');
@@ -190,6 +190,14 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
   const [progressMsg, setProgressMsg] = useState('');
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Question written in the search bar (AI mode): fill the box and, if asked, send it
+  const pendingSend = useRef(null);
+  useEffect(() => {
+    if (!prefill || !prefill.text) return;
+    setInput(prefill.text);
+    pendingSend.current = prefill.send && !loading ? prefill.text : null;
+  }, [prefill]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Shown once per visit when the worker answered with its backup AI model
   // (main daily quota used up). Plain words, no model names.
@@ -554,6 +562,13 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
       handleSend();
     }
   }, [searchDepth, handleDeepSend, handleSend, handleV2Send]);
+
+  useEffect(() => {
+    if (pendingSend.current && input === pendingSend.current) {
+      pendingSend.current = null;
+      handleSubmit();
+    }
+  }, [input, handleSubmit]);
 
   const handleShowAll = useCallback(() => {
     if (!lastResultStudies || !onShowAllResults) return;

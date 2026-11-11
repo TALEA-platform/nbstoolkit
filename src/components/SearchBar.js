@@ -5,6 +5,22 @@ const INITIAL_COLLAPSED_GROUPS = Object.fromEntries(
   Object.keys(FILTER_GROUPS).map(groupKey => [groupKey, true])
 );
 const DEFAULT_FILTER_MODE = 'and';
+// Phones keep the original layout (AI pill above the bar); the two search modes are desktop only
+const PHONE_QUERY = '(max-width: 768px)';
+const AI_NOTE = "Questions are processed by Google Gemini and Cloudflare and saved anonymously to improve the search. Please don't include personal data.";
+
+function usePhoneScreen() {
+  const [phone, setPhone] = useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(PHONE_QUERY).matches);
+  useEffect(() => {
+    if (!window.matchMedia) return undefined;
+    const mq = window.matchMedia(PHONE_QUERY);
+    const onChange = () => setPhone(mq.matches);
+    onChange();
+    if (mq.addEventListener) mq.addEventListener('change', onChange); else mq.addListener(onChange);
+    return () => { if (mq.removeEventListener) mq.removeEventListener('change', onChange); else mq.removeListener(onChange); };
+  }, []);
+  return phone;
+}
 
 const SLASH_COMMANDS = [
   // Navigation
@@ -122,7 +138,38 @@ function SearchBar({
   }, [query]);
 
   const suggestions = filterSuggestions || [];
-  const searchPlaceholder = 'Search by keywords, project or place (in English), or type / for commands';
+  const searchPlaceholder = 'Search by keyword, project or place (in English). Type / for commands';
+  const aiTitle = aiBackgroundStatus === 'ready' ? 'Your AI answer is ready' : aiBackgroundStatus === 'working' ? 'The AI is still working on your question' : 'Open AI Assistant';
+  const phoneScreen = usePhoneScreen();
+  const [searchMode, setSearchMode] = useState('keyword'); // 'keyword' | 'ai' (desktop only)
+  const [aiText, setAiText] = useState('');
+  const aiInputRef = useRef(null);
+  const aiMode = searchMode === 'ai' && !phoneScreen;
+
+  function switchMode(next) {
+    if (next === searchMode) return;
+    setSearchMode(next);
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
+    if (next === 'ai') {
+      // Carry over words typed but not searched yet
+      if (!aiText.trim() && query.trim() && !query.startsWith('/')) setAiText(query.trim());
+      setTimeout(() => aiInputRef.current && aiInputRef.current.focus(), 0);
+    } else {
+      setTimeout(() => inputRef.current && inputRef.current.focus(), 0);
+    }
+  }
+
+  function askAI() {
+    const text = aiText.trim();
+    if (!onOpenDeepAI) return;
+    if (text) {
+      onOpenDeepAI(text, true);
+      setAiText('');
+    } else {
+      onOpenDeepAI();
+    }
+  }
 
   function openAssistant() {
     setShowChat(true);
@@ -236,7 +283,7 @@ function SearchBar({
           type="button"
           className={`deep-ai-btn${aiBackgroundStatus ? ` bg-${aiBackgroundStatus}` : ''}`}
           onClick={() => onOpenDeepAI && onOpenDeepAI()}
-          title={aiBackgroundStatus === 'ready' ? 'Your AI answer is ready' : aiBackgroundStatus === 'working' ? 'The AI is still working on your question' : 'Open AI Assistant'}
+          title={aiTitle}
         >
           {aiBackgroundStatus && <span className="deep-ai-btn-badge" aria-hidden="true" />}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -246,7 +293,61 @@ function SearchBar({
         </button>
       </div>
 
+      <div className="search-mode-tabs" role="tablist" aria-label="Search mode">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!aiMode}
+          className={`search-mode-tab${!aiMode ? ' active' : ''}`}
+          onClick={() => switchMode('keyword')}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          Keyword search
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={aiMode}
+          className={`search-mode-tab search-mode-tab-ai${aiMode ? ' active' : ''}${aiBackgroundStatus ? ` bg-${aiBackgroundStatus}` : ''}`}
+          onClick={() => switchMode('ai')}
+          title={aiBackgroundStatus ? aiTitle : undefined}
+        >
+          {aiBackgroundStatus && <span className="deep-ai-btn-badge" aria-hidden="true" />}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 16.4 5.7 21l2.3-7L2 9.4h7.6z"/>
+          </svg>
+          AI Assistant
+        </button>
+      </div>
+
       <div className="search-bar-container" ref={sectionRef}>
+        {aiMode ? (
+        <div className="search-input-wrapper search-ai-wrapper">
+          <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 16.4 5.7 21l2.3-7L2 9.4h7.6z"/>
+          </svg>
+          <input
+            ref={aiInputRef}
+            type="text"
+            className="search-input search-ai-input"
+            placeholder="Describe your site, its problems and limits, in any language"
+            value={aiText}
+            maxLength={1000}
+            onChange={e => setAiText(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                askAI();
+              }
+            }}
+          />
+          <button type="button" className="search-ai-send" onClick={askAI} title={aiText.trim() ? 'Send to the AI Assistant' : aiTitle}>
+            Ask
+          </button>
+        </div>
+        ) : (
         <div className="search-input-wrapper">
           <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -320,6 +421,8 @@ function SearchBar({
             </div>
           )}
         </div>
+        )}
+
 
         <div className="search-bar-actions">
           <div className="search-assistant-action">
@@ -327,11 +430,11 @@ function SearchBar({
               type="button"
               className={`chat-toggle-btn ${showChat ? 'active' : ''} ${hasUnreadAssistant ? 'has-unread' : ''}`}
               onClick={toggleAssistant}
-              title={showChat ? 'Hide assistant' : 'Open assistant'}
-              aria-label={showChat ? 'Hide assistant' : 'Open assistant'}
+              title={showChat ? 'Hide commands and tips' : 'Commands and tips'}
+              aria-label={showChat ? 'Hide commands and tips' : 'Commands and tips'}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="3" y="3" width="18" height="18" rx="4"/><line x1="14.5" y1="7" x2="9.5" y2="17"/>
               </svg>
               {hasUnreadAssistant && <span className="chat-toggle-badge" />}
             </button>
@@ -354,7 +457,7 @@ function SearchBar({
         </div>
 
         {/* Slash command autocomplete */}
-        {isSlashQuery && filteredCommands.length > 0 && (
+        {!aiMode && isSlashQuery && filteredCommands.length > 0 && (
           <div className="suggestions-dropdown command-suggestions" ref={suggestionsRef}>
             <div className="suggestions-header">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -395,7 +498,7 @@ function SearchBar({
         )}
 
         {/* Filter suggestions (hidden when typing slash commands) */}
-        {showSuggestions && suggestions.length > 0 && !isSlashQuery && (
+        {!aiMode && showSuggestions && suggestions.length > 0 && !isSlashQuery && (
           <div className="suggestions-dropdown" ref={suggestionsRef}>
             <div className="suggestions-header">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -429,6 +532,8 @@ function SearchBar({
           </div>
         )}
       </div>
+
+      {aiMode && <p className="search-ai-privacy">{AI_NOTE}</p>}
 
       {searchContexts?.length > 0 && (
         <div className="search-context-row">
@@ -549,8 +654,7 @@ function SearchBar({
                   <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
                 </svg>
               </div>
-              <span className="chat-title">TALEA Assistant</span>
-              <span className="chat-status">Manual</span>
+              <span className="chat-title">Commands and tips</span>
             </div>
             {onClearChat && (
               <button className="chat-clear-btn" onClick={onClearChat} title="Clear chat">

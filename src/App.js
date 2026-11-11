@@ -116,6 +116,7 @@ function App() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [showRefineSearch, setShowRefineSearch] = useState(false);
   const [showDeepAI, setShowDeepAI] = useState(false); // false | 'overlay' | 'sidebar'
+  const [aiPrefill, setAiPrefill] = useState(null); // { text, send } written in the search bar (AI mode)
   // Current panel state for callbacks that finish later (a search ending in the background
   // must not bring the AI results back into the grid after the panel was closed).
   const showDeepAIRef = useRef(showDeepAI);
@@ -887,7 +888,7 @@ function App() {
           onReplaceSearchContext={replaceSearchContext}
           onQueryChange={handleSearch}
           onSearchSubmit={handleSearchSubmit}
-          onOpenDeepAI={() => { setShowDeepAI('overlay'); setAiMounted(true); setAiBackgroundStatus(null); }}
+          onOpenDeepAI={(text, send) => { if (text) setAiPrefill({ text, send: !!send }); setShowDeepAI('overlay'); setAiMounted(true); setAiBackgroundStatus(null); }}
           aiBackgroundStatus={aiBackgroundStatus}
           onClearSearchContext={clearSearchContext}
           onEditSearchContext={editSearchContext}
@@ -1071,6 +1072,7 @@ function App() {
           mode={showDeepAI || 'overlay'}
           hidden={!showDeepAI}
           onBackgroundStatus={setAiBackgroundStatus}
+          prefill={aiPrefill}
           onClose={() => { setShowDeepAI(false); setAiFilteredStudies(null); }}
           onSelectStudy={(study) => {
             setSelectedStudy(study);
