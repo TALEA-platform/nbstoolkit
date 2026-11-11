@@ -46,7 +46,7 @@ function saveChat(messages) {
   } catch { /* quota exceeded — silently ignore */ }
 }
 
-const GREETING = { role: 'bot', text: "Hi! I'm the TALEA AI Assistant — an intelligent search tool built on the TALEA Abacus case study database.\n\nDescribe what you're looking for in natural language and I'll find the most relevant nature-based solution projects. For example:\n- *\"green roofs in Mediterranean cities\"*\n- *\"community gardens not in Italy\"*\n- *\"small-scale projects with biodiversity goals\"*" + (AI_V2
+const GREETING = { role: 'bot', text: "The TALEA AI Assistant searches the case studies of the TALEA Abacus.\n\nDescribe what you are looking for, in any language. For example:\n- *\"green roofs in Mediterranean cities\"*\n- *\"community gardens not in Italy\"*\n- *\"small-scale projects with biodiversity goals\"*" + (AI_V2
   ? "\n\nYou can describe your site, its problems and limits: an AI expert reviews the best matches and explains why they fit."
   : "\n\nYou can also activate **Deep Research** for a more precise, expert-level analysis of the top candidates."), type: 'greeting' };
 
@@ -330,7 +330,7 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
       } else if ((err.message && err.message.includes('NetworkError')) || err.name === 'TypeError') {
         setMessages(prev => [
           ...prev,
-          { role: 'bot', text: 'Connection error — please check your internet and try again.', type: 'error', _new: true },
+          { role: 'bot', text: 'Connection error: please check your internet and try again.', type: 'error', _new: true },
         ]);
       } else if (err.userMessage || err.status === 500) {
         setMessages(prev => [
@@ -535,7 +535,7 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
       let text;
       if (err.userMessage) text = err.userMessage;
       else if (err.status === 429) text = 'Daily limit reached. Try again tomorrow, or use the regular search.';
-      else if ((err.message && err.message.includes('NetworkError')) || err.name === 'TypeError') text = 'Connection error — please check your internet and try again.';
+      else if ((err.message && err.message.includes('NetworkError')) || err.name === 'TypeError') text = 'Connection error: please check your internet and try again.';
       else text = 'The AI service is temporarily unavailable. Please try again later, or use the regular search.';
       if (err.status === 429) setRateLimitHit(true);
       setMessages(prev => [...prev, { role: 'bot', text, type: 'error', _new: true }]);
@@ -586,7 +586,7 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
         ...prev,
         {
           role: 'bot',
-          text: '**Deep Research activated.** Results will be more precise — an expert AI judge will evaluate candidates and select only the most relevant projects for your query.',
+          text: '**Deep Research activated.** Results will be more precise: an expert AI judge will evaluate candidates and select only the most relevant projects for your query.',
           type: 'system',
           _new: true,
         },
@@ -796,7 +796,7 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
             className={`deep-ai-deep-toggle ${searchDepth === 'deep' ? 'active' : ''}`}
             onClick={handleToggleDeep}
             disabled={loading}
-            title={searchDepth === 'deep' ? 'Deep Research ON — click to switch to Quick mode' : 'Activate Deep Research (two-pass expert analysis)'}
+            title={searchDepth === 'deep' ? 'Deep Research ON: click to switch to Quick mode' : 'Activate Deep Research (two-pass expert analysis)'}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>

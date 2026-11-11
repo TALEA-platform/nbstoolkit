@@ -389,7 +389,7 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
           <button
             className={`not-mode-toggle ${notMode ? 'active' : ''}`}
             onClick={() => setNotMode(prev => !prev)}
-            title={notMode ? 'NOT mode ON — click items to exclude them' : 'Enable NOT mode to add exclusion filters'}
+            title={notMode ? 'NOT mode ON: click items to exclude them' : 'Enable NOT mode to add exclusion filters'}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <circle cx="12" cy="12" r="10"/>
@@ -422,7 +422,7 @@ function FilterCanvas({ canvasFilters, onRemoveFilter, onAddFilter, onAddExclude
             <circle cx="12" cy="12" r="10"/>
             <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
           </svg>
-          <span>NOT mode — clicking palette items will <strong>exclude</strong> them from results</span>
+          <span>NOT mode: clicking palette items will <strong>exclude</strong> them from results</span>
         </div>
       )}
 

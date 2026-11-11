@@ -21,7 +21,9 @@ function countOptionMatches(studies, cat, opt) {
 }
 
 // Suggest filters that can meaningfully narrow the current result set.
-export function findCommonFilters(studies, activeFilters) {
+// A value added to a category in OR mode that already has values would widen the results
+// (it is not counted among them), so those categories are left out.
+export function findCommonFilters(studies, activeFilters, filterModes = {}) {
   if (studies.length < 3) return [];
 
   const buildSuggestions = (minRatio, maxRatio) => {
@@ -29,6 +31,7 @@ export function findCommonFilters(studies, activeFilters) {
 
     for (const [catKey, cat] of Object.entries(FILTER_CATEGORIES)) {
       const activeVals = activeFilters[catKey] || [];
+      if (activeVals.length > 0 && filterModes[catKey] === 'or') continue;
       for (const opt of cat.options) {
         if (activeVals.includes(opt)) continue;
 
@@ -67,131 +70,54 @@ export function findCommonFilters(studies, activeFilters) {
     .slice(0, 6);
 }
 
-// ─── Chatbot response generator ───────────────────────────────
-const CHATBOT_RESPONSES = {
-  greetings: [
-    "Hello! I'm your NBS Toolkit assistant. I can help you find Nature-Based Hardware Solutions for urban challenges. What are you looking for?",
-    "Welcome to the NBS Toolkit! Tell me what kind of urban hardware solution you need, and I'll find the best case studies for you.",
-    "Hi there! I can help you discover Nature-Based Solutions from real case studies across the world. What's your project about?",
-  ],
-  noResults: [
-    "I couldn't find exact matches, but let me suggest some related solutions. Try broader terms like 'green roof', 'water management', or a city name.",
-    "No direct matches found. You might want to try searching for specific NBS types like 'rain garden', 'tree', or 'permeable paving'.",
-    "Hmm, I don't have results for that. Try exploring by climate zone, size, or specific Nature-Based Solutions categories.",
-  ],
-  fewResults: (count, query) => [
-    `I found ${count} solution${count > 1 ? 's' : ''} related to "${query}". Let me show you what matches best!`,
-    `Great news! ${count} case stud${count > 1 ? 'ies match' : 'y matches'} your search for "${query}". Here's what I found:`,
-  ],
-  manyResults: (count, query) => [
-    `Excellent! ${count} solutions match "${query}". That's a lot of inspiration! You can narrow down using the filter canvas on the left.`,
-    `I found ${count} matching case studies for "${query}". Use the filters to refine your search, or click any card to learn more.`,
-  ],
-  filterSuggestion: (filters) => {
-    const names = filters.map(f => f.value).join(', ');
-    return [
-      `These filters could narrow the current results: ${names}. Try one of them below to refine the list.`,
-      `To make this search more specific, try these filters: ${names}. They should reduce the current result set.`,
-    ];
-  },
-  topics: {
-    water: "For water management solutions, I'd recommend exploring D3 Water category filters: rain gardens, bioretention areas, permeable paving, and floodable parks are popular choices.",
-    green: "Green solutions span many categories! Check D1 Plants for trees and hedges, D4 for green roofs and walls, D6 for urban gardens and parks.",
-    climate: "Climate adaptation is a key goal. Many of our case studies address urban heat islands, flooding, and air quality. Try filtering by climate zone or C3 Goals.",
-    social: "Social innovation is present in many solutions. Look for case studies with community gardens, co-design processes, and civic participation.",
-    urban: "Urban regeneration projects are common in our database. Filter by Urban Scale, or look for goals like 'Urban regeneration' or 'Transformation'.",
-  },
-};
+// ─── Replies of the (manual) assistant to a search ─────────────
+// Short and factual: how many cases match, with which filters. No praise, no topic tips.
+const GREETINGS = ['hello', 'hi', 'hey', 'help', 'start', 'ciao', 'hola'];
+// A greeting gets a reply in the chat, it is not a search
+export const isGreeting = query => GREETINGS.includes(String(query || '').toLowerCase().trim());
 
-export function generateChatResponse(query, results, filterSuggestions, activeFilters) {
-  const q = query.toLowerCase().trim();
+export const WELCOME_MESSAGE = 'Search the case studies by words in English, a city or a country, e.g. "rain garden", '
+  + '"green roofs not in Spain", "Paris or Lyon". Type / for commands. To describe your site in any language, use the AI Assistant.';
 
-  // Greetings
-  if (['hello', 'hi', 'hey', 'help', 'start', 'ciao', 'hola'].some(g => q === g || q.startsWith(g + ' '))) {
+function describeFilters(activeFilters) {
+  return Object.entries(activeFilters || {})
+    .filter(([, values]) => values.length > 0)
+    .map(([catKey, values]) => `${FILTER_CATEGORIES[catKey]?.label || catKey}: ${values.join(', ')}`)
+    .join('; ');
+}
+
+// textFilters: all the searches applied together (the results answer all of them)
+export function generateChatResponse(query, results, filterSuggestions, activeFilters, textFilters = []) {
+  if (isGreeting(query)) {
     return {
       type: 'greeting',
-      message: CHATBOT_RESPONSES.greetings[Math.floor(Math.random() * CHATBOT_RESPONSES.greetings.length)],
+      message: 'Type what you are looking for, e.g. "rain garden" or "parking", a city or a country, or / for commands.',
     };
   }
 
-  // Describe active filters context
-  let filterContext = '';
-  if (activeFilters && Object.keys(activeFilters).length > 0) {
-    const parts = [];
-    for (const [catKey, values] of Object.entries(activeFilters)) {
-      if (values.length > 0) {
-        const cat = FILTER_CATEGORIES[catKey];
-        parts.push(`${cat?.label || catKey}: ${values.join(', ')}`);
-      }
-    }
-    if (parts.length > 0) {
-      filterContext = ` (with filters: ${parts.join('; ')})`;
-    }
-  }
+  const searched = (textFilters.length > 1 ? textFilters : [query]).map(t => `"${t}"`).join(' + ');
+  const filters = describeFilters(activeFilters);
+  const withFilters = filters ? ` with your filters (${filters})` : '';
 
-  // Topic-specific responses
-  for (const [topic, response] of Object.entries(CHATBOT_RESPONSES.topics)) {
-    if (q.includes(topic)) {
-      return {
-        type: 'topic',
-        message: response + (filterContext ? `\n\nCurrently filtering${filterContext}.` : ''),
-        resultCount: results.length,
-      };
-    }
-  }
-
-  // Result-based responses
   if (results.length === 0) {
-    let msg = CHATBOT_RESPONSES.noResults[Math.floor(Math.random() * CHATBOT_RESPONSES.noResults.length)];
-    if (filterContext) {
-      msg += ` You currently have active filters${filterContext} — try removing some to broaden your search.`;
-    }
-    return { type: 'noResults', message: msg };
-  }
-
-  // 1 result: mention specific details
-  if (results.length === 1) {
-    const s = results[0];
-    const desc = s.description ? s.description.slice(0, 100) + '...' : '';
     return {
-      type: 'fewResults',
-      message: `I found exactly 1 match: "${s.title}" in ${s.city}, ${s.country}. ${desc}${filterContext ? `\n\nActive filters${filterContext}.` : ''}`,
-      resultCount: 1,
+      type: 'noResults',
+      message: `No case matches ${searched}${withFilters}. Try fewer or different words${filters ? ', or remove some filters' : ''}.`,
     };
   }
 
-  // 2-3 results: list names and cities
   if (results.length <= 3) {
-    const names = results.map(s => `"${s.title}" (${s.city})`).join(', ');
+    const names = results.map(s => `${s.title} (${s.city})`).join('; ');
     return {
       type: 'fewResults',
-      message: `I found ${results.length} matching solutions: ${names}. Click any card for details!${filterContext ? `\n\nActive filters${filterContext}.` : ''}`,
+      message: `${results.length} case${results.length > 1 ? 's match' : ' matches'} ${searched}${withFilters}: ${names}.`,
       resultCount: results.length,
     };
   }
 
-  if (filterSuggestions.length > 0) {
-    const msgs = CHATBOT_RESPONSES.filterSuggestion(filterSuggestions);
-    return {
-      type: 'suggestion',
-      message: msgs[Math.floor(Math.random() * msgs.length)] + (filterContext ? `\n\nActive filters${filterContext}.` : ''),
-      resultCount: results.length,
-    };
-  }
-
-  if (results.length <= 5) {
-    const msgs = CHATBOT_RESPONSES.fewResults(results.length, query);
-    return {
-      type: 'fewResults',
-      message: msgs[Math.floor(Math.random() * msgs.length)] + (filterContext ? `\n\nActive filters${filterContext}.` : ''),
-      resultCount: results.length,
-    };
-  }
-
-  const msgs = CHATBOT_RESPONSES.manyResults(results.length, query);
   return {
     type: 'manyResults',
-    message: msgs[Math.floor(Math.random() * msgs.length)] + (filterContext ? `\n\nActive filters${filterContext}.` : ''),
+    message: `${results.length} cases match ${searched}${withFilters}.`,
     resultCount: results.length,
   };
 }

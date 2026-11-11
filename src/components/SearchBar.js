@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { FILTER_CATEGORIES, FILTER_GROUPS } from '../data/filterConfig';
-import { studyMatchesAllFilters } from '../utils/filterMatcher';
 
 const INITIAL_COLLAPSED_GROUPS = Object.fromEntries(
   Object.keys(FILTER_GROUPS).map(groupKey => [groupKey, true])
@@ -43,12 +42,13 @@ function SearchBar({
   sectionRef,
   query,
   searchContexts,
-  searchMode,
-  searchLogic,
+  searchNotices,
+  narrowSuggestions,
+  filterNameOffers,
+  onUseFilterForSearch,
+  onReplaceSearchContext,
   onQueryChange,
   onSearchSubmit,
-  onSearchModeChange,
-  onSearchLogicChange,
   onOpenDeepAI,
   aiBackgroundStatus,
   onClearSearchContext,
@@ -63,7 +63,7 @@ function SearchBar({
   filterSuggestions,
   chatMessages,
   onClearChat,
-  studies,
+  countWith,
 }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -97,28 +97,32 @@ function SearchBar({
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
 
-    if (hasNewMessages) {
-      setHasUnreadAssistant(prev => (showChat ? false : true));
+    // only the answer to a command is worth a look; the reply to a search repeats what the
+    // page already shows (number of results, filters to add)
+    const last = chatMessages[chatMessages.length - 1];
+    if (hasNewMessages && ['command', 'greeting'].includes(last?.type)) {
+      setHasUnreadAssistant(!showChat);
     }
 
     prevMessageCountRef.current = chatMessages.length;
-  }, [chatMessages.length, showChat]);
+  }, [chatMessages, showChat]);
 
-  // Show chat when we have messages beyond the initial greeting
+  // The chat opens by itself for the answer to a command (/help, /summary…), not after a search
   useEffect(() => {
-    if (chatMessages.length > 1 && !assistantDismissed) {
+    const last = chatMessages[chatMessages.length - 1];
+    if (chatMessages.length > 1 && ['command', 'greeting'].includes(last?.type) && !assistantDismissed) {
       setShowChat(true);
       setHasUnreadAssistant(false);
     }
-  }, [chatMessages.length, assistantDismissed]);
+  }, [chatMessages, assistantDismissed]);
 
   // Reset highlight when query changes
   useEffect(() => {
     setHighlightedIndex(-1);
   }, [query]);
 
-  const suggestions = searchMode === 'text' ? [] : (filterSuggestions || []);
-  const searchPlaceholder = 'Search with natural language or type / for commands...';
+  const suggestions = filterSuggestions || [];
+  const searchPlaceholder = 'Search by keywords, project or place (in English), or type / for commands';
 
   function openAssistant() {
     setShowChat(true);
@@ -179,21 +183,19 @@ function SearchBar({
 
   // Slash command autocomplete
   const isSlashQuery = query.startsWith('/');
-  const showSearchLogic = !isSlashQuery && ((searchContexts?.length || 0) > 0 || query.trim().length >= 2);
-  const showInputControls = showSearchLogic || !!query;
+  const showInputControls = !!query;
   const filteredCommands = useMemo(() => {
     if (!isSlashQuery) return [];
     const typed = query.toLowerCase();
     return SLASH_COMMANDS.filter(c => c.cmd.startsWith(typed) || typed === '/');
   }, [query, isSlashQuery]);
 
-  // Compute dynamic counts for each option using the current query state.
+  // Number of cases for each option: what a click on it would show (countWith, from App.js,
+  // runs the searches among the cases passing the filters, so a value in OR mode is counted right)
   const filterCounts = useMemo(() => {
-    if (!studies || studies.length === 0) return {};
+    if (!countWith) return {};
     const counts = {};
-    const currentResultCount = studies.filter(study =>
-      studyMatchesAllFilters(study, activeFilters, excludedFilters, filterModes)
-    ).length;
+    const currentResultCount = countWith(activeFilters, excludedFilters, filterModes);
 
     for (const [catKey, cat] of Object.entries(FILTER_CATEGORIES)) {
       counts[catKey] = {};
@@ -213,50 +215,23 @@ function SearchBar({
             ...excludedFilters,
             [catKey]: [...excludedValues, opt],
           };
-          counts[catKey][opt] = studies.filter(study =>
-            studyMatchesAllFilters(study, activeFilters, nextExcludedFilters, filterModes)
-          ).length;
+          counts[catKey][opt] = countWith(activeFilters, nextExcludedFilters, filterModes);
         } else {
           const nextValues = [...selectedValues, opt];
           const nextActiveFilters = {
             ...activeFilters,
             [catKey]: nextValues,
           };
-          counts[catKey][opt] = studies.filter(study =>
-            studyMatchesAllFilters(study, nextActiveFilters, excludedFilters, filterModes)
-          ).length;
+          counts[catKey][opt] = countWith(nextActiveFilters, excludedFilters, filterModes);
         }
       }
     }
     return counts;
-  }, [studies, activeFilters, excludedFilters, filterModes, panelNotModes]);
+  }, [countWith, activeFilters, excludedFilters, filterModes, panelNotModes]);
 
   return (
     <div className="search-section">
       <div className="search-mode-banner">
-        <div className="search-mode-control">
-          <span className="search-mode-label">Search behavior</span>
-          <div className="search-mode-toggle" role="group" aria-label="Search mode">
-            <button
-              type="button"
-              className={`search-mode-btn ${searchMode !== 'text' ? 'active' : ''}`}
-              aria-pressed={searchMode !== 'text'}
-              onClick={() => onSearchModeChange && onSearchModeChange('both')}
-              title="Auto-detect filter matches and keep the rest as text search"
-            >
-              Smart Tags
-            </button>
-            <button
-              type="button"
-              className={`search-mode-btn ${searchMode === 'text' ? 'active' : ''}`}
-              aria-pressed={searchMode === 'text'}
-              onClick={() => onSearchModeChange && onSearchModeChange('text')}
-              title="Use the full query as text search only"
-            >
-              Text Only
-            </button>
-          </div>
-        </div>
         <button
           type="button"
           className={`deep-ai-btn${aiBackgroundStatus ? ` bg-${aiBackgroundStatus}` : ''}`}
@@ -279,7 +254,7 @@ function SearchBar({
           <input
             ref={inputRef}
             type="text"
-            className={`search-input ${showInputControls ? 'has-search-controls' : ''} ${showSearchLogic ? 'has-search-logic' : ''} ${query ? 'has-clear' : ''}`}
+            className={`search-input ${showInputControls ? 'has-search-controls' : ''} ${query ? 'has-clear' : ''}`}
             placeholder={searchPlaceholder}
             value={query}
             onChange={e => {
@@ -335,18 +310,6 @@ function SearchBar({
           />
           {showInputControls && (
             <div className="search-input-controls">
-              {showSearchLogic && (
-                <button
-                  type="button"
-                  className={`search-logic-chip ${searchLogic === 'or' ? 'or' : 'and'}`}
-                  onClick={() => onSearchLogicChange && onSearchLogicChange(searchLogic === 'and' ? 'or' : 'and')}
-                  title={`Text query logic: ${searchLogic.toUpperCase()}. Click to switch to ${searchLogic === 'and' ? 'OR' : 'AND'}.`}
-                  aria-label={`Text query logic ${searchLogic.toUpperCase()}. Click to switch to ${searchLogic === 'and' ? 'OR' : 'AND'}.`}
-                >
-                  {searchLogic.toUpperCase()}
-                </button>
-              )}
-              {showSearchLogic && query && <span className="search-control-divider" aria-hidden="true" />}
               {query && (
                 <button type="button" className="search-clear" onClick={() => { onQueryChange(''); setShowSuggestions(false); }} aria-label="Clear search text">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -397,7 +360,7 @@ function SearchBar({
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
               </svg>
-              Commands — press Enter to execute:
+              Commands (press Enter to run):
             </div>
             {(() => {
               const groupLabels = { nav: 'Navigation', analysis: 'Analysis', action: 'Actions', info: 'Info' };
@@ -439,7 +402,7 @@ function SearchBar({
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                 <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
-              Suggested filter matches - click to add as filter:
+              Filters matching your words - click to add one:
             </div>
             {suggestions.map((s, i) => {
               const isActive = (activeFilters[s.categoryKey] || []).includes(s.value);
@@ -456,10 +419,8 @@ function SearchBar({
                   <span className="suggestion-icon">{s.icon}</span>
                   <span className="suggestion-value">{s.value}</span>
                   <span className="suggestion-category" style={{ color: s.color }}>{s.category}</span>
-                  {s.source === 'fuzzy' && <span className="suggestion-hint">Did you mean</span>}
-                  {s.source === 'context' && <span className="suggestion-hint">Interpreted</span>}
-                  {s.score !== undefined && (
-                    <span className="suggestion-score">{Math.round((1 - s.score) * 100)}%</span>
+                  {s.count !== undefined && (
+                    <span className="suggestion-score" title={`${s.count} case${s.count !== 1 ? 's' : ''} with this tag`}>{s.count}</span>
                   )}
                   {isActive && <span className="suggestion-check">&#10003;</span>}
                 </button>
@@ -507,6 +468,77 @@ function SearchBar({
         </div>
       )}
 
+      {/* What the text search did: words not found, typo, no case with all the words */}
+      {searchNotices?.length > 0 && (
+        <div className="search-notice-list">
+          {(searchNotices || []).filter(n => !(filterNameOffers || []).some(o => o.query === n.query && n.match === 'none')).map(n => (
+            <div key={n.query} className="search-notice" role="status">
+              {n.didYouMean ? (
+                <span>
+                  Did you mean{' '}
+                  <button type="button" className="search-notice-link" onClick={() => onReplaceSearchContext && onReplaceSearchContext(n.query, n.didYouMean)}>
+                    {n.didYouMean}
+                  </button>?
+                </span>
+              ) : n.notFound.length > 0 ? (
+                <span>
+                  {n.notFound.map(w => `"${w}"`).join(', ')} {n.notFound.length > 1 ? 'are' : 'is'} not in any case.
+                  {' '}Case texts are in English: try English words, or{' '}
+                  <button type="button" className="search-notice-link" onClick={() => onOpenDeepAI && onOpenDeepAI()}>
+                    ask the AI Assistant
+                  </button>{' '}in any language.
+                </span>
+              ) : null}
+              {n.match === 'partial' && !n.didYouMean && (
+                <span>No case contains all the words of "{n.query}": showing the cases with most of them.</span>
+              )}
+              {n.match === 'none' && !n.notFound.length && (
+                <span>No case matches "{n.query}".</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Filters to add after a search, in one place: first the filters written in the search
+          ("in your search"), then the tags that narrow the results. The words of the search that
+          a filter already says are taken out of it on click. Each shows the cases after the click. */}
+      {(filterNameOffers?.length > 0 || narrowSuggestions?.length > 0) && (() => {
+        const chips = [...(filterNameOffers || []), ...(narrowSuggestions || [])].slice(0, 6);
+        return (
+          <div className="search-filter-box">
+            <span className="search-context-label">Filter the results</span>
+            <div className="search-filter-chips">
+              {chips.map(s => (
+                <button
+                  key={`${s.kind || "tag"}|${s.query}|${s.categoryKey}|${s.value}`}
+                  type="button"
+                  className={`search-filter-chip ${s.kind === 'not' ? 'search-filter-chip-exclude' : ''}`}
+                  style={{ '--chip-color': s.color }}
+                  title={s.kind === 'not'
+                    ? `Exclude the filter ${s.category}: ${s.value}, in place of "${s.text}"`
+                    : s.kind === 'or'
+                      ? `Add the filters ${s.category}: ${s.values.join(', ')} (any of them), in place of the search`
+                      : s.keepText
+                        ? `Add the filter ${s.category}: ${s.value}`
+                        : `Add the filter ${s.category}: ${s.value}, in place of the words it already says`}
+                  onClick={() => onUseFilterForSearch && onUseFilterForSearch(s)}
+                >
+                  <span className="search-filter-chip-plus" aria-hidden="true">{s.kind === 'not' ? '−' : '+'}</span>
+                  <span className="search-filter-chip-name">{s.icon} {s.kind === 'not' ? `Exclude ${s.value}` : s.value}</span>
+                  <span className="search-filter-chip-meta">{s.category}{s.kind === 'or' ? ', any of them' : ''}</span>
+                  {s.inSearch && <span className="search-filter-chip-badge">in your search</span>}
+                  <span className="search-filter-chip-count">→ {s.count} case{s.count === 1 ? '' : 's'}</span>
+                </button>
+              ))}
+            </div>
+            {chips.some(s => !s.keepText) && (
+              <span className="search-filter-hint">Words already said by a filter are taken out of the text filter.</span>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Chatbot panel */}
       {showChat && (
         <div className="chat-panel">
@@ -545,36 +577,6 @@ function SearchBar({
                 )}
                 <div className={`chat-bubble ${msg.role} ${msg.type === 'command' ? 'command-response' : ''}`}>
                   <p style={msg.type === 'command' ? { whiteSpace: 'pre-wrap' } : undefined}>{msg.text}</p>
-                  {msg.type === 'suggestion' && suggestions.length > 0 && (
-                    <div className="chat-suggestion-chips">
-                      {suggestions.slice(0, 4).map((s, j) => (
-                        <button
-                          key={j}
-                          className="chat-chip"
-                          onClick={() => {
-                            onAddCanvasFilter(s.categoryKey, s.value);
-                            onQueryChange('');
-                          }}
-                        >
-                          {s.icon} {s.value}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {msg.suggestedFilters && msg.suggestedFilters.length > 0 && (
-                    <div className="chat-suggestion-chips">
-                      <span className="chat-suggest-label">Try adding:</span>
-                      {msg.suggestedFilters.slice(0, 4).map((s, j) => (
-                        <button
-                          key={j}
-                          className="chat-chip suggested"
-                          onClick={() => onAddCanvasFilter(s.categoryKey, s.value)}
-                        >
-                          {s.icon} {s.value} <span className="chip-freq">{s.frequency}%</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             ))}

@@ -7,11 +7,11 @@ import { findCommonFilters } from './fuzzySearch';
  *
  * @param {string} cmd - The command (e.g., '/help')
  * @param {string} arg - Arguments after the command
- * @param {object} ctx - Context: { studies, allStudies, activeFilters, showFavorites, favorites, compareIds }
+ * @param {object} ctx - Context: { studies, allStudies, activeFilters, filterModes, showFavorites, favorites, compareIds }
  * @returns {{ response: string, actions: object }}
  */
 export function executeCommand(cmd, arg, ctx) {
-  const { studies, allStudies, activeFilters, showFavorites, favorites, compareIds } = ctx;
+  const { studies, allStudies, activeFilters, filterModes = {}, showFavorites, favorites, compareIds } = ctx;
   let response = '';
   const actions = {};
 
@@ -68,7 +68,7 @@ export function executeCommand(cmd, arg, ctx) {
       const random = studies[Math.floor(Math.random() * studies.length)];
       if (random) {
         actions.selectStudy = random;
-        response = `Opening: "${random.title}" — ${random.city}, ${random.country}`;
+        response = `Opening "${random.title}" (${random.city}, ${random.country})`;
       } else {
         response = 'No studies available.';
       }
@@ -199,14 +199,14 @@ export function executeCommand(cmd, arg, ctx) {
       break;
     }
     case '/suggest': {
-      const suggestions = findCommonFilters(studies, activeFilters);
+      const suggestions = findCommonFilters(studies, activeFilters, filterModes);
       if (suggestions.length === 0) {
         response = studies.length > 10
-          ? 'No dominant filter found. Your results are diverse — try /common to see partial patterns.'
+          ? 'No dominant filter found. Your results are diverse: try /common to see partial patterns.'
           : 'Few results, no strong suggestions. Try /describe to explore them individually.';
       } else {
         response = `Suggested filters (common in ${studies.length} results):\n\n`
-          + suggestions.map(s => `${s.icon} ${s.category}: ${s.value} — ${s.frequency}% of results`).join('\n')
+          + suggestions.map(s => `${s.icon} ${s.category}: ${s.value}: ${s.frequency}% of results`).join('\n')
           + '\n\nClick filters in the panel to apply, or use the search bar.';
       }
       break;
@@ -285,9 +285,9 @@ export function executeCommand(cmd, arg, ctx) {
       const formatSection = (label, list, field) => {
         let t = `${label}: ${list.length}/${studies.length} (${Math.round(list.length / studies.length * 100)}%)\n`;
         if (list.length > 0 && list.length <= 8) {
-          t += list.map(s => `  - "${s.title}" — ${(s[field] || '').slice(0, 100)}...`).join('\n') + '\n';
+          t += list.map(s => `  - "${s.title}": ${(s[field] || '').slice(0, 100)}...`).join('\n') + '\n';
         } else if (list.length > 8) {
-          t += `  Top examples:\n` + list.slice(0, 5).map(s => `  - "${s.title}" — ${(s[field] || '').slice(0, 80)}...`).join('\n') + '\n';
+          t += `  Top examples:\n` + list.slice(0, 5).map(s => `  - "${s.title}": ${(s[field] || '').slice(0, 80)}...`).join('\n') + '\n';
         }
         return t;
       };
@@ -357,7 +357,7 @@ export function executeCommand(cmd, arg, ctx) {
       } else {
         const cName = cMatches[0].country;
         response = `${cMatches.length} studies in ${cName}:\n\n`
-          + cMatches.map(s => `#${s.id} "${s.title}" (${s.city}) — ${s.size}, ${s.climate_zone}`).join('\n');
+          + cMatches.map(s => `#${s.id} "${s.title}" (${s.city}): ${s.size}, ${s.climate_zone}`).join('\n');
       }
       break;
     }
@@ -380,7 +380,7 @@ export function executeCommand(cmd, arg, ctx) {
         response = 'No NBS categories found in filter configuration.';
       } else {
         response = 'NBS Design Categories:\n' + nbsKeys.map(([, cat]) =>
-          `${cat.icon} ${cat.label} — ${cat.options.slice(0, 6).join(', ')}${cat.options.length > 6 ? '...' : ''}`
+          `${cat.icon} ${cat.label}: ${cat.options.slice(0, 6).join(', ')}${cat.options.length > 6 ? '...' : ''}`
         ).join('\n');
       }
       break;

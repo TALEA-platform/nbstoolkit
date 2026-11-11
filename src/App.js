@@ -1,13 +1,12 @@
 import { useState, useMemo, useCallback, useRef, useEffect, useDeferredValue } from 'react';
 import staticCaseStudies from './data/caseStudies.json';
 import { FILTER_CATEGORIES } from './data/filterConfig';
-import { generateChatResponse, findCommonFilters } from './utils/fuzzySearch';
+import { generateChatResponse, WELCOME_MESSAGE, isGreeting } from './utils/fuzzySearch';
 import { parseYearRange } from './utils/yearRange';
-import { createLocalSearchIndex, runLocalRetrieval, getLocalFilterSuggestions, parseMultiWordQuery } from './utils/localRetrieval';
+import { searchCases, resultsAmong } from './utils/textSearch';
 import { studyMatchesAllFilters } from './utils/filterMatcher';
 import { exportFilteredResultsPDF } from './utils/pdfExport';
 import { downloadCSV, downloadExcel } from './utils/dataExport';
-import { hasTaleaType } from './utils/getTaleaTypes';
 import { executeCommand } from './utils/commandHandler';
 import SearchBar from './components/SearchBar';
 import FilterCanvas from './components/FilterCanvas';
@@ -22,29 +21,21 @@ import HelpPopup from './components/HelpPopup';
 import DeepAISearch from './components/DeepAISearch';
 import './App.css';
 
-const DEFAULT_FILTER_MODE = 'and';
-const SEARCH_MODE_STORAGE_KEY = 'talea_search_mode';
-const SEARCH_LOGIC_STORAGE_KEY = 'talea_search_logic';
-
-function shouldAutoApplyParsedFilter(option, pureFilterQuery) {
-  if (option.source === 'fuzzy') return false;
-  if (option.source === 'alias') return false;
-  if (pureFilterQuery) return true;
-  if (option.source === 'exact' || option.source === 'token' || option.source === 'context') {
-    return true;
-  }
-  return (option.matchedWordCount || 0) >= 2;
-}
-
 // Studies come only from the static JSON (synced via nightly build).
 // User submissions go through Google Sheet → approval → sync pipeline.
 
 // URL hash helpers
-function encodeStateToHash(activeFilters, searchQuery) {
+// Each text search is its own q= (joined, "Paris or Lyon" + "green roof" would change meaning).
+// f_ = filters, x_ = excluded filters, m_ = categories in OR mode
+function encodeStateToHash(activeFilters, searchQueries, excludedFilters = {}, filterModes = {}) {
   const params = new URLSearchParams();
-  if (searchQuery) params.set('q', searchQuery);
+  for (const q of searchQueries) params.append('q', q);
   for (const [key, values] of Object.entries(activeFilters)) {
     if (values.length > 0) params.set(`f_${key}`, values.join('|'));
+    if (values.length > 0 && filterModes[key] === 'or') params.set(`m_${key}`, 'or');
+  }
+  for (const [key, values] of Object.entries(excludedFilters)) {
+    if (values.length > 0) params.set(`x_${key}`, values.join('|'));
   }
   return params.toString();
 }
@@ -52,21 +43,25 @@ function encodeStateToHash(activeFilters, searchQuery) {
 function decodeHashToState(hash) {
   const params = new URLSearchParams(hash.replace(/^#/, ''));
   const filters = {};
-  let query = '';
+  const excluded = {};
+  const modes = {};
+  const queries = [];
   for (const [key, value] of params.entries()) {
     if (key === 'q') {
-      query = value;
+      if (value.trim()) queries.push(value.trim());
     } else if (key.startsWith('f_')) {
-      const catKey = key.slice(2);
-      filters[catKey] = value.split('|');
+      filters[key.slice(2)] = value.split('|');
+    } else if (key.startsWith('x_')) {
+      excluded[key.slice(2)] = value.split('|');
+    } else if (key.startsWith('m_') && value === 'or') {
+      modes[key.slice(2)] = 'or';
     }
   }
-  return { filters, query };
+  return { filters, excluded, modes, queries };
 }
 
 function App() {
   const caseStudies = staticCaseStudies;
-  const localSearchIndex = useMemo(() => createLocalSearchIndex(caseStudies), [caseStudies]);
 
   // Cookie consent
   const [cookieConsent, setCookieConsent] = useState(() => localStorage.getItem('talea_cookie_consent') === 'true');
@@ -106,8 +101,6 @@ function App() {
   // Core state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchContexts, setSearchContexts] = useState([]);
-  const [searchMode, setSearchMode] = useState(() => localStorage.getItem(SEARCH_MODE_STORAGE_KEY) || 'both');
-  const [searchLogic, setSearchLogic] = useState(() => localStorage.getItem(SEARCH_LOGIC_STORAGE_KEY) || 'and');
   const [activeFilters, setActiveFilters] = useState({});
   const [excludedFilters, setExcludedFilters] = useState({});
   const [canvasFilters, setCanvasFilters] = useState([]);
@@ -132,12 +125,11 @@ function App() {
   const [aiBackgroundStatus, setAiBackgroundStatus] = useState(null); // null | 'working' | 'ready'
   const [aiFilteredStudies, setAiFilteredStudies] = useState(null);
   const [chatMessages, setChatMessages] = useState([
-    { role: 'bot', text: "Welcome to the NBS Toolkit! I'm your TALEA Abacus assistant. Search for hardware solutions by typing anything \u2014 city names, NBS types, or even misspelled words. I'll find the best matches!", type: 'greeting' },
+    { role: 'bot', text: WELCOME_MESSAGE, type: 'greeting' },
   ]);
   const [committedQuery, setCommittedQuery] = useState('');
   const searchInputQuery = searchQuery.startsWith('/') ? '' : searchQuery.trim();
   const deferredSearchQuery = useDeferredValue(searchInputQuery);
-  const searchContextQuery = searchContexts.join(' ').trim();
   const rawSuggestionQuery = deferredSearchQuery.length >= 2 ? deferredSearchQuery : '';
   const [suggestionQuery, setSuggestionQuery] = useState('');
   useEffect(() => {
@@ -166,14 +158,6 @@ function App() {
     return uniqueQueries;
   }, [searchContexts, deferredSearchQuery]);
 
-  useEffect(() => {
-    localStorage.setItem(SEARCH_MODE_STORAGE_KEY, searchMode);
-  }, [searchMode]);
-
-  useEffect(() => {
-    localStorage.setItem(SEARCH_LOGIC_STORAGE_KEY, searchLogic);
-  }, [searchLogic]);
-
   // Compare mode
   const [compareIds, setCompareIds] = useState([]);
   const searchSectionRef = useRef(null);
@@ -189,27 +173,35 @@ function App() {
   // Read URL hash on mount
   useEffect(() => {
     if (window.location.hash) {
-      const { filters, query } = decodeHashToState(window.location.hash);
+      const { filters, excluded, modes, queries } = decodeHashToState(window.location.hash);
       if (Object.keys(filters).length > 0) setActiveFilters(filters);
-      if (query) {
-        setSearchContexts([query]);
-        setCommittedQuery(query);
+      if (Object.keys(excluded).length > 0) setExcludedFilters(excluded);
+      if (Object.keys(modes).length > 0) setFilterModes(modes);
+      // the filters also as chips of the filter canvas, as when they are added by hand
+      const chips = [
+        ...Object.entries(filters).flatMap(([categoryKey, values]) => values.map(value => ({ categoryKey, value }))),
+        ...Object.entries(excluded).flatMap(([categoryKey, values]) => values.map(value => ({ categoryKey, value, excluded: true }))),
+      ];
+      if (chips.length) setCanvasFilters(chips.map((c, i) => ({ ...c, id: Date.now() + i })));
+      if (queries.length) {
+        setSearchContexts(queries);
+        setCommittedQuery(queries[queries.length - 1]);
       }
     }
   }, []);
 
   // Update URL hash when filters change
   useEffect(() => {
-    const hashQuery = searchQuery.startsWith('/')
-      ? searchContextQuery
-      : (searchQuery.trim().length >= 2 ? searchQuery.trim() : searchContextQuery);
-    const hash = encodeStateToHash(activeFilters, hashQuery);
+    // the submitted searches, plus the text being typed (not a /command)
+    const typed = searchQuery.trim();
+    const queries = !typed.startsWith('/') && typed.length >= 2 ? [...searchContexts, typed] : searchContexts;
+    const hash = encodeStateToHash(activeFilters, queries, excludedFilters, filterModes);
     if (hash) {
       window.history.replaceState(null, '', `#${hash}`);
     } else {
       window.history.replaceState(null, '', window.location.pathname);
     }
-  }, [activeFilters, searchQuery, searchContextQuery]);
+  }, [activeFilters, searchQuery, searchContexts, excludedFilters, filterModes]);
 
   const shareURL = useCallback(() => {
     const url = window.location.href;
@@ -394,20 +386,31 @@ function App() {
     setFilterModes({});
   }, []);
 
-  const parsedSuggestionQuery = useMemo(() => {
-    if (!suggestionQuery) return null;
-    return parseMultiWordQuery(suggestionQuery);
-  }, [suggestionQuery]);
+  // Ids of the cases passing these filters (and favorites), or null when nothing is set
+  const passingIds = useCallback((filters, excluded = excludedFilters, modes = filterModes) => {
+    const favoritesOn = showFavorites && favorites.length > 0;
+    if (!favoritesOn && !Object.keys(filters).length && !Object.keys(excluded).length) return null;
+    return new Set(caseStudies
+      .filter(s => (!favoritesOn || favorites.includes(s.id)) && studyMatchesAllFilters(s, filters, excluded, modes))
+      .map(s => s.id));
+  }, [caseStudies, showFavorites, favorites, excludedFilters, filterModes]);
+  const currentPassingIds = useMemo(() => passingIds(activeFilters), [passingIds, activeFilters]);
 
+  // Text search (utils/textSearch.js): every submitted search and the text being typed.
+  // A case must answer all of them. The search runs among the cases passing the filters, so a
+  // sentence found only in part gives the best of those (filters are never applied by the search).
   const textRetrievalResults = useMemo(() => {
     if (activeTextQueries.length === 0) return null;
+    return activeTextQueries.map(textQuery => ({ textQuery, ...searchCases(textQuery, caseStudies, currentPassingIds) }));
+  }, [activeTextQueries, caseStudies, currentPassingIds]);
 
-    return activeTextQueries.map((textQuery) => {
-      const parsedQuery = parseMultiWordQuery(textQuery);
-      const results = runLocalRetrieval(textQuery, localSearchIndex, caseStudies, parsedQuery, searchLogic) || [];
-      return { textQuery, results };
-    });
-  }, [activeTextQueries, localSearchIndex, caseStudies, searchLogic]);
+  // What the search did with each submitted search (no case with all the words, words not
+  // found, "did you mean"), shown under the search bar
+  const searchNotices = useMemo(() => (textRetrievalResults || [])
+    .filter(r => searchContexts.includes(r.textQuery))
+    .filter(r => r.match === 'partial' || r.match === 'none' || r.didYouMean)
+    .map(r => ({ query: r.textQuery, match: r.match, notFound: r.notFound, didYouMean: r.didYouMean })),
+  [textRetrievalResults, searchContexts]);
 
   const lexicalTextRankedStudies = useMemo(() => {
     if (!textRetrievalResults) return null;
@@ -416,7 +419,7 @@ function App() {
     const bestRankById = new Map();
     const matchCountById = new Map();
     const studyById = new Map(caseStudies.map(study => [study.id, study]));
-    const requiredMatches = searchLogic === 'or' ? 1 : textRetrievalResults.length;
+    const requiredMatches = textRetrievalResults.length;
 
     for (const { results } of textRetrievalResults) {
       results.forEach((study, index) => {
@@ -443,7 +446,7 @@ function App() {
       })
       .map(id => studyById.get(id))
       .filter(Boolean);
-  }, [textRetrievalResults, caseStudies, searchLogic]);
+  }, [textRetrievalResults, caseStudies]);
 
   const activeTextRankedStudies = useMemo(() => {
     if (activeTextQueries.length === 0) return null;
@@ -470,64 +473,133 @@ function App() {
     return base;
   }, [aiFilteredStudies, activeTextRankedStudies, textFilteredIds, showFavorites, favorites, caseStudies]);
 
-  // Filter suggestions from fuzzy search
+  // Filters whose values contain the words being typed (menu under the search bar):
+  // clicking one applies it to the whole catalogue, so the number shown is the catalogue's
   const filterSuggestions = useMemo(() => {
-    if (!suggestionQuery || !parsedSuggestionQuery) return [];
-    return getLocalFilterSuggestions(suggestionQuery, parsedSuggestionQuery);
-  }, [suggestionQuery, parsedSuggestionQuery]);
+    if (!suggestionQuery) return [];
+    return searchCases(suggestionQuery, caseStudies).tagSuggestions.map(s => ({ ...s, count: s.total }));
+  }, [suggestionQuery, caseStudies]);
 
   const filteredStudies = useMemo(() => {
-    const hasActiveFilters = Object.keys(activeFilters).length > 0;
-    const hasExcludedFilters = Object.keys(excludedFilters).length > 0;
-    let results = filterBaseStudies;
-
-    if (hasActiveFilters || hasExcludedFilters) {
-      results = filterBaseStudies.filter(study => {
-        for (const [categoryKey, selectedValues] of Object.entries(activeFilters)) {
-          if (selectedValues.length === 0) continue;
-          const config = FILTER_CATEGORIES[categoryKey];
-          if (!config) continue;
-          const isAnd = (filterModes[categoryKey] || DEFAULT_FILTER_MODE) === 'and';
-          const matcher = isAnd ? 'every' : 'some';
-          if (config.type === 'object') {
-            if (!selectedValues[matcher](v => hasTaleaType(study, v))) return false;
-          } else if (config.type === 'value') {
-            // value type: a study has one value, so AND with multiple selected means it must match all (impossible for >1)
-            if (isAnd) {
-              if (!selectedValues.every(v => study[config.dataKey] === v)) return false;
-            } else {
-              if (!selectedValues.includes(study[config.dataKey])) return false;
-            }
-          } else if (config.type === 'array') {
-            const arr = study[config.dataKey] || [];
-            if (!selectedValues[matcher](v => arr.includes(v))) return false;
-          } else if (config.type === 'innovation') {
-            const innovMap = { Physical: 'has_physical_innovation', Social: 'has_social_innovation', Digital: 'has_digital_innovation' };
-            if (!selectedValues[matcher](v => !!study[innovMap[v]])) return false;
-          }
-        }
-        for (const [categoryKey, excludedValues] of Object.entries(excludedFilters)) {
-          if (excludedValues.length === 0) continue;
-          const config = FILTER_CATEGORIES[categoryKey];
-          if (!config) continue;
-          if (config.type === 'object') {
-            if (excludedValues.some(v => hasTaleaType(study, v))) return false;
-          } else if (config.type === 'value') {
-            if (excludedValues.includes(study[config.dataKey])) return false;
-          } else if (config.type === 'array') {
-            const arr = study[config.dataKey] || [];
-            if (excludedValues.some(v => arr.includes(v))) return false;
-          } else if (config.type === 'innovation') {
-            const innovMap = { Physical: 'has_physical_innovation', Social: 'has_social_innovation', Digital: 'has_digital_innovation' };
-            if (excludedValues.some(v => !!study[innovMap[v]])) return false;
-          }
-        }
-        return true;
-      });
-    }
-
-    return results;
+    if (!Object.keys(activeFilters).length && !Object.keys(excludedFilters).length) return filterBaseStudies;
+    // same rule used to count the suggestions below (studyMatchesAllFilters)
+    return filterBaseStudies.filter(study => studyMatchesAllFilters(study, activeFilters, excludedFilters, filterModes));
   }, [filterBaseStudies, activeFilters, excludedFilters, filterModes]);
+
+  // Cases the page would show with these searches and filters (same steps as above, AI aside):
+  // used to tell what a click on a proposed filter does before it is clicked
+  // With filters, counted quickly from two sets per search (resultsAmong, same cases as the full
+  // search: .tmp/normal-search/counts.cjs); without filters, the full search.
+  const resultsWith = useCallback((queries, filters, excluded, modes) => {
+    const within = passingIds(filters, excluded, modes);
+    if (within) {
+      const ids = new Set(resultsAmong(queries, caseStudies, within));
+      return caseStudies.filter(s => ids.has(s.id));
+    }
+    let base = caseStudies;
+    for (const q of queries) {
+      const ids = new Set(searchCases(q, caseStudies).results.map(s => s.id));
+      base = base.filter(s => ids.has(s.id));
+    }
+    return base;
+  }, [caseStudies, passingIds]);
+
+  // Number of cases with these filters (the filter panel counts each option with it): the search
+  // runs among the filtered cases, so it cannot start from the results of the current filters
+  // (a value in OR mode widens them). With AI results, among those.
+  const countWith = useCallback((filters, excluded, modes) => (aiFilteredStudies
+    ? filterBaseStudies.filter(s => studyMatchesAllFilters(s, filters, excluded, modes)).length
+    : resultsWith(activeTextQueries, filters, excluded, modes).length),
+  [aiFilteredStudies, filterBaseStudies, resultsWith, activeTextQueries]);
+
+  // What a click on a filter proposed after search r does. The words of r that the filter already
+  // says (rest = r without them) are taken out when that gives the same cases as keeping them:
+  // a case with the tag always has its words, so "green roof" + Extensive green roofs = the filter
+  // alone. A sentence found only in part stays as it is (it orders the filtered cases; without the
+  // filter words they could lose all the words they share with it), unless keeping it finds
+  // nothing ("nodal": a TALEA type is not in the texts). count = cases after the click.
+  const clickOutcome = useCallback((r, rest, nextFilters) => {
+    const keep = resultsWith(activeTextQueries, nextFilters).length;
+    if (rest === null || rest === undefined) return { count: keep, keepText: true };
+    if (r.match !== 'all' && keep > 0) return { count: keep, keepText: true };
+    const queries = activeTextQueries.map(q => (q === r.textQuery ? rest : q)).filter(q => q.trim().length >= 2);
+    const without = resultsWith(queries, nextFilters).length;
+    if (r.match === 'all' && without !== keep) return { count: keep, keepText: true };
+    return { count: without, keepText: false };
+  }, [resultsWith, activeTextQueries]);
+
+  // A submitted search with the whole name of a filter in it ("rain garden", "school rain garden"):
+  // offered first, as a filter "in your search". Offered only if the click does not widen the
+  // results shown now (when every word was found)
+  const filterNameOffers = useMemo(() => {
+    if (aiFilteredStudies) return [];
+    const offers = [];
+    for (const r of (textRetrievalResults || []).filter(x => searchContexts.includes(x.textQuery))) {
+      for (const n of r.filterNames || []) {
+        const current = activeFilters[n.categoryKey] || [];
+        if (current.includes(n.value) || (excludedFilters[n.categoryKey] || []).includes(n.value)) continue;
+        const nextFilters = { ...activeFilters, [n.categoryKey]: [...current, n.value] };
+        const { count, keepText } = clickOutcome(r, n.rest, nextFilters);
+        if (count === 0 || (r.match === 'all' && count > filteredStudies.length)) continue;
+        const cat = FILTER_CATEGORIES[n.categoryKey];
+        offers.push({ ...n, query: r.textQuery, keepText, inSearch: true, category: cat.label, icon: cat.icon, color: cat.color, count });
+      }
+      const others = activeTextQueries.filter(q => q !== r.textQuery);
+      // "single tree or row of trees": the values in OR mode, in place of the search. Not if the
+      // category already has values in AND mode (switching the mode would change them too)
+      const or = r.filterOr;
+      if (or) {
+        const current = activeFilters[or.categoryKey] || [];
+        const mode = filterModes[or.categoryKey] || 'and';
+        const values = or.values.filter(v => !current.includes(v));
+        if (values.length && !(current.length && mode !== 'or')
+          && !or.values.some(v => (excludedFilters[or.categoryKey] || []).includes(v))) {
+          const nextFilters = { ...activeFilters, [or.categoryKey]: [...current, ...values] };
+          const count = resultsWith(others, nextFilters, excludedFilters, { ...filterModes, [or.categoryKey]: 'or' }).length;
+          const cat = FILTER_CATEGORIES[or.categoryKey];
+          if (count > 0) {
+            offers.push({ kind: 'or', categoryKey: or.categoryKey, values, value: or.values.join(' or '), query: r.textQuery, rest: '', keepText: false, inSearch: true, category: cat.label, icon: cat.icon, color: cat.color, count });
+          }
+        }
+      }
+      // "trees without square": the filter excluded, in place of the words of the exclusion
+      for (const n of r.filterNot || []) {
+        if ((activeFilters[n.categoryKey] || []).includes(n.value) || (excludedFilters[n.categoryKey] || []).includes(n.value)) continue;
+        const nextExcluded = { ...excludedFilters, [n.categoryKey]: [...(excludedFilters[n.categoryKey] || []), n.value] };
+        const queries = [...others, n.rest].filter(q => q.trim().length >= 2);
+        const count = resultsWith(queries, activeFilters, nextExcluded).length;
+        const cat = FILTER_CATEGORIES[n.categoryKey];
+        if (count > 0) offers.push({ ...n, kind: 'not', query: r.textQuery, keepText: false, inSearch: true, category: cat.label, icon: cat.icon, color: 'var(--accent-red)', count });
+      }
+    }
+    return offers;
+  }, [aiFilteredStudies, textRetrievalResults, searchContexts, excludedFilters, activeFilters, filterModes, activeTextQueries, resultsWith, clickOutcome, filteredStudies.length]);
+
+  // After a search: filters matching its words that would narrow the results shown now.
+  // The click is simulated exactly (category modes and exclusions): number = results that would
+  // remain. A filter that would widen them (a category in OR mode) or swap an excluded value
+  // ("not X" → "X") is not a narrowing and is not offered.
+  const narrowSuggestions = useMemo(() => {
+    const submitted = (textRetrievalResults || []).filter(r => searchContexts.includes(r.textQuery));
+    if (!submitted.length || filteredStudies.length < 2) return [];
+    const seen = new Set();
+    const out = [];
+    for (const r of submitted) {
+      for (const s of r.tagSuggestions) {
+        const key = `${s.categoryKey}|${s.value}`;
+        if (seen.has(key) || (activeFilters[s.categoryKey] || []).includes(s.value)
+          || (excludedFilters[s.categoryKey] || []).includes(s.value)
+          || filterNameOffers.some(o => o.categoryKey === s.categoryKey && (o.values || [o.value]).includes(s.value))) continue;
+        seen.add(key);
+        const nextFilters = { ...activeFilters, [s.categoryKey]: [...(activeFilters[s.categoryKey] || []), s.value] };
+        const outcome = aiFilteredStudies
+          ? { count: filterBaseStudies.filter(study => studyMatchesAllFilters(study, nextFilters, excludedFilters, filterModes)).length, keepText: true }
+          : clickOutcome(r, s.rest, nextFilters);
+        if (outcome.count > 0 && outcome.count < filteredStudies.length) out.push({ ...s, ...outcome, query: r.textQuery });
+      }
+    }
+    return out.sort((a, b) => b.count - a.count).slice(0, 5);
+  }, [textRetrievalResults, searchContexts, aiFilteredStudies, filterBaseStudies, filteredStudies, activeFilters, excludedFilters, filterModes, filterNameOffers, clickOutcome]);
 
   // Most recent year of a case ("2017–2019" → 2019, "late 1990s" → 1999), or 0 if none.
   const extractYear = useCallback((yearStr) => parseYearRange(yearStr)?.end || 0, []);
@@ -574,8 +646,12 @@ function App() {
   filteredStudiesRef.current = filteredStudies;
   const filterSuggestionsRef = useRef(filterSuggestions);
   filterSuggestionsRef.current = filterSuggestions;
+  const searchContextsRef = useRef(searchContexts);
+  searchContextsRef.current = searchContexts;
   const activeFiltersRef = useRef(activeFilters);
   activeFiltersRef.current = activeFilters;
+  const filterModesRef = useRef(filterModes);
+  filterModesRef.current = filterModes;
   const compareIdsRef = useRef(compareIds);
   compareIdsRef.current = compareIds;
   const favoritesRef = useRef(favorites);
@@ -605,6 +681,33 @@ function App() {
     setSearchContexts(prev => prev.filter((_, index) => index !== contextIndex));
   }, []);
 
+  // "Did you mean": the search is replaced by the corrected one
+  const replaceSearchContext = useCallback((oldContext, newContext) => {
+    setSearchContexts(prev => {
+      const next = prev.map(c => (c === oldContext ? newContext : c));
+      return next.filter((c, i) => next.findIndex(x => x.toLowerCase() === c.toLowerCase()) === i);
+    });
+  }, []);
+
+  // "Use the filter": the filter takes the place of its name in the search
+  // ("school rain garden" → search "school" + filter Rain garden; "rain garden" → only the filter)
+  const applyFilterForSearch = useCallback((offer) => {
+    if (offer.kind === 'or') {
+      offer.values.forEach(v => addCanvasFilter(offer.categoryKey, v));
+      setFilterMode(offer.categoryKey, 'or');
+    } else if (offer.kind === 'not') {
+      addExcludedFilter(offer.categoryKey, offer.value);
+    } else {
+      addCanvasFilter(offer.categoryKey, offer.value);
+    }
+    if (offer.keepText) return; // a sentence found only in part stays as it is
+    const rest = offer.rest.trim();
+    setSearchContexts(prev => {
+      if (rest.length < 2 || prev.some(c => c.toLowerCase() === rest.toLowerCase())) return prev.filter(c => c !== offer.query);
+      return prev.map(c => (c === offer.query ? rest : c));
+    });
+  }, [addCanvasFilter, addExcludedFilter, setFilterMode]);
+
   const clearTextSearch = useCallback(() => {
     setSearchQuery('');
     setSearchContexts([]);
@@ -633,6 +736,7 @@ function App() {
         studies: filteredStudiesRef.current,
         allStudies: caseStudies,
         activeFilters: activeFiltersRef.current,
+        filterModes: filterModesRef.current,
         showFavorites: showFavoritesRef.current,
         favorites: favoritesRef.current,
         compareIds: compareIdsRef.current,
@@ -656,151 +760,14 @@ function App() {
       return;
     }
 
+    // A search is kept as a text filter (chip): its words are searched in the texts and tags of
+    // the cases. Filters are never applied from the words: matching ones are suggested.
     const submittedQuery = searchQuery.trim();
     if (submittedQuery.length < 2) return;
-    const {
-      matches,
-      exclusions,
-      categoryModes,
-      pureFilterQuery,
-      freeTextTokens,
-    } = parseMultiWordQuery(submittedQuery);
-    const canAutoApplyFilters = searchMode === 'both';
-    const retrievalPreview = runLocalRetrieval(submittedQuery, localSearchIndex, caseStudies, null, searchLogic)
-      || filteredStudiesRef.current
-      || caseStudies;
-    const previewBaseStudies = retrievalPreview.length > 0 ? retrievalPreview : filteredStudiesRef.current || caseStudies;
-
-    let previewActiveFilters = { ...activeFiltersRef.current };
-    let previewExcludedFilters = { ...excludedFilters };
-    let previewFilterModes = { ...filterModes };
-    const acceptedCategoryModes = {};
-    const autoAppliedMatches = [];
-    const autoAppliedExclusions = [];
-
-    const shouldKeepPreviewResults = (nextActive, nextExcluded, nextModes) => {
-      if (!Array.isArray(previewBaseStudies) || previewBaseStudies.length === 0) return true;
-
-      const nextCount = previewBaseStudies.filter(study =>
-        studyMatchesAllFilters(study, nextActive, nextExcluded, nextModes)
-      ).length;
-
-      return nextCount > 0;
-    };
-
-    const preservesPreviewAnchor = (nextActive, nextExcluded, nextModes) => {
-      if (pureFilterQuery) return true;
-      const anchorStudy = Array.isArray(previewBaseStudies) ? previewBaseStudies[0] : null;
-      if (!anchorStudy) return true;
-      return studyMatchesAllFilters(anchorStudy, nextActive, nextExcluded, nextModes);
-    };
-
-    if (canAutoApplyFilters) {
-      for (const option of matches) {
-        if (!shouldAutoApplyParsedFilter(option, pureFilterQuery)) continue;
-
-        const nextActiveValues = [...(previewActiveFilters[option.categoryKey] || [])];
-        if (!nextActiveValues.includes(option.value)) {
-          nextActiveValues.push(option.value);
-        }
-
-        const nextActiveFilters = {
-          ...previewActiveFilters,
-          [option.categoryKey]: nextActiveValues,
-        };
-
-        const nextExcludedValues = (previewExcludedFilters[option.categoryKey] || []).filter(value => value !== option.value);
-        const nextExcludedFilters = nextExcludedValues.length > 0
-          ? { ...previewExcludedFilters, [option.categoryKey]: nextExcludedValues }
-          : Object.fromEntries(Object.entries(previewExcludedFilters).filter(([key]) => key !== option.categoryKey));
-
-        const nextFilterModes = {
-          ...previewFilterModes,
-          ...(categoryModes?.[option.categoryKey] ? { [option.categoryKey]: categoryModes[option.categoryKey] } : {}),
-        };
-
-        if (!shouldKeepPreviewResults(nextActiveFilters, nextExcludedFilters, nextFilterModes)) {
-          continue;
-        }
-
-        if (!preservesPreviewAnchor(nextActiveFilters, nextExcludedFilters, nextFilterModes)) {
-          continue;
-        }
-
-        autoAppliedMatches.push(option);
-        previewActiveFilters = nextActiveFilters;
-        previewExcludedFilters = nextExcludedFilters;
-        previewFilterModes = nextFilterModes;
-        if (categoryModes?.[option.categoryKey]) {
-          acceptedCategoryModes[option.categoryKey] = categoryModes[option.categoryKey];
-        }
-      }
-
-      for (const option of exclusions) {
-        if (!shouldAutoApplyParsedFilter(option, pureFilterQuery)) continue;
-
-        const nextExcludedValues = [...(previewExcludedFilters[option.categoryKey] || [])];
-        if (!nextExcludedValues.includes(option.value)) {
-          nextExcludedValues.push(option.value);
-        }
-
-        const nextExcludedFilters = {
-          ...previewExcludedFilters,
-          [option.categoryKey]: nextExcludedValues,
-        };
-
-        const nextActiveValues = (previewActiveFilters[option.categoryKey] || []).filter(value => value !== option.value);
-        const nextActiveFilters = nextActiveValues.length > 0
-          ? { ...previewActiveFilters, [option.categoryKey]: nextActiveValues }
-          : Object.fromEntries(Object.entries(previewActiveFilters).filter(([key]) => key !== option.categoryKey));
-
-        const nextFilterModes = {
-          ...previewFilterModes,
-          ...(categoryModes?.[option.categoryKey] ? { [option.categoryKey]: categoryModes[option.categoryKey] } : {}),
-        };
-
-        if (!shouldKeepPreviewResults(nextActiveFilters, nextExcludedFilters, nextFilterModes)) {
-          continue;
-        }
-
-        if (!preservesPreviewAnchor(nextActiveFilters, nextExcludedFilters, nextFilterModes)) {
-          continue;
-        }
-
-        autoAppliedExclusions.push(option);
-        previewActiveFilters = nextActiveFilters;
-        previewExcludedFilters = nextExcludedFilters;
-        previewFilterModes = nextFilterModes;
-        if (categoryModes?.[option.categoryKey]) {
-          acceptedCategoryModes[option.categoryKey] = categoryModes[option.categoryKey];
-        }
-      }
-    }
-
-    const hasAutoAppliedFilters = autoAppliedMatches.length > 0 || autoAppliedExclusions.length > 0;
-
-    if (hasAutoAppliedFilters) {
-      for (const m of autoAppliedMatches) addCanvasFilter(m.categoryKey, m.value);
-      for (const e of autoAppliedExclusions) addExcludedFilter(e.categoryKey, e.value);
-      for (const [categoryKey, mode] of Object.entries(acceptedCategoryModes)) {
-        setFilterMode(categoryKey, mode);
-      }
-    }
-
-    if (pureFilterQuery && canAutoApplyFilters && hasAutoAppliedFilters) {
-      setSearchQuery('');
-      setCommittedQuery(submittedQuery);
-      return;
-    }
-
-    const remainingQuery = canAutoApplyFilters
-      ? (hasAutoAppliedFilters && freeTextTokens.length > 0 ? freeTextTokens.join(' ') : submittedQuery)
-      : submittedQuery;
-
     setCommittedQuery(submittedQuery);
-    appendSearchContext(remainingQuery);
+    if (!isGreeting(submittedQuery)) appendSearchContext(submittedQuery);
     setSearchQuery('');
-  }, [searchQuery, searchMode, localSearchIndex, caseStudies, searchLogic, excludedFilters, filterModes, addCanvasFilter, addExcludedFilter, appendSearchContext, clearAllFilters, handleExportPDF, setFilterMode]);
+  }, [searchQuery, caseStudies, appendSearchContext, clearAllFilters, handleExportPDF]);
 
   useEffect(() => {
     if (!committedQuery || committedQuery.length < 2) return;
@@ -809,15 +776,13 @@ function App() {
       return [...filtered, { role: 'user', text: committedQuery }];
     });
 
-    const response = generateChatResponse(committedQuery, filteredStudiesRef.current, filterSuggestionsRef.current, activeFiltersRef.current);
+    const response = generateChatResponse(committedQuery, filteredStudiesRef.current, filterSuggestionsRef.current, activeFiltersRef.current, searchContextsRef.current);
     if (response) {
       const timer = setTimeout(() => {
         setChatMessages(prev => {
           const recent = prev.slice(-7);
-          const msg = { role: 'bot', text: response.message, type: response.type };
-          const commonFilters = findCommonFilters(filteredStudiesRef.current, activeFiltersRef.current);
-          if (commonFilters.length > 0) msg.suggestedFilters = commonFilters;
-          return [...recent, msg];
+          // no filters proposed here: they are under the search bar ("Filter the results")
+          return [...recent, { role: 'bot', text: response.message, type: response.type }];
         });
       }, 500);
       return () => clearTimeout(timer);
@@ -826,7 +791,7 @@ function App() {
 
   const clearChat = useCallback(() => {
     setChatMessages([
-      { role: 'bot', text: "Welcome to the NBS Toolkit! I'm your TALEA Abacus assistant. Search for hardware solutions by typing anything \u2014 city names, NBS types, or even misspelled words. I'll find the best matches!", type: 'greeting' },
+      { role: 'bot', text: WELCOME_MESSAGE, type: 'greeting' },
     ]);
     setCommittedQuery('');
   }, []);
@@ -915,12 +880,13 @@ function App() {
           sectionRef={searchSectionRef}
           query={searchQuery}
           searchContexts={searchContexts}
-          searchMode={searchMode}
-          searchLogic={searchLogic}
+          searchNotices={searchNotices}
+          narrowSuggestions={narrowSuggestions}
+          filterNameOffers={filterNameOffers}
+          onUseFilterForSearch={applyFilterForSearch}
+          onReplaceSearchContext={replaceSearchContext}
           onQueryChange={handleSearch}
           onSearchSubmit={handleSearchSubmit}
-          onSearchModeChange={setSearchMode}
-          onSearchLogicChange={setSearchLogic}
           onOpenDeepAI={() => { setShowDeepAI('overlay'); setAiMounted(true); setAiBackgroundStatus(null); }}
           aiBackgroundStatus={aiBackgroundStatus}
           onClearSearchContext={clearSearchContext}
@@ -935,7 +901,7 @@ function App() {
           filterSuggestions={filterSuggestions}
           chatMessages={chatMessages}
           onClearChat={clearChat}
-          studies={filterBaseStudies}
+          countWith={countWith}
         />
 
         <div className="content-layout">
@@ -977,7 +943,7 @@ function App() {
                 <span className="results-count">
                   {filteredStudies.length} of {aiFilteredStudies ? aiFilteredStudies.length : caseStudies.length} solutions
                   {activeTextQueries.length > 0 && !aiFilteredStudies && (
-                    <span className="fuzzy-label"> (local retrieval)</span>
+                    <span className="fuzzy-label"> (text search)</span>
                   )}
                   {showFavorites && <span className="fuzzy-label"> (favorites)</span>}
                   {aiFilteredStudies && <span className="fuzzy-label"> (AI search)</span>}
@@ -1044,7 +1010,7 @@ function App() {
               <div className="compare-floating-bar">
                 <span>
                   {compareIds.length === 1
-                    ? '1 selected — add more to compare'
+                    ? '1 selected: add more to compare'
                     : `${compareIds.length} selected for comparison`}
                 </span>
                 <button

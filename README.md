@@ -27,7 +27,7 @@ This script read every sheet from the workbook generating `src/data/caseStudies.
 
 ## Features
 
-- **Search** - Fuzzy text search with automatic filter chip suggestions and slash commands
+- **Search** - Word search in the texts and tags of the case studies (`src/utils/textSearch.js`), with "or" / "not", countries and cities, "did you mean" for typos, suggested filters (never applied automatically) and slash commands
 - **AI Assistant** - Describe your site, its problems and limits in any language: the search finds the closest case studies (tags, words and meaning) and an AI expert selects up to 5 and explains why they fit. Keeps working in the background if the panel is closed.
 - **Filter Canvas** - Visual query builder with drag-and-drop filters, AND/OR logic, and include/exclude (NOT) support
 - **Grid / List / Map** - Card grid, compact table, or interactive map with Street View link, Geo URI and OpenStreetMap link
@@ -100,7 +100,7 @@ Questo script legge ogni foglio dell' Excel `src/data/caseStudies.json`. Lo scri
 
 ## Funzionalità
 
-- **Ricerca** - Ricerca testuale fuzzy con suggerimenti automatici per i filtri e compandi slash.
+- **Ricerca** - Ricerca per parole nei testi e nei tag dei casi (`src/utils/textSearch.js`), con "or" / "not", paesi e città, "did you mean" per i refusi, filtri suggeriti (mai applicati da soli) e comandi slash.
 - **Assistente AI** - Descrivi in qualsiasi lingua il tuo luogo, i problemi e i limiti: la ricerca trova i casi studio più vicini (tag, parole e significato) e un esperto AI ne sceglie fino a 5 spiegando perché sono adatti. Continua a lavorare anche se il pannello viene chiuso.
 - **Filter Canvas** - Costruttuore visivo di query con filtri drag-and-drop, logica AND/OR e supporto per inclusione/esclusione (NOT).
 - **Griglia / Lista / Mappa** - Segli tra griglia a scheda, tabella compatta o mappa interattiva con link a Street View, Geo URI e OpenStreetMap.

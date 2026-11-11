@@ -6,7 +6,7 @@ const HELP_PAGES = [
     icon: '🏠',
     content: [
       { heading: 'What is TALEA Abacus?', text: 'TALEA Abacus is an interactive toolkit for exploring Nature-Based Solution (NBS) case studies from cities worldwide. Browse, search, filter, compare, and export data about real-world NBS projects. New submissions are added to the toolkit.' },
-      { heading: 'Quick start', text: 'Type in the search bar to find solutions — the search supports fuzzy matching. Press Enter to submit your query and add filter chips automatically.' },
+      { heading: 'Quick start', text: 'Type words in English (e.g. "rain garden", "parking"), a city or a country and press Enter: you get the cases whose texts or tags contain all of them. Use "or" for alternatives ("Paris or Lyon") and "not" to exclude ("green roofs not in Spain"). Each search stays as a text filter, and several text filters apply together. Matching filters are suggested under the search bar, never applied automatically. If a word is not in any case, the search says so and may suggest a correction. To describe your site in any language, use the AI Assistant.' },
       { heading: 'Views', text: 'Switch between Grid, List, and Map view using the toggle buttons. Grid shows cards, List shows a compact table, and Map plots locations on an interactive map.' },
     ],
   },
@@ -27,8 +27,8 @@ const HELP_PAGES = [
     icon: '🎨',
     content: [
       { heading: 'How it works', text: 'The Filter Canvas is a visual query builder. Open the palette to see all filter categories organized in groups. Click or drag filters onto the canvas.' },
-      { heading: 'Include / Exclude', text: 'Filters are green by default (include). You can exclude filters in two ways: (1) Click the NOT button in the canvas toolbar to activate NOT mode — while active, any palette item you click is added as an exclusion filter (red "NOT" chip). (2) After adding a filter, click the toggle button (-/+) on its chip to switch between include and exclude. Excluded filters remove matching results.' },
-      { heading: 'AND / OR logic', text: 'Within a single category: when two or more filters are active, a toggle appears to switch between OR (match any — default) and AND (match all). Across different categories: filters always combine with AND, meaning a study must satisfy every category\'s condition. For example, selecting "Small" in Size AND "Tropical" in Climate shows only studies that are both small and tropical.' },
+      { heading: 'Include / Exclude', text: 'Filters are green by default (include). You can exclude filters in two ways: (1) Click the NOT button in the canvas toolbar to activate NOT mode. While active, any palette item you click is added as an exclusion filter (red "NOT" chip). (2) After adding a filter, click the toggle button (-/+) on its chip to switch between include and exclude. Excluded filters remove matching results.' },
+      { heading: 'AND / OR logic', text: 'Within a single category: when two or more filters are active, a toggle appears to switch between AND (match all, the default) and OR (match any). Across different categories: filters always combine with AND, meaning a study must satisfy every category\'s condition. For example, selecting "Small" in Size AND "Tropical" in Climate shows only studies that are both small and tropical.' },
       { heading: 'Stacking with AI results', text: 'When AI search results are active, your filter canvas and search bar work on top of the AI-filtered pool. This lets you further narrow down AI results with manual filters.' },
     ],
   },

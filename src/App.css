@@ -1095,6 +1095,132 @@ a, button, [role="button"], .case-card, .case-list-item {
   flex-wrap: wrap;
 }
 
+/* Text search notices (words not found, did you mean, partial match) and "narrow by tag" chips */
+.search-notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.search-notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.search-notice-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--talea-blue);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Filters that can be added from a search ("Filters in your search", "Narrow by tag"):
+   same look as a filter, with a "+" and what the click does */
+.search-filter-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.search-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-filter-chip {
+  --chip-color: var(--talea-blue);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 12px 6px 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--chip-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.search-filter-chip:hover,
+.search-filter-chip:focus-visible {
+  border-color: var(--chip-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* exclusion: "−", red name and dashed border (some categories are red already) */
+.search-filter-chip-exclude {
+  border-style: dashed;
+  border-left-style: solid;
+}
+
+.search-filter-chip-exclude .search-filter-chip-name {
+  color: var(--accent-red);
+}
+
+.search-filter-chip-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--chip-color);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.search-filter-chip-name {
+  font-weight: 700;
+}
+
+.search-filter-chip-meta {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.search-filter-chip-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(18, 114, 183, 0.12);
+  color: var(--talea-blue);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.search-filter-chip-count {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.search-filter-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .search-context-meta {
   display: flex;
   align-items: center;
@@ -4381,49 +4507,6 @@ a, button, [role="button"], .case-card, .case-list-item {
 
 .chat-bubble p {
   margin: 0;
-}
-
-.chat-suggestion-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.chat-chip {
-  font-size: 11px;
-  padding: 4px 10px;
-  background: rgba(33, 168, 74, 0.1);
-  border: 1px solid rgba(33, 168, 74, 0.3);
-  border-radius: 20px;
-  color: var(--talea-green);
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.chat-chip:hover {
-  background: rgba(33, 168, 74, 0.2);
-}
-
-.chat-chip.suggested {
-  background: rgba(18, 114, 183, 0.1);
-  border-color: rgba(18, 114, 183, 0.3);
-  color: var(--talea-blue);
-}
-
-.chat-chip.suggested:hover {
-  background: rgba(18, 114, 183, 0.2);
-}
-
-.chip-freq {
-  font-size: 9px;
-  opacity: 0.7;
-}
-
-.chat-suggest-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  align-self: center;
 }
 
 .chat-quick-actions {

@@ -192,7 +192,7 @@ function CaseStudyGrid({ studies, onSelect, view, favorites, onToggleFavorite, c
           <line x1="8" y1="11" x2="14" y2="11"/>
         </svg>
         <h3>No solutions found</h3>
-        <p>Try adjusting your search or removing some filters. The fuzzy search handles misspellings!</p>
+        <p>Try other words or remove some filters.</p>
       </div>
     );
   }
