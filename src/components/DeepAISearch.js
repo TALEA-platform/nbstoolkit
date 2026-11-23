@@ -31,6 +31,11 @@ function loadChat() {
   return null;
 }
 
+// True when a conversation with at least one question is saved from an earlier visit
+export function hasSavedChat() {
+  return (loadChat() || []).some(m => m.role === 'user');
+}
+
 function saveChat(messages) {
   try {
     // Strip full study objects and _new flag to keep storage small
@@ -177,7 +182,7 @@ function TypewriterMessage({ text, speed, onDone }) {
   return <div>{renderMarkdown(displayed)}{!done && <span className="typing-cursor">|</span>}</div>;
 }
 
-function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, onFilteredResults, onToggleMode, mode, hidden = false, onBackgroundStatus, prefill = null }) {
+function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, onFilteredResults, onToggleMode, mode, hidden = false, onBackgroundStatus, prefill = null, onChatChange }) {
   const isSidebar = mode === 'sidebar';
   const [messages, setMessages] = useState(() => loadChat() || [GREETING]);
   const [input, setInput] = useState('');
@@ -216,7 +221,8 @@ function DeepAISearch({ caseStudies, onClose, onSelectStudy, onShowAllResults, o
   // Persist chat to localStorage on every change
   useEffect(() => {
     saveChat(messages);
-  }, [messages]);
+    if (onChatChange) onChatChange(messages.some(m => m.role === 'user'));
+  }, [messages, onChatChange]);
 
   // Lock background scroll only in overlay mode (and not while closed)
   useEffect(() => {

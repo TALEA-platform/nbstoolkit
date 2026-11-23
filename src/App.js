@@ -18,7 +18,7 @@ import MapView from './components/MapView';
 import CompareMode from './components/CompareMode';
 import StatsPanel from './components/StatsPanel';
 import HelpPopup from './components/HelpPopup';
-import DeepAISearch from './components/DeepAISearch';
+import DeepAISearch, { hasSavedChat } from './components/DeepAISearch';
 import './App.css';
 
 // Studies come only from the static JSON (synced via nightly build).
@@ -124,6 +124,7 @@ function App() {
   // The assistant stays mounted after the first open, so a search keeps running when it is closed.
   const [aiMounted, setAiMounted] = useState(false);
   const [aiBackgroundStatus, setAiBackgroundStatus] = useState(null); // null | 'working' | 'ready'
+  const [aiHasChat, setAiHasChat] = useState(() => hasSavedChat()); // a question was already asked
   const [aiFilteredStudies, setAiFilteredStudies] = useState(null);
   const [chatMessages, setChatMessages] = useState([
     { role: 'bot', text: WELCOME_MESSAGE, type: 'greeting' },
@@ -890,6 +891,7 @@ function App() {
           onSearchSubmit={handleSearchSubmit}
           onOpenDeepAI={(text, send) => { if (text) setAiPrefill({ text, send: !!send }); setShowDeepAI('overlay'); setAiMounted(true); setAiBackgroundStatus(null); }}
           aiBackgroundStatus={aiBackgroundStatus}
+          aiHasChat={aiHasChat}
           onClearSearchContext={clearSearchContext}
           onEditSearchContext={editSearchContext}
           onAddCanvasFilter={addCanvasFilter}
@@ -1073,6 +1075,7 @@ function App() {
           hidden={!showDeepAI}
           onBackgroundStatus={setAiBackgroundStatus}
           prefill={aiPrefill}
+          onChatChange={setAiHasChat}
           onClose={() => { setShowDeepAI(false); setAiFilteredStudies(null); }}
           onSelectStudy={(study) => {
             setSelectedStudy(study);

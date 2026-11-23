@@ -67,6 +67,7 @@ function SearchBar({
   onSearchSubmit,
   onOpenDeepAI,
   aiBackgroundStatus,
+  aiHasChat = false,
   onClearSearchContext,
   onEditSearchContext,
   onAddCanvasFilter,
@@ -147,7 +148,11 @@ function SearchBar({
   const aiMode = searchMode === 'ai' && !phoneScreen;
 
   function switchMode(next) {
-    if (next === searchMode) return;
+    if (next === searchMode) {
+      // AI tab clicked again: go back to the running or finished conversation
+      if (next === 'ai' && (aiHasChat || aiBackgroundStatus) && onOpenDeepAI) onOpenDeepAI();
+      return;
+    }
     setSearchMode(next);
     setShowSuggestions(false);
     setHighlightedIndex(-1);
@@ -332,7 +337,7 @@ function SearchBar({
             ref={aiInputRef}
             type="text"
             className="search-input search-ai-input"
-            placeholder="Describe your site, its problems and limits, in any language"
+            placeholder={aiHasChat ? 'Ask a follow-up or a new question' : 'Describe your site, its problems and limits, in any language'}
             value={aiText}
             maxLength={1000}
             onChange={e => setAiText(e.target.value)}
@@ -344,7 +349,10 @@ function SearchBar({
             }}
           />
           <button type="button" className="search-ai-send" onClick={askAI} title={aiText.trim() ? 'Send to the AI Assistant' : aiTitle}>
-            Ask
+            {aiText.trim() ? 'Ask'
+              : aiBackgroundStatus === 'working' ? 'In progress'
+              : (aiBackgroundStatus === 'ready' || aiHasChat) ? 'See answer'
+              : 'Ask'}
           </button>
         </div>
         ) : (

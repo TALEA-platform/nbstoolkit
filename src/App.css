@@ -306,12 +306,26 @@ a, button, [role="button"], .case-card, .case-list-item {
   background: #21a84a;
 }
 
+/* On the orange (selected) AI tab the badge needs a light ring to stay visible */
+.search-mode-tab-ai.active .deep-ai-btn-badge {
+  width: 12px;
+  height: 12px;
+  top: -4px;
+  right: -4px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(224, 124, 58, 0.6);
+}
+
+.search-mode-tab-ai.active.bg-working .deep-ai-btn-badge {
+  background: #c9631f;
+}
+
 .search-ai-wrapper .search-icon {
   color: #e07c3a;
 }
 
 .search-input.search-ai-input {
-  padding-right: 96px;
+  padding-right: 130px;
   border-color: rgba(224, 124, 58, 0.55);
 }
 
@@ -325,24 +339,21 @@ a, button, [role="button"], .case-card, .case-list-item {
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  padding: 8px 18px;
-  border: none;
+  padding: 6px 14px;
+  border: 1px solid rgba(224, 124, 58, 0.45);
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #e07c3a, #d69e2e);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
+  background: transparent;
+  color: #e07c3a;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: var(--transition);
 }
 
-.search-ai-send:hover:not(:disabled) {
-  box-shadow: 0 2px 10px rgba(224, 124, 58, 0.35);
-}
-
-.search-ai-send:disabled {
-  opacity: 0.45;
-  cursor: default;
+.search-ai-send:hover {
+  background: rgba(224, 124, 58, 0.1);
+  border-color: rgba(224, 124, 58, 0.7);
 }
 
 .search-ai-privacy {
